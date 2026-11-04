@@ -39,5 +39,9 @@ El plan completo está en `docs/plan.md`.
 - El stock **nunca se guarda como un número que se pisa**: se calcula sumando movimientos.
 - Ventas y pagos no se borran ni se editan: se **anulan** con un registro que lo compense.
 - Precio y costo de cada venta se guardan como **copia histórica** en el momento de la venta.
+- El costo de lo vendido se calcula por **FIFO** en la base de datos y nunca se recalcula hacia atrás.
+- Ganancia, cobros, deudas, capital en stock y retiros se calculan y muestran **por separado**.
+- **No inventar datos faltantes** ni modificar datos históricos sin autorización de los socios.
+- Interfaz responsive: cómoda en celular y en computadora Windows.
 - Zona horaria de referencia: `America/Argentina/Tucuman`.
 - Textos de la interfaz en español rioplatense.
