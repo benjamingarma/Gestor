@@ -1,0 +1,35 @@
+name: Mantener activo Supabase
+
+# El plan gratis de Supabase pausa los proyectos sin actividad durante una semana.
+# Cada 2 días se llama a la función ping(), que solo devuelve la hora (no lee datos).
+#
+# Requiere en GitHub > Settings > Secrets and variables > Actions:
+#   SUPABASE_URL              (secreto)
+#   SUPABASE_PUBLISHABLE_KEY  (secreto)
+# Si no están cargados, la tarea avisa y termina sin error.
+on:
+  schedule:
+    - cron: "17 13 */2 * *" # 10:17 en Tucumán, cada 2 días
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a ping()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::notice::Faltan los secretos SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY. No se hizo nada."
+            exit 0
+          fi
+          respuesta=$(curl --fail --silent --show-error --max-time 30 -X POST \
+            "$SUPABASE_URL/rest/v1/rpc/ping" \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json")
+          echo "Supabase respondió: $respuesta"
