@@ -1,21 +1,23 @@
-# Plan del sistema de gestión — Versión 2
+# Plan del sistema de gestión — Versión 3
 
-> Estado: **borrador para aprobar**. Incorpora las respuestas definitivas de los socios
-> a las 15 preguntas de la versión 1. Donde la versión 1 decía otra cosa, manda esta.
-> No se programa nada hasta que este plan esté aprobado.
+> Estado: **aprobado** por los socios (versión 2) con las correcciones de la versión 3:
+> producto sin sabor, costo de compra en dólares (blue) con tipo de cambio por compra,
+> backups sobre el plan gratis de Supabase y fast-check para pruebas.
+> Donde las versiones anteriores digan otra cosa, manda esta.
 
 Índice:
 1. Objetivo y alcance
-2. Decisiones de negocio (definitivas)
-3. Ambigüedades técnicas resueltas (propuestas documentadas)
+2. Decisiones de negocio
+3. Ambigüedades técnicas resueltas
 4. Modelo de datos y relaciones
 5. Reglas de cálculo
 6. Ejemplos numéricos
 7. Verificación: capital invertido vs. ganancia
 8. Contradicciones y tensiones detectadas
 9. Arquitectura
-10. Pruebas propuestas
-11. Plan de implementación por módulos
+10. Backups y continuidad (plan gratis de Supabase)
+11. Pruebas
+12. Plan de implementación por módulos
 
 ---
 
@@ -25,137 +27,135 @@ MVP simple, confiable y práctico para el trabajo diario de dos socios. Sin comp
 que no aporte valor real. App web **solo online**, responsive: cómoda en celular y en una
 computadora con Windows.
 
-### Etapa 1 (este plan la detalla)
-Clientes con visitas básicas y atrasados · productos y compras con costo FIFO · ventas con varios
-productos · precios generales y especiales · pagos y cuenta corriente · ganancia con reparto 50/50
-configurable · ajustes de stock · anulaciones · medios de pago · responsables de cada operación ·
-carga inicial por planilla CSV.
+### Etapa 1
+Clientes con visitas básicas y atrasados · productos (marca + modelo) y compras en USD con costo
+FIFO en pesos · ventas con varios productos · precios generales y especiales · pagos y cuenta
+corriente · ganancia con reparto 50/50 configurable · ajustes de stock · anulaciones · medios de
+pago · responsables de cada operación · carga inicial por CSV · backups, exportación y prueba de
+restauración.
 
-### Etapa 2 (solo se deja el modelo preparado, no se programa)
+### Etapa 2 (solo se deja el modelo preparado)
 Historial de visitas y recordatorios · devoluciones y reposiciones por productos fallados ·
 retiros por socio.
 
 ### Fuera de alcance
 Modo offline y sincronización, mapas, proveedores, gastos, finanzas avanzadas, productos que no
-sean vapers (la estructura queda preparada, nada más).
+sean vapers (la estructura queda preparada, nada más), sabores.
 
-### Reglas de implementación (resumen)
+### Reglas de implementación
 UUID generados en el cliente · operaciones idempotentes · inventario solo por movimientos ·
-precios y costos históricos congelados · nada financiero ni de inventario se borra (se anula) ·
-ventas, cobros, deudas, costos, ganancias y retiros separados · ramas, un módulo por vez,
-pruebas obligatorias de dinero e inventario.
+precios, costos y tipos de cambio históricos congelados · nada financiero ni de inventario se
+borra (se anula) · ventas, cobros, deudas, costos, ganancias, capital y retiros separados ·
+ramas, un módulo por vez, pruebas obligatorias de dinero e inventario.
 
 ---
 
-## 2. Decisiones de negocio (definitivas)
+## 2. Decisiones de negocio
 
 | # | Tema | Decisión |
 |---|------|----------|
-| 1 | Costo | **FIFO automático.** Al vender, el sistema consume las compras más antiguas del producto. No se elige lote. Cada compra registra producto, cantidad, costo unitario, fecha y costo total. El costo de una venta, una vez registrado, no cambia nunca. |
-| 2 | Ganancia | Ganancia = importe de venta − costo FIFO de lo vendido. **No** hay ganancia proporcional a lo cobrado. Cada venta muestra: importe, costo, ganancia, cobrado y saldo. |
-| 3 | Cuenta corriente | Cada pago se carga a cuenta del cliente y se aplica **solo** a las deudas más viejas (FIFO). Pagos parciales permitidos. Lo que sobra queda como **saldo a favor**. |
-| 4 | Reparto | Primero se descuenta el costo; la ganancia se divide según el porcentaje (50/50 por defecto, configurable). Se muestra ganancia total, parte de cada socio, ganancia acumulada y dinero cobrado, **por separado**. No se distribuye dinero: solo se informa. |
-| 5 | Pérdidas | Etapa 1: ajuste de stock con motivo (regalo, pérdida, rotura); descuenta stock por FIFO, registra su costo y **ese costo resta de la ganancia**. Etapa 2: devoluciones/reposiciones. |
-| 6 | Anulaciones | Ventas, pagos, compras, ajustes y movimientos nunca se borran. Se anulan con registros compensatorios. |
-| 7 | Ventas | Una venta tiene varios renglones (producto, cantidad, precio). El total se calcula solo. |
-| 8 | Precios | Precio general por producto + precio especial por cliente y producto. Precio propuesto: especial del cliente → último precio que pagó ese cliente por ese producto → general. Siempre editable. Se guarda el precio histórico. |
-| 9 | Pagos | Medios: efectivo, transferencia, Mercado Pago. Cada pago: cliente, importe, fecha, medio, usuario que lo registró y socio que recibió el dinero. |
-| 10 | Visitas | Última visita = la más reciente entre ventas y "marcar como visitado". Intervalo en días (14 por defecto). Próxima visita = última + intervalo. **Atrasado desde el día siguiente** a la fecha prevista. Clientes archivables sin perder historial. |
-| 11 | Productos | Producto = marca + puffs + sabor. Catálogo con marca, modelo/puffs, sabor, stock, costo y precio general. Solo vapers por ahora; estructura preparada para otras categorías. |
-| 12 | Responsables | Se registra quién hizo cada venta, quién registró cada pago, quién recibió el dinero y quién cargó cada compra o ajuste. |
-| 13 | Carga inicial | ~100 clientes, ~700 unidades en stock (+400 que llegan como compra nueva), deudas, saldos a favor, precios generales y especiales. Importación CSV en Etapa 1 con pantalla de verificación de totales antes de confirmar. No se inventan datos faltantes. |
+| 1 | Costo | **FIFO automático** en pesos. Al vender se consumen las compras más antiguas del producto. No se elige lote. El costo de una venta, una vez registrado, no cambia nunca. |
+| 1b | Moneda de compra | Se compra en **USD**. Cada compra guarda costo unitario en USD, **tipo de cambio blue de ese día** (cargado a mano; la app sugiere el último usado) y costo unitario en pesos = USD × tipo de cambio. Si no se recuerda el tipo de cambio exacto de una tanda, se carga **estimado** y queda marcado. El costo en pesos queda fijo al cargar la compra. |
+| 1c | Moneda de venta | Ventas, precios, cobros, deudas y ganancia: **pesos**. La venta no usa tipo de cambio. |
+| 2 | Ganancia | Ganancia = venta en pesos − costo en pesos (FIFO) de lo vendido. No hay ganancia proporcional a lo cobrado. Cada venta muestra: importe, costo, ganancia, cobrado y saldo. |
+| 3 | Cuenta corriente | Cada pago se carga a cuenta del cliente y se aplica solo a las deudas más viejas (FIFO). Pagos parciales permitidos. Lo que sobra queda como **saldo a favor**. |
+| 4 | Reparto | Primero se descuenta el costo; la ganancia se divide según el porcentaje (50/50 por defecto, configurable). Se muestran por separado: ganancia, parte de cada socio, ganancia acumulada y dinero cobrado. No se distribuye dinero. |
+| 4b | Capital | Capital invertido y stock se muestran **en USD y en pesos al costo de compra**. El cierre del capital se verifica en las dos monedas. |
+| 5 | Pérdidas | Etapa 1: ajuste de stock con motivo (regalo, pérdida, rotura); sale por FIFO, registra su costo en USD y en pesos de la compra de origen y ese costo en pesos resta de la ganancia. Etapa 2: devoluciones/reposiciones. |
+| 6 | Anulaciones | Nada se borra. Se anula con registros compensatorios. Una venta anulada devuelve las unidades a sus compras de origen con su costo original. |
+| 7 | Ventas | Varios productos por venta, cada uno con cantidad y precio. Total automático. |
+| 8 | Precios | Precio general por producto + precio especial por cliente y producto. Propuesto: especial → último pagado por ese cliente → general. Editable. Precio histórico guardado. |
+| 9 | Pagos | Efectivo, transferencia, Mercado Pago. Cada pago: cliente, importe, fecha, medio, usuario que lo registró y socio que recibió el dinero. |
+| 10 | Visitas | Última visita = la más reciente entre ventas y "marcar como visitado". Intervalo 14 días por defecto. Atrasado desde el día siguiente a la fecha prevista. Clientes archivables. |
+| 11 | Productos | Producto = **marca + modelo** (el modelo incluye los puffs, ej. "Elfbar 5000"). **Sin sabor.** Catálogo: marca, modelo, stock, costo y precio general. Estructura preparada para otras categorías. |
+| 12 | Responsables | Quién hizo cada venta, quién registró cada pago, quién recibió el dinero, quién cargó cada compra o ajuste. |
+| 13 | Carga inicial | ~100 clientes, ~700 unidades (+400 en camino, como compra nueva). Deudas, saldos a favor, precios generales y especiales. CSV con verificación de totales antes de confirmar. No se inventan datos. |
 | 14 | Login | Email y contraseña, sesión persistente y segura, un acceso por socio. |
-| 15 | Cuentas | GitHub, Supabase y Netlify a nombre de Benjamín; luego se da acceso de administrador al papá. Ninguna clave en el código ni en el frontend. |
+| 15 | Cuentas | GitHub, Supabase y Netlify a nombre de Benjamín; luego acceso de administrador al papá. Ninguna clave en el código ni en el frontend. |
+| 16 | Backups | Plan gratis de Supabase. Backup diario automático cifrado fuera de Supabase, exportación a CSV desde la app, tarea que evite la pausa por inactividad, procedimiento de restauración documentado y **probado antes de cargar datos reales**. |
 
 ---
 
-## 3. Ambigüedades técnicas resueltas (propuestas documentadas)
+## 3. Ambigüedades técnicas resueltas
 
-No son preguntas: son soluciones simples que propongo. Si alguna no les sirve, se cambia antes de programar.
+**A1. Socio ≠ usuario de login.** `socios` es una tabla propia con `user_id` opcional. "Quién vendió" y
+"quién recibió el dinero" apuntan a un socio; "quién registró" es el **socio vinculado al usuario logueado**, que lo pone
+la base automáticamente (no se puede elegir ni falsificar). Así el papá figura como socio aunque todavía no
+tenga cuenta, y las operaciones no dependen de los ids internos de login (importante para restaurar backups).
 
-**A1. Socio ≠ usuario de login.** Hoy solo Benjamín tiene cuenta; el papá la tendrá después. Pero el
-papá ya vende y ya recibe plata. Por eso:
-- `socios` es una tabla propia (nombre, porcentaje) con un `user_id` **opcional**.
-- "Quién recibió el dinero" y "quién hizo la venta" apuntan a un **socio**.
-- "Quién registró" apunta al **usuario logueado** (auditoría automática, no se elige).
-- Por defecto, el socio de la venta/pago es el del usuario logueado; se puede cambiar con un toque.
+**A2. Orden FIFO.** Por fecha de compra y, a igual fecha, por orden de carga. El costo se asigna al
+registrar la venta o el ajuste y queda congelado; cargar después una compra con fecha anterior no
+recalcula nada.
 
-**A2. Orden FIFO.** Las compras se consumen por `fecha de compra` y, a igual fecha, por orden de carga.
-El costo se asigna **en el momento de registrar** la venta o el ajuste y queda congelado. Si después se
-carga una compra con fecha anterior, **no** se recalculan costos pasados (requisito: el costo histórico
-no cambia retroactivamente).
+**A3. Fechas.** Por defecto "ahora"; se permite una fecha pasada, nunca futura. La fecha afecta reportes,
+visitas y orden de aplicación de pagos, no el costo ya asignado.
 
-**A3. Fecha de las operaciones.** Por defecto es "ahora". Se puede poner una fecha pasada (para cargar
-algo de ayer), nunca futura. La fecha afecta reportes por período, visitas y el orden de aplicación de
-pagos; **no** cambia el costo FIFO ya asignado (A2).
+**A4. Aplicación de pagos calculada, no guardada.** Créditos del cliente (pagos + saldo inicial a favor)
+cubren las deudas de la más vieja a la más nueva. Si se anula algo, se reacomoda solo; el resultado no
+depende del orden de carga de los pagos.
 
-**A4. Aplicación de pagos (FIFO) se calcula, no se guarda.** Se suman todos los créditos del cliente
-(pagos + saldo inicial a favor) y se van cubriendo las deudas de la más vieja a la más nueva. Ventajas:
-- Si se anula un pago o una venta, todo se reacomoda solo y de forma coherente.
-- El resultado no depende del orden en que se cargaron los pagos (solo del total).
-- Los pagos y las ventas en sí nunca cambian; lo que cambia es la distribución mostrada.
+**A5. Deudas y saldos a favor del papel** entran como "saldo inicial": cuentan en la cuenta corriente
+(deuda más vieja) pero no como venta ni ganancia.
 
-**A5. Deudas y saldos a favor iniciales.** Las deudas que vienen del papel **no son ventas del sistema**:
-no tienen costo conocido, así que no generan ganancia (no se inventan datos). Se guardan como
-"saldo inicial" del cliente: participan de la cuenta corriente (son la deuda más vieja) pero no de
-ventas ni de ganancia. Lo que se cobre de ellas cuenta como **dinero cobrado**, no como ganancia.
-
-**A6. Stock inicial.** Las ~700 unidades se cargan como una compra especial "inventario inicial" por
-producto (marca + puffs + sabor), con su costo unitario real. Las 400 que llegan se cargan como compra
+**A6. Stock inicial.** Las ~700 unidades se cargan como compras de origen "inventario inicial", una por
+tanda, cada una con su costo en USD, su tipo de cambio (o estimado) y su fecha. Las 400 nuevas, como compra
 normal.
 
-**A7. Costo total de una compra.** Se guarda `costo_unitario` en centavos; `costo_total = cantidad ×
-costo_unitario`. Si se ingresa el total y no divide exacto (ej. $100.000 / 3), se redondea el unitario
-al centavo y la pantalla muestra la diferencia (como máximo unos centavos) antes de confirmar.
+**A7. Dinero y redondeo con dólares.**
+- Pesos en **centavos de peso** (`bigint`). USD en **centavos de dólar** (`bigint`).
+- Tipo de cambio en **centavos de peso por dólar** (`bigint`): $1.237,50 = `123750`.
+- Costo unitario en pesos = USD × tipo de cambio, **redondeado al centavo** (mitad hacia arriba), calculado
+  una sola vez por la base al guardar la compra.
+  Ej.: USD 4,99 × $1.237,50 = $6.175,125 → **$6.175,13**.
+- Totales de compra: `cantidad × costo unitario` en cada moneda. Así el costo en pesos de cualquier unidad
+  es siempre el mismo y el capital cierra exacto al centavo en las dos monedas (sección 7). La diferencia
+  contra multiplicar el total en USD por el tipo de cambio es de menos de un centavo por unidad, y la
+  pantalla de carga la muestra.
 
-**A8. Reparto con porcentaje configurable.** Se guarda el porcentaje con fecha de vigencia. Cada venta y
-cada ajuste usan el porcentaje vigente en su fecha. Cambiar el porcentaje no reescribe el pasado.
-Redondeo: cada parte se calcula en centavos hacia abajo y el centavo sobrante (si hay) va al primer socio
-de la lista, para que la suma de las partes sea **exactamente** la ganancia.
+**A8. Reparto con porcentaje configurable** guardado con fecha de vigencia; cada operación usa el % de su
+fecha. Redondeo: cada parte hacia abajo en centavos y el sobrante al primer socio; la suma da exacto.
 
-**A9. Ajustes de stock en Etapa 1** son solo de salida (regalo, pérdida, rotura). Un error de carga en una
-compra se corrige anulándola (posible solo si todavía no se vendió nada de esa compra) y cargándola de
-nuevo. No agrego ajustes de entrada porque requerirían inventar un costo.
+**A9. Ajustes de Etapa 1 solo de salida** (regalo, pérdida, rotura). Errores de compra: se anula la compra
+(solo si no tuvo salidas) y se carga de nuevo. No hay ajustes de entrada porque requerirían inventar costo.
 
-**A10. Costo en el catálogo.** Con FIFO no hay "un" costo por producto. El catálogo muestra el **costo de la
-próxima unidad a vender** (la compra más vieja con stock) y el **valor del stock a costo** (suma de lo que
-queda de cada compra). Este último es justamente el capital invertido en mercadería (ver sección 7).
+**A10. Costo en el catálogo.** Se muestra el costo (USD y pesos) de la próxima unidad FIFO y el valor del
+stock a costo en USD y en pesos.
 
-**A11. Stock insuficiente y concurrencia.** No se puede vender ni ajustar más de lo disponible. Si los dos
-socios venden la última unidad al mismo tiempo, la base serializa las operaciones (bloqueo de filas en la
-transacción) y la segunda recibe "sin stock".
+**A11. Stock insuficiente y concurrencia.** No se vende ni ajusta más de lo disponible; la base bloquea las
+filas para que dos ventas simultáneas no consuman la misma unidad.
 
-**A12. Visitas de Etapa 1 guardadas como eventos.** "Marcar como visitado" inserta un registro en `visitas`
-en lugar de pisar un campo. Es igual de simple, no pierde datos y deja listo el historial de Etapa 2
-(que solo agrega pantallas).
+**A12. Visitas como eventos** (tabla `visitas`, solo inserciones); deja listo el historial de Etapa 2.
 
-**A13. Cliente sin ventas ni visitas.** Su próxima visita se calcula desde la fecha de alta (o la fecha de
-última visita que venga en el CSV, si viene).
+**A13.** Cliente sin ventas ni visitas: próxima visita desde la fecha de alta (o la última visita del CSV).
 
-**A14. Clientes archivados.** No aparecen en búsqueda ni en atrasados; **sí** siguen apareciendo en "quién
-debe plata" si tienen deuda (la deuda no desaparece por archivar). Se pueden desarchivar.
+**A14.** Clientes archivados: fuera de búsqueda y atrasados; siguen en "quién debe plata" si deben.
 
-**A15. Anular una venta ya cobrada.** Los pagos no se tocan; el crédito se reaplica a otras deudas o queda
-como saldo a favor (consecuencia directa de A4).
+**A15.** Anular una venta ya cobrada: el crédito se reaplica o queda como saldo a favor.
 
-**A16. Importación CSV.** Planillas separadas y en orden: productos → clientes → stock inicial → precios
-especiales → saldos iniciales. Las referencias se hacen por nombre exacto (cliente) y por
-marca+puffs+sabor (producto); si algo no coincide o es ambiguo, la fila se marca con error y **no** se
-importa nada hasta corregirla. Cada importación tiene un UUID: confirmarla dos veces no duplica. La
-pantalla previa muestra cantidad de filas y totales (unidades, valor del stock a costo, total de deudas,
-total de saldos a favor) para compararlos con el papel.
+**A16. Importación CSV.** Planillas en orden: productos (marca, modelo, precio general) → clientes →
+compras/stock inicial (marca, modelo, fecha, cantidad, costo unitario USD, tipo de cambio, estimado sí/no)
+→ precios especiales → saldos iniciales. Referencias por nombre exacto (cliente) y marca + modelo
+(producto). Cualquier error frena toda la planilla. Cada importación tiene UUID (confirmar dos veces no
+duplica). La vista previa muestra filas, unidades, invertido en USD, invertido en pesos, cuántas tandas con
+tipo de cambio estimado, total de deudas y de saldos a favor.
+
+**A17. Tipo de cambio sugerido** = el de la última compra cargada (no se consulta ninguna web: el valor lo
+pone el socio). Debe ser > 0.
+
+**A18. Fecha de compra obligatoria**, también en el stock inicial, porque define el orden FIFO. Si no se
+recuerda exacta, se pone la mejor aproximación; la marca "estimado" cubre el tipo de cambio, que es lo que
+afecta el costo.
 
 ---
 
 ## 4. Modelo de datos y relaciones
 
 ### 4.1 Principios
-- Dinero en **centavos (`bigint`)**. $12.345,50 = `1234550`.
-- **UUID generado en el cliente** en ventas, renglones, pagos, compras, ajustes, visitas, saldos
-  iniciales e importaciones. Las funciones de escritura son idempotentes por ese UUID.
-- **Inmutabilidad**: las tablas de operaciones solo aceptan inserciones; la anulación se registra con
-  columnas `anulado_en / anulado_por / motivo_anulacion` y, cuando corresponde, movimientos compensatorios.
-- Todo tiene `negocio_id` (para RLS), `registrado_por` (usuario) y `creado_en` (hora del servidor).
+- Pesos y dólares en centavos enteros (A7).
+- UUID generado en el cliente en todas las operaciones; escrituras idempotentes por ese UUID.
+- Tablas de operaciones solo con inserciones; anulación con `anulado_en / anulado_por / motivo_anulacion`
+  y movimientos compensatorios.
+- Todo con `negocio_id` (RLS), `registrado_por` (socio del usuario logueado, lo pone la base) y `creado_en`.
 
 ### 4.2 Diagrama de relaciones
 
@@ -171,8 +171,8 @@ erDiagram
   clientes ||--o{ saldos_iniciales : "arrastra del papel"
   clientes ||--o{ precios_especiales : tiene
   productos ||--o{ precios_especiales : "precio para"
-  productos ||--o{ compras : "se compra en"
-  productos ||--o{ venta_items : "se vende en"
+  productos ||--o{ compras : "se compra en (USD)"
+  productos ||--o{ venta_items : "se vende en (ARS)"
   productos ||--o{ ajustes_stock : "se ajusta en"
   ventas ||--|{ venta_items : contiene
   compras ||--o{ movimientos_stock : "entrada y salidas"
@@ -187,181 +187,123 @@ erDiagram
 ### 4.3 Tablas (Etapa 1)
 
 ```
-negocios
-  id uuid PK · nombre · creado_en
+negocios            id · nombre · creado_en
 
-socios                                  -- también define quién tiene acceso (RLS)
-  id uuid PK · negocio_id FK
-  nombre text                           -- "Papá", "Benjamín"
-  user_id uuid NULL UNIQUE FK auth.users  -- NULL hasta que el socio tenga cuenta
-  orden int                             -- para el desempate de redondeo (A8)
+socios              id · negocio_id · nombre · user_id NULL UNIQUE (auth.users) · orden
 
-reparto_porcentajes                     -- A8
-  id uuid PK · negocio_id · socio_id FK
-  porcentaje numeric(5,2) CHECK 0..100
-  vigente_desde date
-  -- validación en la función que lo carga: para cada vigente_desde, la suma = 100
+reparto_porcentajes id · negocio_id · socio_id · porcentaje numeric(5,2) · vigente_desde date
 
-clientes
-  id uuid PK · negocio_id
-  nombre text NOT NULL · telefono · notas
-  intervalo_visita_dias int NOT NULL DEFAULT 14 CHECK > 0
-  archivado_en timestamptz NULL         -- A14
-  registrado_por · creado_en
+clientes            id · negocio_id · nombre · telefono · notas
+                    intervalo_visita_dias int DEFAULT 14 CHECK > 0 · archivado_en NULL
+                    registrado_por · creado_en
 
-visitas                                 -- A12 (solo "marcar como visitado"; las ventas cuentan aparte)
-  id uuid PK · negocio_id · cliente_id FK
-  fecha timestamptz · nota
-  registrado_por · creado_en
+visitas             id · negocio_id · cliente_id · fecha · nota · registrado_por · creado_en
 
-productos
-  id uuid PK · negocio_id
-  categoria text NOT NULL DEFAULT 'vaper'  -- preparado para otros productos; hoy siempre 'vaper'
-  marca text NOT NULL
-  puffs int NULL                        -- obligatorio en la UI para vapers; NULL para futuras categorías
-  sabor text NOT NULL
-  precio_general bigint NULL CHECK >= 0
-  activo boolean DEFAULT true
-  UNIQUE (negocio_id, categoria, marca, puffs, sabor)
+productos           id · negocio_id
+                    categoria text DEFAULT 'vaper'     -- preparado; hoy siempre 'vaper'
+                    marca text NOT NULL                -- "Elfbar"
+                    modelo text NOT NULL               -- "5000" (incluye puffs)
+                    precio_general bigint NULL (centavos ARS)
+                    activo boolean
+                    UNIQUE (negocio_id, categoria, lower(marca), lower(modelo))
 
-precios_especiales                      -- precio vigente, no histórico (lo histórico está en venta_items)
-  negocio_id · cliente_id FK · producto_id FK
-  precio bigint CHECK >= 0
-  actualizado_por · actualizado_en
-  PK (cliente_id, producto_id)
+precios_especiales  negocio_id · cliente_id · producto_id · precio bigint (ARS)
+                    actualizado_por · actualizado_en · PK (cliente_id, producto_id)
 
-compras                                 -- cada compra = un "lote" para FIFO
-  id uuid PK · negocio_id · producto_id FK
-  fecha date
-  cantidad int CHECK > 0
-  costo_unitario bigint CHECK >= 0
-  costo_total bigint GENERATED (cantidad * costo_unitario)
-  origen text CHECK IN ('compra','inventario_inicial')
-  importacion_id uuid NULL FK
-  nota
-  anulado_en · anulado_por · motivo_anulacion
-  registrado_por · creado_en
+compras             id · negocio_id · producto_id · fecha date
+                    cantidad int CHECK > 0
+                    costo_unitario_usd bigint CHECK >= 0           -- centavos USD
+                    tipo_cambio bigint CHECK > 0                   -- centavos ARS por USD
+                    tipo_cambio_estimado boolean DEFAULT false
+                    costo_unitario_ars bigint GENERATED            -- round(usd × tc / 100)
+                    costo_total_usd bigint GENERATED (cantidad × costo_unitario_usd)
+                    costo_total_ars bigint GENERATED (cantidad × costo_unitario_ars)
+                    origen text CHECK IN ('compra','inventario_inicial')
+                    importacion_id NULL · nota
+                    anulado_en · anulado_por · motivo_anulacion · registrado_por · creado_en
 
-movimientos_stock                       -- ÚNICA fuente de verdad del stock
-  id uuid PK · negocio_id
-  compra_id FK                          -- de qué compra entra o sale
-  producto_id FK                        -- copia, para consultas rápidas
-  tipo text CHECK IN ('compra','venta','ajuste',
-                      'anulacion_compra','anulacion_venta','anulacion_ajuste')
-  cantidad int CHECK <> 0               -- + entra, − sale
-  costo_unitario bigint                 -- copia del costo de esa compra
-  venta_item_id uuid NULL FK
-  ajuste_id uuid NULL FK
-  fecha timestamptz · registrado_por · creado_en
+movimientos_stock   id · negocio_id · compra_id · producto_id
+                    tipo CHECK IN ('compra','venta','ajuste',
+                                   'anulacion_compra','anulacion_venta','anulacion_ajuste')
+                    cantidad int CHECK <> 0           -- + entra, − sale
+                    costo_unitario_usd · costo_unitario_ars   -- copia de la compra
+                    venta_item_id NULL · ajuste_id NULL
+                    fecha · registrado_por · creado_en
 
-ventas
-  id uuid PK (cliente) · negocio_id · cliente_id FK
-  fecha timestamptz
-  vendido_por uuid FK socios            -- A1
-  nota
-  anulado_en · anulado_por · motivo_anulacion
-  registrado_por · creado_en
+ventas              id · negocio_id · cliente_id · fecha · vendido_por (socio) · nota
+                    anulado_en · anulado_por · motivo_anulacion · registrado_por · creado_en
 
-venta_items
-  id uuid PK (cliente) · negocio_id · venta_id FK · producto_id FK
-  cantidad int CHECK > 0
-  precio_unitario bigint CHECK >= 0     -- histórico
-  costo_total bigint CHECK >= 0         -- histórico: suma FIFO de sus movimientos (lo calcula la base)
+venta_items         id · negocio_id · venta_id · producto_id
+                    cantidad int CHECK > 0
+                    precio_unitario bigint (ARS, histórico)
+                    costo_total_ars bigint  -- suma FIFO de sus movimientos (lo calcula la base)
+                    costo_total_usd bigint  -- ídem, para el cierre del capital en USD
 
-pagos
-  id uuid PK (cliente) · negocio_id · cliente_id FK
-  fecha timestamptz
-  importe bigint CHECK > 0
-  medio text CHECK IN ('efectivo','transferencia','mercado_pago')
-  recibido_por uuid FK socios           -- quién tiene la plata
-  nota
-  anulado_en · anulado_por · motivo_anulacion
-  registrado_por · creado_en
+pagos               id · negocio_id · cliente_id · fecha · importe bigint CHECK > 0 (ARS)
+                    medio CHECK IN ('efectivo','transferencia','mercado_pago')
+                    recibido_por (socio) · nota
+                    anulado_en · anulado_por · motivo_anulacion · registrado_por · creado_en
 
-ajustes_stock                           -- A9: solo salidas
-  id uuid PK (cliente) · negocio_id · producto_id FK
-  fecha timestamptz
-  cantidad int CHECK > 0
-  motivo text CHECK IN ('regalo','perdida','rotura')
-  costo_total bigint                    -- histórico, suma FIFO (lo calcula la base)
-  nota
-  anulado_en · anulado_por · motivo_anulacion
-  registrado_por · creado_en
+ajustes_stock       id · negocio_id · producto_id · fecha · cantidad CHECK > 0
+                    motivo CHECK IN ('regalo','perdida','rotura')
+                    costo_total_ars · costo_total_usd   -- suma FIFO (lo calcula la base)
+                    nota · anulado_* · registrado_por · creado_en
 
-saldos_iniciales                        -- A5
-  id uuid PK · negocio_id · cliente_id FK
-  tipo text CHECK IN ('deuda','a_favor')
-  importe bigint CHECK > 0
-  fecha date
-  importacion_id uuid NULL FK · nota
-  anulado_en · anulado_por · motivo_anulacion
-  registrado_por · creado_en
+saldos_iniciales    id · negocio_id · cliente_id · tipo CHECK IN ('deuda','a_favor')
+                    importe bigint CHECK > 0 (ARS) · fecha · importacion_id NULL · nota
+                    anulado_* · registrado_por · creado_en
 
-importaciones                           -- A16
-  id uuid PK (cliente) · negocio_id
-  tipo text  -- 'productos','clientes','stock_inicial','precios_especiales','saldos_iniciales'
-  archivo_nombre · cantidad_filas · totales jsonb
-  confirmado_por · confirmado_en
+importaciones       id · negocio_id · tipo · archivo_nombre · cantidad_filas · totales jsonb
+                    confirmado_por · confirmado_en
 ```
 
 ### 4.4 Preparado para Etapa 2 (no se crea ahora)
-- `retiros` (socio, importe, fecha, medio): tabla aparte, nunca mezclada con ventas, cobros ni ganancia.
-- `devoluciones` / `reposiciones`: referencian `ventas`/`venta_items`; los fallados entran a un stock
-  separado (`estado = 'fallado'`), así nunca vuelven al stock vendible. La reposición genera una salida
-  FIFO sin venta (como un ajuste con motivo `reposicion_garantia`), cuyo costo resta de la ganancia salvo
-  que el proveedor lo reponga.
-- Historial de visitas: ya existe la tabla `visitas` (A12).
+- `retiros` (socio, importe ARS, fecha, medio): tabla aparte, nunca mezclada con ventas, cobros ni ganancia.
+- `devoluciones` / `reposiciones`: referencian `ventas`/`venta_items`; los fallados van a un stock separado
+  y no vuelven al vendible. La reposición es una salida FIFO sin venta (costo USD y pesos de la compra de
+  origen) que resta de la ganancia salvo que el proveedor lo reponga.
 
-### 4.5 Datos derivados (se calculan, no se guardan)
-- Stock por compra = `SUM(movimientos_stock.cantidad)` por `compra_id`. Stock por producto = suma.
-- Valor del stock a costo = Σ (stock de cada compra × su costo unitario).
-- Importe de venta = Σ (cantidad × precio_unitario) de sus renglones.
-- Por venta: importe, costo, ganancia, cobrado (A4), saldo.
-- Por cliente: deuda total, saldo a favor, última visita, próxima visita, atrasado.
-- Globales: ventas, costo vendido, ganancia bruta, costo de ajustes, ganancia neta, parte de cada socio,
-  dinero cobrado (total y por socio receptor), total que nos deben, total de saldos a favor.
-
-### 4.6 Funciones de escritura (atómicas e idempotentes)
-Todas reciben el UUID generado en el cliente; si ya existe, devuelven el resultado existente sin duplicar.
+### 4.5 Funciones de escritura (atómicas e idempotentes)
 
 | Función | Qué hace |
 |---|---|
-| `registrar_compra` | Inserta compra + movimiento de entrada. |
-| `anular_compra` | Solo si la compra no tuvo salidas. Movimiento compensatorio. |
-| `registrar_venta` | Valida stock, bloquea compras del producto, consume FIFO, crea renglones con precio y costo histórico, crea movimientos. |
-| `anular_venta` | Marca anulada; devuelve cada unidad **a la misma compra de la que salió**, con el mismo costo. |
+| `registrar_compra` | Compra + movimiento de entrada; la base calcula el costo en pesos. |
+| `anular_compra` | Solo sin salidas. Movimiento compensatorio. |
+| `registrar_venta` | Valida y bloquea stock, consume FIFO, guarda precio y costo (ARS y USD) históricos. |
+| `anular_venta` | Devuelve cada unidad a su compra de origen con su costo original. |
 | `registrar_ajuste` / `anular_ajuste` | Igual que venta, sin cliente ni precio. |
 | `registrar_pago` / `anular_pago` | Inserta o marca anulado. |
 | `marcar_visitado` | Inserta visita. |
-| `configurar_reparto` | Inserta porcentajes con vigencia; valida suma 100. |
-| `confirmar_importacion` | Inserta todas las filas de una planilla en una sola transacción. |
+| `configurar_reparto` | Porcentajes con vigencia; suma 100. |
+| `confirmar_importacion` | Toda una planilla en una transacción. |
 
 ---
 
 ## 5. Reglas de cálculo
 
 ```
-Importe de una venta     = Σ cantidad × precio_unitario
-Costo de una venta       = Σ costo_total de sus renglones (FIFO, congelado)
-Ganancia de una venta    = Importe − Costo
+Costo unitario ARS (compra) = round(costo_unitario_usd × tipo_cambio / 100)   [en centavos]
 
-Ganancia bruta (período) = Σ ganancia de ventas no anuladas con fecha en el período
-Pérdidas por ajustes     = Σ costo_total de ajustes no anulados con fecha en el período
-Ganancia neta            = Ganancia bruta − Pérdidas por ajustes
-Parte del socio          = Ganancia neta × % vigente (A8, en centavos, sin perder centavos)
+Importe de una venta     = Σ cantidad × precio_unitario                       (ARS)
+Costo de una venta       = Σ unidades consumidas × costo_unitario_ars de su compra (ARS)
+                           (y en paralelo Σ unidades × costo_unitario_usd)    (USD)
+Ganancia de una venta    = Importe − Costo ARS
 
-Deudas del cliente       = saldos iniciales tipo deuda + importes de ventas (no anulados), ordenadas
-                           por fecha (y por orden de carga)
-Créditos del cliente     = pagos no anulados + saldos iniciales tipo a_favor
-Aplicación FIFO          = los créditos cubren las deudas de la más vieja a la más nueva
-Cobrado de cada deuda    = lo que le tocó en la aplicación
-Saldo de cada deuda      = deuda − cobrado
-Saldo del cliente        = Σ deudas − Σ créditos   (> 0 nos debe; < 0 saldo a favor)
+Ganancia bruta (período) = Σ ganancia de ventas no anuladas del período
+Pérdidas por ajustes     = Σ costo ARS de ajustes no anulados del período
+Ganancia neta            = Ganancia bruta − Pérdidas
+Parte del socio          = Ganancia neta × % vigente (centavos, sin perder centavos)
 
-Dinero cobrado (período) = Σ pagos no anulados con fecha en el período (por medio y por socio receptor)
-Valor del stock a costo  = Σ unidades restantes de cada compra × su costo unitario
+Deudas del cliente       = saldos iniciales deuda + ventas no anuladas, de la más vieja a la más nueva
+Créditos del cliente     = pagos no anulados + saldos iniciales a favor
+Cobrado / saldo por deuda = aplicación FIFO de los créditos
+Saldo del cliente        = Σ deudas − Σ créditos  (> 0 debe; < 0 a favor)
 
-Próxima visita           = max(última venta, última visita, [alta si no hay ninguna]) + intervalo
+Dinero cobrado           = Σ pagos no anulados (por período, medio y socio receptor)
+Invertido                = Σ costo_total de compras no anuladas (USD y ARS)
+Stock valorizado         = Σ unidades restantes de cada compra × su costo unitario (USD y ARS)
+
+Próxima visita           = max(última venta, última visita, [alta]) + intervalo
 Atrasado                 = hoy (Tucumán) > próxima visita
 ```
 
@@ -369,169 +311,176 @@ Atrasado                 = hoy (Tucumán) > próxima visita
 
 ## 6. Ejemplos numéricos
 
-Datos inventados. Este mismo escenario se convierte en una **prueba automática de referencia** (ver 10.5).
+Datos inventados. El escenario completo se convierte en una **prueba automática de referencia** (11.5).
 
 **Productos**
-- P1: Marca X · 8000 puffs · Uva — precio general $10.000
-- P2: Marca Y · 5000 puffs · Menta — precio general $8.000
+- P1: "Vapex 8000" — precio general $10.000
+- P2: "Nubo 5000" — precio general $8.000
 
 **Clientes**
 - Ana: sin precios especiales.
 - Bruno: precio especial P1 = $10.500. Deuda del papel (saldo inicial) $20.000 al 01/09.
 
-### 6.1 Compras y FIFO
+### 6.1 Compras en USD con distinto tipo de cambio
 
-| Compra | Fecha | Producto | Cantidad | Costo unit. | Costo total |
+| Compra | Fecha | Producto | Cant. | USD/u | Tipo de cambio | $/u | Total USD | Total $ |
+|---|---|---|---|---|---|---|---|---|
+| C1 (inventario inicial) | 01/09 | P1 | 10 | 5,00 | $1.200 **(estimado)** | $6.000 | USD 50 | $60.000 |
+| C2 | 01/10 | P1 | 20 | 5,00 | $1.400 | $7.000 | USD 100 | $140.000 |
+| C3 | 02/10 | P2 | 15 | 3,00 | $1.500 | $4.500 | USD 45 | $67.500 |
+| | | | | | | **Invertido** | **USD 195** | **$267.500** |
+
+C1 y C2 cuestan lo mismo en dólares, pero en pesos C2 es más cara porque el blue subió. Al cargar C3 la app
+sugiere $1.400 (último usado) y el socio lo cambia a $1.500.
+
+### 6.2 Venta que consume dos compras con distinto tipo de cambio
+
+**V1 — 05/10, Ana, 12 × P1** a $10.000 (general: Ana no tiene especial ni compras previas).
+
+| Sale de | Unid. | $/u | Costo $ | USD/u | Costo USD |
 |---|---|---|---|---|---|
-| C1 | 01/09 | P1 | 10 | $6.000 | $60.000 |
-| C2 | 01/10 | P1 | 20 | $7.000 | $140.000 |
-| C3 | 01/10 | P2 | 15 | $4.500 | $67.500 |
-| | | | | **Total invertido** | **$267.500** |
+| C1 (TC $1.200) | 10 | $6.000 | $60.000 | 5,00 | USD 50 |
+| C2 (TC $1.400) | 2 | $7.000 | $14.000 | 5,00 | USD 10 |
+| | **12** | | **$74.000** | | **USD 60** |
 
-**V1 — 05/10, Ana, 12 × P1.** Precio propuesto: Ana no tiene especial ni compras previas → general
-$10.000. FIFO consume primero C1 y después C2:
+Importe **$120.000** · Costo **$74.000** · Ganancia **$46.000**. La venta no usa tipo de cambio: cada
+unidad trae el costo en pesos fijado en su compra. Stock P1: C1 = 0, C2 = 18.
 
-| De | Unidades | Costo unit. | Costo |
+### 6.3 Venta con varios productos
+
+**V2 — 06/10, Bruno.**
+
+| Renglón | Cant. | Precio | Importe | Costo FIFO | Costo USD | Ganancia |
+|---|---|---|---|---|---|---|
+| P1 (especial) | 3 | $10.500 | $31.500 | C2 3 × $7.000 = $21.000 | USD 15 | $10.500 |
+| P2 (general) | 2 | $8.000 | $16.000 | C3 2 × $4.500 = $9.000 | USD 6 | $7.000 |
+| **Total** | | | **$47.500** | **$30.000** | **USD 21** | **$17.500** |
+
+### 6.4 Tercera venta
+
+**V3 — 20/10, Bruno, 3 × P1** a $10.500 (especial) = **$31.500**. Costo C2 3 × $7.000 = **$21.000**
+(USD 15). Ganancia **$10.500**. Stock: C2 = 12, C3 = 13.
+
+### 6.5 Pagos parciales aplicados a las deudas más viejas
+
+Deudas de Bruno: saldo inicial $20.000 (01/09) · V2 $47.500 (06/10) · V3 $31.500 (20/10) = **$99.000**.
+
+**Pago 1 — 25/10, $50.000, efectivo, recibió Papá, registró Benjamín.**
+
+| Deuda | Importe | Cobrado | Saldo |
 |---|---|---|---|
-| C1 | 10 | $6.000 | $60.000 |
-| C2 | 2 | $7.000 | $14.000 |
-| | **12** | | **$74.000** |
+| Saldo inicial | $20.000 | $20.000 | $0 |
+| V2 | $47.500 | $30.000 | $17.500 |
+| V3 | $31.500 | $0 | $31.500 |
+| **Bruno debe** | | | **$49.000** |
 
-Importe 12 × $10.000 = **$120.000** · Costo **$74.000** · Ganancia **$46.000**.
-Stock P1 después: C1 = 0, C2 = 18.
-
-Si mañana C2 se hubiera pagado más caro o se cargara otra compra con fecha anterior, el costo de V1 sigue
-siendo $74.000 (A2).
-
-### 6.2 Venta con varios productos
-
-**V2 — 06/10, Bruno.** Precio propuesto P1: especial $10.500. P2: no tiene especial ni compras previas →
-general $8.000.
-
-| Renglón | Cant. | Precio | Importe | Costo FIFO | Ganancia |
-|---|---|---|---|---|---|
-| P1 | 3 | $10.500 | $31.500 | C2: 3 × $7.000 = $21.000 | $10.500 |
-| P2 | 2 | $8.000 | $16.000 | C3: 2 × $4.500 = $9.000 | $7.000 |
-| **Total** | | | **$47.500** | **$30.000** | **$17.500** |
-
-**V3 — 20/10, Bruno, 2 × P1** a $10.500 (especial) = **$21.000**. Costo C2 2 × $7.000 = $14.000.
-Ganancia **$7.000**. Stock: C2 = 13, C3 = 13.
-
-### 6.3 Pago parcial aplicado a las deudas más viejas
-
-Deudas de Bruno, de la más vieja a la más nueva: saldo inicial $20.000 (01/09) · V2 $47.500 (06/10) ·
-V3 $21.000 (20/10). Total **$88.500**.
-
-**Pago 1 — 25/10, $50.000, efectivo, lo recibió Papá, lo registró Benjamín.**
-
-| Deuda | Importe | Aplicado | Cobrado | Saldo |
-|---|---|---|---|---|
-| Saldo inicial | $20.000 | $20.000 | $20.000 | $0 |
-| V2 | $47.500 | $30.000 | $30.000 | $17.500 |
-| V3 | $21.000 | $0 | $0 | $21.000 |
-| **Saldo de Bruno** | | | | **$38.500** |
-
-**Pago 2 — 30/10, $40.000, Mercado Pago, lo recibió Benjamín.** Créditos acumulados $90.000:
+**Pago 2 — 30/10, $50.000, Mercado Pago, recibió Benjamín.** Créditos: $100.000.
 
 | Deuda | Importe | Cobrado | Saldo |
 |---|---|---|---|
 | Saldo inicial | $20.000 | $20.000 | $0 |
 | V2 | $47.500 | $47.500 | $0 |
-| V3 | $21.000 | $21.000 | $0 |
-| **Sobrante** | | | **$1.500 a favor de Bruno** |
+| V3 | $31.500 | $31.500 | $0 |
+| **Saldo a favor de Bruno** | | | **$1.000** |
 
-Si se anulara el Pago 2, la tabla vuelve sola al estado del Pago 1 (A4). Si Bruno compra después por
-$5.000, los $1.500 a favor se aplican primero y queda debiendo $3.500.
+**Ana — 10/10, $60.000, transferencia, recibió Benjamín.** V1: cobrado $60.000, saldo $60.000.
 
-**Ana — pago 10/10, $60.000, transferencia, lo recibió Benjamín.** V1: cobrado $60.000, saldo $60.000.
+### 6.6 Ajuste por pérdida
 
-### 6.4 Ajuste por pérdida
+**A1 — 28/10, rotura, 1 × P1.** Sale de C2 → costo **$7.000 / USD 5**. Stock C2 = 11.
 
-**A1 — 28/10, rotura, 1 × P1.** FIFO: sale de C2 (la más vieja con stock) → costo **$7.000**. Stock C2 = 12.
-No hay cliente ni precio: es una pérdida, resta de la ganancia.
-
-### 6.5 Ganancia y reparto 50/50 (octubre)
+### 6.7 Ganancia y reparto 50/50 (octubre)
 
 | Concepto | Importe |
 |---|---|
-| Ventas (V1 + V2 + V3) | $188.500 |
-| − Costo de lo vendido (74.000 + 30.000 + 14.000) | −$118.000 |
-| **= Ganancia bruta** | **$70.500** |
+| V1 Ana | ganancia $46.000 |
+| V2 Bruno | ganancia $17.500 |
+| V3 Bruno | ganancia $10.500 |
+| **Ganancia bruta** (ventas $199.000 − costo $125.000) | **$74.000** |
 | − Pérdidas por ajustes (A1) | −$7.000 |
-| **= Ganancia neta** | **$63.500** |
-| Benjamín 50% | $31.750 |
-| Papá 50% | $31.750 |
+| **Ganancia neta** | **$67.000** |
+| Benjamín 50% | $33.500 |
+| Papá 50% | $33.500 |
 
-Y en pantalla, **por separado**:
+Por separado:
 
-| Concepto | Importe | Comentario |
-|---|---|---|
-| Dinero cobrado | $150.000 | Ana $60.000 + Bruno $90.000 |
-| — recibido por Benjamín | $100.000 | $60.000 transf. + $40.000 MP |
-| — recibido por Papá | $50.000 | efectivo |
-| Nos deben | $60.000 | Ana |
-| Saldos a favor | $1.500 | Bruno |
-| Capital en mercadería (stock a costo) | $142.500 | C2 12 × $7.000 + C3 13 × $4.500 |
+| Concepto | Importe |
+|---|---|
+| Dinero cobrado | $160.000 (Ana $60.000 + Bruno $100.000) |
+| — recibió Benjamín | $110.000 ($60.000 transferencia + $50.000 MP) |
+| — recibió Papá | $50.000 (efectivo) |
+| Nos deben | $60.000 (Ana) |
+| Saldos a favor | $1.000 (Bruno) |
+| Stock a costo | **USD 94 / $135.500** (C2 11 × USD 5 / $7.000 + C3 13 × USD 3 / $4.500) |
 
-Redondeo (A8): si la ganancia neta fuera $10.000,01 (1.000.001 centavos), el primer socio recibe
-$5.000,01 y el segundo $5.000,00. La suma da exacto.
+Redondeo del reparto: una ganancia de $10.000,01 se reparte $5.000,01 + $5.000,00.
+
+> **Corrección respecto de la versión 2.** Tenían razón en revisar: la versión 2 sí tenía una tercera
+> venta (V3, 2 unidades, ganancia $7.000) pero estaba escondida dentro del punto de ventas con varios
+> productos, y por casualidad su ganancia era igual a la pérdida por rotura ($7.000), así que Ana + V2
+> ($63.500) coincidía con la ganancia neta y parecía un error. Los números de la versión 2 cerraban
+> ($70.500 − $7.000 = $63.500), pero eran confusos. En esta versión V3 tiene su propio punto (6.4) y 3
+> unidades, para que ningún número coincida por casualidad.
 
 ---
 
 ## 7. Verificación: capital invertido vs. ganancia
 
-El reparto 50/50 se hace **solo** sobre la ganancia neta. Comprobación con el ejemplo:
+**1. El capital cierra en las dos monedas:**
 
-**1. Todo peso invertido en mercadería está en uno de tres lugares:**
-```
-Total invertido en compras         $267.500
-  = Costo de lo vendido            $118.000  (se recupera con las ventas; no es ganancia)
-  + Costo de pérdidas/regalos        $7.000  (se perdió; resta de la ganancia)
-  + Valor del stock que queda      $142.500  (capital todavía en mercadería)
-                                   $267.500  ✔
-```
-Esta igualdad se verifica en una **prueba automática** después de cada operación (10.4, invariante I3).
+| | USD | Pesos |
+|---|---|---|
+| Costo de lo vendido (V1 + V2 + V3) | 60 + 21 + 15 = **96** | 74.000 + 30.000 + 21.000 = **125.000** |
+| + Pérdidas (A1) | **5** | **7.000** |
+| + Stock que queda | **94** | **135.500** |
+| = **Invertido en compras** | **195** ✔ | **267.500** ✔ |
 
-**2. Ganancia ≠ plata cobrada.** Se cobraron $150.000 pero la ganancia neta es $63.500. Si se repartieran
-los $150.000 se estaría repartiendo:
-- $20.000 de una deuda vieja del papel (A5), que no es ganancia del sistema;
-- el costo de la mercadería vendida, que es capital para reponer stock.
+Esta igualdad es un control automático (11.4, I3) que se verifica en USD y en pesos después de cada operación.
 
-**3. Ganancia ≠ plata disponible.** De los $63.500 de ganancia, Ana todavía debe $60.000. Por eso la
-pantalla muestra lado a lado "ganancia generada", "dinero cobrado" y "nos deben", con textos que lo aclaran.
+**2. Ganancia ≠ plata cobrada.** Cobrado $160.000, ganancia neta $67.000. Repartir lo cobrado sería
+repartir $20.000 de deuda vieja del papel y el costo de la mercadería, que es capital para reponer.
 
-**4. El stock inicial (~700 u) y las 400 nuevas son capital**, nunca ganancia: entran como compras y solo
-pasan a costo cuando se venden.
+**3. Ganancia ≠ plata disponible.** Ana todavía debe $60.000 de esa ganancia.
 
-**5. Los retiros (Etapa 2)** serán una tabla aparte; nunca restan ni suman a la ganancia, solo se comparan
-contra la parte de cada socio.
+**4. El stock inicial y las 400 nuevas son capital**: entran como compras y solo pasan a costo cuando se
+venden. **5. Los retiros (Etapa 2)** serán tabla aparte; nunca tocan la ganancia.
 
-Conclusión: el modelo no mezcla capital con ganancia, porque la ganancia solo se forma en
-`venta_items` (precio − costo FIFO) y en `ajustes_stock` (−costo), y el capital vive en `compras` y
-`movimientos_stock`.
+**6. Atención con el dólar** (ver T4): la ganancia en pesos se calcula con el costo histórico. Si el blue
+sube, reponer la mercadería cuesta más pesos que el costo registrado. Por eso el capital se muestra también
+en USD: si repartieran toda la ganancia en pesos, el capital en USD disponible para reponer podría bajar.
 
 ---
 
 ## 8. Contradicciones y tensiones detectadas
 
-| # | Tensión | Resolución propuesta |
-|---|---|---|
-| T1 | **El papel no tiene sabor** (solo marca y puffs), pero el sistema exige sabor y no se pueden inventar datos. | Antes de importar el stock inicial hay que **contar las ~700 unidades por sabor**. El CSV de stock exige sabor; sin él la fila no se importa. No uso un sabor genérico "sin especificar" salvo que ustedes lo autoricen explícitamente. |
-| T2 | **Costo del stock inicial**: FIFO necesita un costo por unidad. Si no lo saben por sabor, no se puede inventar. | El CSV exige costo unitario. Si el costo es el mismo para toda una marca+puffs, se repite en cada sabor (eso no es inventar, es el mismo dato). |
-| T3 | **Deudas del papel vs ganancia**: no tienen costo conocido. | A5: entran como saldo inicial; cuentan como deuda y como cobro, nunca como venta ni ganancia. La ganancia del sistema arranca con la primera venta cargada. |
-| T4 | **FIFO automático vs cargar operaciones con fecha pasada.** Si una compra se carga tarde con fecha anterior, el FIFO "ideal" habría dado otro costo. | A2: el costo se fija al registrar y nunca se recalcula. Recomendación de uso: cargar las compras apenas llegan. |
-| T5 | **"Conservar historial" vs aplicación FIFO de pagos que se reacomoda.** Al anular un pago, cambia el cobrado mostrado en otras ventas. | Los pagos y ventas no cambian nunca; solo se recalcula la distribución (A4). Es lo que hace cualquier cuenta corriente y evita inconsistencias. |
-| T6 | **"Acceso individual para cada socio" vs el papá todavía sin cuenta.** | A1: `socios` separado de usuarios. El papá figura como socio (recibe plata, vende, cobra su %), y cuando tenga cuenta se le vincula el `user_id`. |
-| T7 | **"Acceso de administrador al papá"** puede leerse como un rol dentro de la app. | Lo interpreto como administrador de las **cuentas de servicio** (GitHub, Supabase, Netlify). Dentro de la app los dos socios tienen los mismos permisos. |
-| T8 | **"Costo de compra" en el catálogo** vs FIFO (hay varios costos por producto). | A10: costo de la próxima unidad + valor del stock a costo. |
-| T9 | **Confiabilidad vs plan gratuito de Supabase**: el plan gratis no incluye copias de seguridad descargables y pausa proyectos sin uso por una semana. | Antes de cargar datos reales: plan Pro de Supabase (backups diarios) **o** una exportación automática periódica. Decisión de ustedes por el costo; lo dejo marcado para la etapa de pasaje a producción. |
-| T10 | **Netlify + Next.js**: Netlify ejecuta Next.js con su adaptador; algunas funciones muy nuevas de Next pueden llegar con demora. | Usar solo funciones estables (App Router, Server Components, Server Actions) y probar el deploy desde el primer módulo. |
-| T11 | **"UUID en el cliente" + FIFO en el servidor.** El costo no lo puede calcular el celular (necesita el stock real y bloqueo). | El celular genera el UUID y manda cliente/productos/cantidades/precios; la base calcula el costo. Cuando exista offline, el costo se asignará al sincronizar: compatible con A2. |
-| T12 | **Etapa 1 es grande** y la regla es "un módulo por vez". | Se divide en módulos con su propia rama y PR (sección 11). La Etapa 1 termina cuando están todos. |
-| T13 | **Precios especiales** se guardan como valor vigente (se pisa). ¿Contradice "no modificar históricos"? | No: el precio histórico de cada venta queda en `venta_items`. El precio especial es una configuración, no una operación. |
+### 8.1 Cerradas por las decisiones de esta versión
+- **T1 (sabor)**: cerrada. El producto es marca + modelo.
+- **T9 (backups)**: cerrada con la sección 10, sin pagar Supabase Pro.
 
-Cambios respecto de la versión 1 del plan: se elimina la elección manual de lote, la "ganancia cobrada"
-proporcional y la venta a $0 para regalos (ahora son ajustes).
+### 8.2 Siguen vigentes (con solución ya definida)
+| # | Tensión | Resolución |
+|---|---|---|
+| T2 | Costo del stock inicial | El CSV exige costo USD y tipo de cambio por tanda; el tipo de cambio puede ir marcado como estimado. |
+| T3 | Deudas del papel sin costo | A5: saldo inicial, sin ganancia. |
+| T5 | Aplicación FIFO de pagos se reacomoda al anular | A4; pagos y ventas no cambian nunca. |
+| T6 | Papá sin cuenta todavía | A1. |
+| T7 | "Administrador" | Administrador de GitHub/Supabase/Netlify; en la app los dos socios tienen los mismos permisos. |
+| T8 | Costo en catálogo con FIFO | A10. |
+| T10 | Netlify + Next.js | Solo funciones estables; deploy probado desde el módulo 1.0. |
+| T11 | UUID en el cliente + FIFO en servidor | El costo lo calcula la base. |
+| T12 | Etapa 1 grande | Dividida en módulos (sección 12). |
+| T13 | Precio especial se pisa | Es configuración; lo histórico está en cada venta. |
+
+### 8.3 Nuevas (por dólares y backups) — ninguna bloquea el módulo 1.0
+| # | Tensión | Resolución |
+|---|---|---|
+| T4 | **FIFO con costo histórico y dólar en alza**: la ganancia en pesos puede verse más alta de lo que permite reponer stock. No contradice la definición que eligieron (ganancia = venta − costo de compra), pero conviene saberlo. | Se respeta la definición. Se muestra el capital en USD al lado. No agrego "costo de reposición" (no fue pedido). |
+| T14 | **Tipo de cambio estimado vs "no inventar datos"**. | Lo pidieron explícitamente; queda marcado en la compra, se cuenta en la vista previa de importación y se muestra en el detalle de costo. |
+| T15 | **Fecha de una tanda vieja no recordada**: define el orden FIFO. | A18: fecha obligatoria, la mejor aproximación. |
+| T16 | **GitHub desactiva tareas programadas** de repositorios **públicos** tras 60 días sin actividad; además en un repo público cualquiera puede ver los logs de Actions. | El repositorio debe ser **privado** (también por los datos de negocio). Con repo privado las tareas programadas no se desactivan. |
+| T17 | **Conexión a la base desde GitHub Actions**: la conexión directa del plan gratis de Supabase es solo IPv6 y los servidores de GitHub no tienen IPv6. | El backup usa el "Session pooler" de Supabase (IPv4), que permite `pg_dump`. |
+| T18 | **Tiempo de retención de backups**: los artefactos de GitHub Actions se guardan como máximo 90 días. | Diarios con 90 días de retención. Además, el botón de exportar CSV permite que ustedes guarden copias propias (por ejemplo una por mes). |
+| T19 | **Las cuentas de login viven en el esquema interno de Supabase (`auth`)**, que no conviene restaurar a mano en otro proyecto. | Se respalda el esquema de datos (`public`). Al restaurar se crean de nuevo las dos cuentas y se vinculan a sus socios (un paso del procedimiento). Como las operaciones guardan el **socio** (A1) y no el id de login, alcanza con actualizar `socios.user_id`. |
 
 ---
 
@@ -540,147 +489,119 @@ proporcional y la venta a $0 para regalos (ahora son ajustes).
 ```
 Celular / PC Windows (navegador)
    │  Next.js (App Router) + TypeScript + Tailwind — responsive
-   │  Genera UUID de cada operación. Formularios validados con Zod.
+   │  Genera UUID de cada operación. Validación con Zod.
    ▼
-Netlify (hosting Next.js, funciones serverless)
-   │  @supabase/ssr: sesión en cookies, todas las consultas como el usuario logueado
+Netlify (hosting Next.js)
+   │  @supabase/ssr: sesión en cookies; todo se consulta como el usuario logueado
    │  src/dominio/: cálculos puros (cuenta corriente, ganancia, reparto, visitas, precio propuesto)
    ▼
-Supabase
-   ├─ Auth: email + contraseña, registro público desactivado, sesión con refresh token
+Supabase (plan gratis)
+   ├─ Auth: email + contraseña, registro público desactivado
    ├─ PostgreSQL + RLS en todas las tablas
-   ├─ Funciones SQL atómicas e idempotentes (sección 4.6), incluido el FIFO
-   └─ Vistas de lectura (stock por compra/producto)
+   ├─ Funciones SQL atómicas e idempotentes (incluido FIFO y conversión USD → pesos)
+   └─ Vistas de lectura (stock por compra/producto, valorizado USD y pesos)
+
+GitHub Actions (repo privado)
+   ├─ CI en cada PR: lint, tipos, Vitest + fast-check, pgTAP, build
+   ├─ Backup diario cifrado (sección 10)
+   └─ Ping periódico para evitar la pausa del proyecto
 ```
 
-**Dónde vive cada cálculo y por qué**
-- **FIFO y stock → en la base** (funciones SQL): necesita leer el stock real y bloquearlo en la misma
-  transacción para que dos ventas simultáneas no consuman la misma unidad.
-- **Cuenta corriente, ganancia, reparto, visitas y precio propuesto → TypeScript puro** (`src/dominio/`):
-  son cálculos de lectura sobre datos ya guardados; en TypeScript se prueban rápido y con muchos casos,
-  y quedan reutilizables para un futuro offline. Una sola implementación de cada cálculo.
-
-**Seguridad**
-- RLS en todas las tablas: se puede leer/insertar solo si `es_socio(negocio_id)` (el usuario está vinculado
-  a un socio de ese negocio).
-- Sin `DELETE` en ninguna tabla de operaciones; sin `UPDATE` directo en ellas (las anulaciones van por
-  funciones que solo tocan las columnas de anulación).
-- La app usa solo la clave pública (`anon`); la clave `service_role` nunca va al frontend ni al repo.
-- Variables de entorno: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` en `.env.local`
-  (ignorado por git) y en Netlify. En el repo solo `.env.example`.
-
-**Entornos**: local (Supabase CLI + Docker, datos inventados), prueba (proyecto Supabase de prueba +
-deploy preview de Netlify por PR), producción (se crea al final de la Etapa 1).
-
-**Herramientas**: Vitest (lógica), pgTAP vía `supabase test db` (RLS y funciones SQL), Playwright
-(un par de flujos de punta a punta en tamaño celular), GitHub Actions (todo lo anterior en cada PR).
+- **FIFO, stock y conversión de moneda → en la base**: necesitan el stock real, bloqueo y una sola fórmula.
+- **Cuenta corriente, ganancia, reparto, visitas, precio propuesto → TypeScript puro**, probado con Vitest y
+  fast-check.
+- **Seguridad**: RLS (`es_socio(negocio_id)`), sin `DELETE` ni `UPDATE` directo en operaciones, solo clave
+  pública en la app; `service_role` y conexión a la base solo en secretos de GitHub, nunca en el frontend.
 
 ---
 
-## 10. Pruebas propuestas
+## 10. Backups y continuidad (plan gratis de Supabase)
 
-Ninguna lógica de dinero o inventario se mergea sin estas pruebas en verde.
+1. **Backup diario automático** (GitHub Actions, programado de madrugada):
+   `pg_dump` del esquema de datos vía Session pooler → comprimido → **cifrado con `age`** usando una clave
+   pública → guardado como artefacto privado del repositorio (90 días).
+   - La conexión a la base (`SUPABASE_DB_URL`) es un **secreto** de GitHub; nunca aparece en el código.
+   - La clave **privada** para descifrar la guardan los socios fuera de GitHub (gestor de contraseñas y una
+     copia impresa). Sin ella, el archivo no se puede leer: aunque alguien lo obtenga, no ve datos de clientes.
+   - El log del backup solo muestra tamaño y cantidad de filas por tabla, nunca datos.
+2. **Exportar todo a CSV** desde la app: botón en Configuración que descarga un `.zip` con un CSV por tabla
+   (solo para socios logueados).
+3. **Evitar la pausa**: tarea programada cada 2 días que hace una consulta liviana a la API de Supabase
+   (función `ping()` que devuelve la hora, sin datos). El backup diario también genera actividad.
+4. **Procedimiento de restauración** documentado en `docs/restauracion.md`: descargar artefacto, descifrar,
+   restaurar en un proyecto Supabase nuevo, verificar controles (cantidades por tabla y cierres de capital),
+   reconfigurar variables en Netlify, recuperar contraseñas.
+5. **Prueba real de restauración** sobre un proyecto Supabase de prueba con datos inventados, **antes** de
+   cargar datos reales. Módulo 1.9; sin eso no se pasa al 1.10.
 
-### 10.1 Inventario y costos (pgTAP, contra la base local)
-1. Compra crea un movimiento de entrada; stock = cantidad.
-2. Venta dentro de una sola compra: costo = cantidad × costo de esa compra.
-3. Venta que cruza compras (caso V1): 10 de C1 + 2 de C2 = $74.000.
-4. Orden FIFO por fecha de compra y, a igual fecha, por orden de carga.
+---
+
+## 11. Pruebas
+
+### 11.1 Inventario, costos y moneda (pgTAP)
+1. Compra: costo en pesos = round(USD × TC); totales en USD y pesos; movimiento de entrada.
+2. Redondeo de conversión (USD 4,99 × $1.237,50 = $6.175,13); tipo de cambio 0 o negativo rechazado.
+3. Venta dentro de una compra; venta que cruza dos compras con distinto tipo de cambio (caso V1:
+   $74.000 / USD 60).
+4. Orden FIFO por fecha y orden de carga.
 5. Venta multi-producto: cada renglón consume solo compras de su producto.
-6. Stock insuficiente: la venta se rechaza completa (ningún renglón ni movimiento queda grabado).
-7. Idempotencia: registrar dos veces la misma venta (mismo UUID) deja un solo registro y el mismo stock.
-8. Costo congelado: cargar después una compra con fecha anterior no cambia el costo de ventas pasadas.
-9. Anular venta: cada unidad vuelve a su compra de origen con su costo; anular dos veces no duplica.
-10. Venta posterior a una anulación consume primero las unidades devueltas a la compra más vieja.
-11. Ajuste: consume FIFO, guarda costo; anularlo devuelve el stock.
-12. Anular compra: permitido sin salidas; rechazado si ya se vendió algo de ella.
-13. Concurrencia: dos ventas simultáneas de la última unidad → una sola se graba (prueba de integración
-    con dos conexiones).
-14. Inmutabilidad: `DELETE` y `UPDATE` directos sobre ventas, renglones, pagos, compras, ajustes y
-    movimientos son rechazados.
+6. Stock insuficiente: se rechaza toda la venta.
+7. Idempotencia por UUID.
+8. Costo congelado: compra posterior con fecha anterior no cambia ventas pasadas.
+9. Anular venta: cada unidad vuelve a su compra con su costo USD y pesos original; anular dos veces no duplica.
+10. Venta posterior a una anulación consume primero lo devuelto a la compra más vieja.
+11. Ajuste con costo FIFO en USD y pesos; anulación.
+12. Anular compra: solo sin salidas.
+13. Concurrencia: dos ventas simultáneas de la última unidad → una sola.
+14. Inmutabilidad: `DELETE`/`UPDATE` directos rechazados.
+15. Tipo de cambio estimado queda marcado y no cambia el cálculo.
 
-### 10.2 Cuentas corrientes (Vitest, `dominio/cuentaCorriente`)
-1. Sin pagos: cada venta tiene cobrado $0 y saldo = importe.
-2. Pago parcial cubre la deuda más vieja primero (caso 6.3, Pago 1).
-3. Pago que cubre varias deudas y sobra → saldo a favor (caso 6.3, Pago 2).
-4. Saldo a favor se aplica a una venta nueva.
-5. Saldo inicial deuda se cubre antes que cualquier venta; saldo inicial a favor funciona como pago.
-6. Ventas y pagos anulados se ignoran; anular un pago reacomoda la aplicación.
-7. Anular una venta ya cobrada deja el crédito como saldo a favor o lo aplica a otra deuda.
-8. El resultado no depende del orden en que se cargaron los pagos.
-9. Desempate de deudas con la misma fecha por orden de carga.
-10. Totales: "nos deben" suma solo saldos positivos; "saldos a favor" solo negativos; clientes archivados
-    con deuda siguen incluidos.
+### 11.2 Cuentas corrientes (Vitest + fast-check)
+Sin pagos · pago parcial a la deuda más vieja · pago que cubre varias y sobra · saldo a favor aplicado a
+venta nueva · saldo inicial deuda/a favor · anulaciones reacomodan · anular venta cobrada · independencia
+del orden de carga · desempate por orden de carga · totales "nos deben" / "a favor" con archivados.
 
-### 10.3 Ganancia y reparto (Vitest, `dominio/ganancia`)
-1. Ganancia de una venta = importe − costo, con renglones múltiples.
-2. Ganancia bruta, pérdidas por ajustes y ganancia neta de un período (caso 6.5).
-3. Ventas y ajustes anulados no cuentan.
-4. Saldos iniciales y su cobro no generan ganancia.
-5. Reparto 50/50, 60/40 y 100/0.
-6. Cambio de porcentaje con vigencia: cada operación usa el % de su fecha.
-7. Redondeo: la suma de las partes es siempre exactamente la ganancia neta (incluye montos impares y
-   negativos, ej. un período con más pérdidas que ganancia).
-8. Dinero cobrado por período, por medio y por socio receptor.
-9. Fechas en el borde del día y del mes en hora de Tucumán (ej. 23:30 del 31/10 es octubre).
+### 11.3 Ganancia y reparto (Vitest + fast-check)
+Ganancia por venta multi-renglón · bruta, pérdidas y neta · anuladas no cuentan · saldos iniciales no
+generan ganancia · ganancia en pesos sin tipo de cambio de venta · repartos 50/50, 60/40, 100/0 · vigencia
+de porcentajes · redondeo exacto (incluye negativos) · cobrado por medio y socio · bordes de día/mes en
+hora de Tucumán.
 
-### 10.4 Invariantes (se verifican tras cada operación de un escenario largo)
-- **I1** Stock de cada compra = cantidad comprada − salidas + devoluciones, y nunca negativo.
-- **I2** Σ cantidades de movimientos de un renglón = −cantidad del renglón; Σ costo de esos movimientos =
-  `costo_total` del renglón.
-- **I3** Total invertido en compras = costo vendido + costo de ajustes + valor del stock (sección 7).
+### 11.4 Controles generales (invariantes, con fast-check sobre secuencias aleatorias)
+- **I1** Stock de cada compra = comprado − salidas + devoluciones ≥ 0.
+- **I2** Movimientos de cada renglón: Σ cantidades = −cantidad; Σ costos = costo del renglón, **en USD y en pesos**.
+- **I3** Invertido = costo vendido + pérdidas + stock valorizado, **en USD y en pesos**, al centavo.
 - **I4** Σ saldos de clientes = Σ deudas − Σ créditos.
-- **I5** Ventas = costo vendido + ganancia bruta.
+- **I5** Ventas = costo vendido (ARS) + ganancia bruta.
 - **I6** Σ partes de socios = ganancia neta.
+- **I7** Para cada compra: costo_unitario_ars = round(costo_unitario_usd × tipo_cambio / 100), y todas las
+  salidas de esa compra usan exactamente ese costo.
 
-Propuesta (justificada): usar **fast-check** (generador de casos aleatorios) para correr I1–I6 sobre cientos
-de secuencias aleatorias de compras, ventas, pagos y anulaciones. Encuentra combinaciones raras que a mano
-no se nos ocurren. Es una dependencia solo de pruebas. Si prefieren no agregarla, se usan escenarios fijos.
+### 11.5 Escenario de referencia
+Toda la sección 6 cargada como prueba; se comparan todos los números de las tablas.
 
-### 10.5 Escenario de referencia
-El ejemplo completo de la sección 6 como prueba: se cargan las mismas operaciones y se comparan **todos**
-los números de las tablas (costos, cobrado por venta, saldos, ganancia, reparto, stock y valor del stock).
-
-### 10.6 Precios y visitas (Vitest)
-- Precio propuesto: especial → último pagado por ese cliente (ignorando ventas anuladas) → general → vacío.
-- Próxima visita desde venta, desde visita, desde alta; atrasado recién el día siguiente; archivados excluidos.
-
-### 10.7 Seguridad (pgTAP)
-- Socio vinculado: lee y escribe. Usuario autenticado no socio: no ve nada y no puede insertar.
-  Anónimo: nada. Insertar con `negocio_id` ajeno: rechazado.
-- `registrado_por` lo pone la base (no se puede falsificar desde el cliente).
-
-### 10.8 Importación CSV (Vitest + pgTAP)
-- Totales de la vista previa correctos.
-- Filas con producto/cliente inexistente, duplicado o sin sabor/costo → error y no se importa nada.
-- Confirmar dos veces la misma importación no duplica.
-- Montos con formato argentino (`$ 1.234,50`) se leen bien; formatos ambiguos se rechazan.
-
-### 10.9 Punta a punta (Playwright, viewport de celular)
-- Login → registrar venta de 2 productos → registrar pago parcial → ver la cuenta corriente.
+### 11.6 Otras
+Precio propuesto y visitas (Vitest) · seguridad RLS (pgTAP) · importación CSV con USD, tipo de cambio y
+marca de estimado (Vitest + pgTAP) · backup → restauración → controles I1–I7 (módulo 1.9) · punta a punta en
+celular (Playwright).
 
 ---
 
-## 11. Plan de implementación por módulos (Etapa 1)
+## 12. Plan de implementación por módulos (Etapa 1)
 
-Cada módulo: rama propia, PR, pruebas en verde, deploy preview y aprobación de ustedes antes del siguiente.
+| # | Módulo | Contenido |
+|---|---|---|
+| 1.0 | Base | Next.js + TS + Tailwind, Supabase (migraciones), `negocios`, `socios`, `es_socio()`, RLS base, login email/contraseña, `.env.example`, CI, Netlify, utilidades de dinero (ARS, USD, conversión) y fechas, Vitest + fast-check, pgTAP. |
+| 1.1 | Clientes y visitas básicas | Alta/edición/archivo, búsqueda, marcar visitado, atrasados. |
+| 1.2 | Productos, compras y stock | Catálogo marca + modelo, compras en USD con tipo de cambio (sugerido, estimado), stock valorizado USD/pesos, anular compra. |
+| 1.3 | Precios especiales | Precio propuesto. |
+| 1.4 | Ventas | Multi-producto, FIFO, costos históricos, anulación. |
+| 1.5 | Pagos y cuenta corriente | Medios, socio receptor, FIFO de pagos, saldos iniciales, saldo a favor. |
+| 1.6 | Ajustes de stock | Regalo/pérdida/rotura, anulación. |
+| 1.7 | Ganancia, reparto y resumen | Neta, % con vigencia, cobrado / deuda / capital USD y pesos; pantalla de resumen. |
+| 1.8 | Importación CSV | Plantillas, vista previa con totales, confirmación atómica. |
+| 1.9 | Backups y exportación | Backup diario cifrado, ping anti-pausa, exportar CSV, `docs/restauracion.md`, **prueba real de restauración**. |
+| 1.10 | Pasaje a producción | Proyecto de producción, usuarios reales, importación de datos reales. Solo con 1.9 aprobado. |
 
-| # | Módulo | Contenido | Pruebas clave |
-|---|---|---|---|
-| 1.0 | Base | Next.js + TS + Tailwind, Supabase CLI, `negocios`, `socios`, RLS base, login email/contraseña, `.env.example`, CI, deploy Netlify, utilidades de dinero y fechas. | 10.7 base, formato de moneda, fechas Tucumán. |
-| 1.1 | Clientes y visitas básicas | Alta/edición/archivo, búsqueda, marcar visitado, próxima visita, lista de atrasados. | 10.6 visitas, RLS. |
-| 1.2 | Productos, compras y stock | Catálogo (marca/puffs/sabor/precio general), compras, stock y valor a costo, anular compra. | 10.1 (1, 4, 12, 14). |
-| 1.3 | Precios especiales | Precios por cliente y producto; función de precio propuesto. | 10.6 precios. |
-| 1.4 | Ventas | Venta multi-producto en pocos toques, FIFO, costos y precios históricos, anular venta, historial por cliente. | 10.1 (2–10, 13), 10.3 (1). |
-| 1.5 | Pagos y cuenta corriente | Pagos con medio y socio receptor, aplicación FIFO, saldo a favor, anular pago, "quién debe plata". | 10.2 completo. |
-| 1.6 | Ajustes de stock | Regalo/pérdida/rotura con costo FIFO, anulación. | 10.1 (11), 10.3 (2). |
-| 1.7 | Ganancia, reparto y resumen | Ganancia bruta/neta, % configurable con vigencia, cobrado vs ganancia vs deuda vs capital en stock; pantalla de resumen (ganancia, nos deben, a quién visitar, quién debe). | 10.3, 10.4, 10.5. |
-| 1.8 | Importación CSV | Plantillas, vista previa con totales, confirmación atómica e idempotente. | 10.8. |
-| 1.9 | Pasaje a producción | Proyecto Supabase de producción, backups (T9), alta de usuarios, conteo por sabor (T1) e importación real. | 10.9 en producción con datos de prueba antes de cargar los reales. |
-
-Los saldos iniciales (A5) se crean en el módulo 1.5 (son parte de la cuenta corriente) y se cargan
-masivamente en el 1.8.
-
-### Etapa 2 (después de usar la Etapa 1)
-Historial de visitas y recordatorios · devoluciones y reposiciones por fallados (stock separado) ·
-retiros por socio.
+Nota: el ping anti-pausa se adelanta al módulo 1.0 (es una tarea chica y evita que el proyecto de prueba se
+pause durante el desarrollo).
