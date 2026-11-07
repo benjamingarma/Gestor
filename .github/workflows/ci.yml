@@ -1,0 +1,47 @@
+name: CI
+
+# Corre en cada pull request y en cada push a main.
+# Ningún cambio entra a main si algo de esto falla.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: Lint, tipos, pruebas y build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run tipos
+      - run: npm test
+      - name: Build
+        run: npm run build
+        env:
+          # Valores ficticios: el build no se conecta a Supabase.
+          SUPABASE_URL: http://127.0.0.1:54321
+          SUPABASE_PUBLISHABLE_KEY: clave-ficticia-solo-para-build
+
+  base-de-datos:
+    name: Migraciones y pruebas de seguridad (pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Levantar Postgres de Supabase y aplicar migraciones
+        run: npx supabase db start
+      - name: Pruebas pgTAP
+        run: npx supabase test db

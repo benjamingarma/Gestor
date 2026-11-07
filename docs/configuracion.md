@@ -1,0 +1,48 @@
+# Configuración de los servicios (proyecto de PRUEBA)
+
+Pasos que hace Benjamín una sola vez. Nada de esto pone claves en el código.
+Mientras estemos en desarrollo: **proyecto de prueba y datos inventados**.
+
+## 1. GitHub
+1. Repositorio **privado** (ya lo es). Así las tareas programadas no se desactivan solas y nadie ve los logs.
+2. Settings > General > Default branch: cambiar a **`main`**.
+3. Settings > Branches > Add rule para `main`: "Require a pull request before merging" y
+   "Require status checks to pass" (elegir los dos trabajos de **CI** después de la primera corrida).
+
+## 2. Supabase (proyecto de prueba)
+1. Crear proyecto nuevo (plan gratis), región **São Paulo** (la más cercana). Guardar la contraseña de la base en
+   un gestor de contraseñas.
+2. Authentication > Sign In / Providers: **desactivar "Allow new users to sign up"**. Email habilitado.
+   Authentication > Policies/Password: largo mínimo 10, letras y números.
+3. Aplicar las migraciones desde tu computadora (o pedímelo y te guío):
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref TU_PROJECT_REF
+   npx supabase db push
+   ```
+4. SQL Editor: correr `supabase/admin/crear-negocio.sql` (cambiando el nombre del negocio).
+5. Authentication > Users > Add user > Create new user: tu email y una contraseña (marcar "Auto confirm").
+6. SQL Editor: correr `supabase/admin/vincular-socio.sql` con tu email y `Benjamín`.
+   Para tu papá, lo mismo cuando tenga cuenta (con `Papá`).
+
+## 3. Netlify
+1. Add new site > Import from Git > el repositorio. Rama de producción: `main`.
+2. Site configuration > Environment variables:
+   - `SUPABASE_URL` = Project URL (Supabase > Project Settings > API)
+   - `SUPABASE_PUBLISHABLE_KEY` = Publishable key (`sb_publishable_...`). **Nunca** la secret/service_role.
+3. Deploy previews: activados para pull requests (vienen por defecto). Cada PR tiene su link para probar.
+4. En Supabase > Authentication > URL Configuration: poner la URL de Netlify como Site URL.
+
+## 4. Tarea anti-pausa (GitHub Actions)
+GitHub > Settings > Secrets and variables > Actions > New repository secret:
+- `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` (los mismos de Netlify).
+Probala a mano: Actions > "Mantener activo Supabase" > Run workflow. Debe mostrar "Supabase respondió: ...".
+
+## Desarrollo local (opcional, necesita Docker)
+```bash
+npm install
+npm run db:start
+npx supabase status
+```
+Copiá `.env.example` a `.env.local` con `API_URL` y `PUBLISHABLE_KEY` de `supabase status`, y después
+`npm run dev`. Pruebas: `npm run verificar` (lint + tipos + Vitest) y `npm run test:db` (pgTAP).
