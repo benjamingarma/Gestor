@@ -16,7 +16,7 @@
 
 ## 3. Cálculo de próxima visita en TypeScript puro (`src/dominio/visitas.ts`)
 - Última actividad = la más reciente entre última visita, última venta (llega en el módulo 1.3) y última visita
-  anterior a la app (la carga la importación del 1.7, columna `ultima_visita_inicial`).
+  anterior a la app (la carga la importación del 1.8, columna `ultima_visita_inicial`).
 - Sin actividad: desde la fecha de alta (plan A13). Próxima = última actividad + intervalo.
 - Estados: **atrasado** (desde el día siguiente a la fecha prevista), **hoy**, **pronto** (próximos 3 días),
   **al día**, **archivado**. La lista "A visitar" muestra atrasados, hoy y pronto, el más urgente primero.

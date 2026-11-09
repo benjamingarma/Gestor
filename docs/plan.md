@@ -1,10 +1,14 @@
-# Plan del sistema de gestión — Versión 3.1
+# Plan del sistema de gestión — Versión 3.2
 
 > Estado: **aprobado** por los socios (versión 2) con las correcciones de la versión 3:
 > producto sin sabor, costo de compra en dólares (blue) con tipo de cambio por compra,
 > backups sobre el plan gratis de Supabase y fast-check para pruebas.
 > Versión 3.1: nuevo orden de módulos aprobado (sección 12), migraciones automáticas al
 > mergear a `main` (A19) y datos de prueba marcados y borrables (A20).
+> Versión 3.2 (13/11/2026): estado real de avance (módulos 1.0 a 1.5 terminados) y módulo nuevo
+> **1.7 Simplificación del diseño**, entre los ajustes de stock y la importación CSV. Por eso la
+> importación pasa a ser el 1.8, los backups el 1.9 y el pasaje a producción el 1.10.
+> Notas para retomar el trabajo en una sesión nueva: `docs/notas-de-sesion.md`.
 > Donde las versiones anteriores digan otra cosa, manda esta.
 
 Índice:
@@ -164,7 +168,7 @@ va a ser el real. Por eso:
   sola transacción, **conservando negocio, socios y usuarios**. Si alguna fila real dependiera de una de prueba,
   no borra nada. Después desactiva `modo_prueba`.
 - Es la única excepción a "nunca borrar": solo la puede correr el administrador desde el SQL Editor de Supabase,
-  solo borra filas marcadas como prueba, y se ensaya en el módulo 1.8 y se usa en el 1.9, antes de la carga real.
+  solo borra filas marcadas como prueba, y se ensaya en el módulo 1.9 y se usa en el 1.10, antes de la carga real.
 
 ---
 
@@ -552,7 +556,7 @@ GitHub Actions (repo privado)
    restaurar en un proyecto Supabase nuevo, verificar controles (cantidades por tabla y cierres de capital),
    reconfigurar variables en Netlify, recuperar contraseñas.
 5. **Prueba real de restauración** sobre un proyecto Supabase de prueba con datos inventados, **antes** de
-   cargar datos reales. Módulo 1.8; sin eso no se pasa al 1.9.
+   cargar datos reales. Módulo 1.9; sin eso no se pasa al 1.10.
 
 ---
 
@@ -609,25 +613,66 @@ celular (Playwright).
 
 ## 12. Plan de implementación por módulos (Etapa 1)
 
-Orden aprobado el 09/11/2026: primero todo lo necesario para registrar ventas. Cada módulo: rama propia, PR,
-pruebas en verde, deploy preview y aprobación de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
+Orden aprobado el 09/11/2026 (primero todo lo necesario para registrar ventas) y ampliado el 13/11/2026 con el
+módulo de simplificación del diseño. Cada módulo: rama propia, PR, pruebas en verde, deploy preview y aprobación
+de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
+
+### 12.1 Estado al 13/11/2026
+
+| # | Módulo | Estado | PR |
+|---|---|---|---|
+| 1.0 | Base: login, socios, RLS, utilidades de dinero y fechas, CI, Netlify, ping anti-pausa | ✅ terminado | #1 |
+| — | Migraciones automáticas al mergear a `main` (A19) + plan v3.1 | ✅ terminado | #2 |
+| 1.1 | Productos, compras en USD y stock por movimientos; marcado de datos de prueba (A20) | ✅ terminado | #3 |
+| 1.2 | Clientes y visitas básicas | ✅ terminado | #4 |
+| 1.3 | Ventas con varios productos, FIFO, precios especiales, anulación | ✅ terminado | #5 |
+| 1.4 | Pagos y cuenta corriente + filtro por mes en el historial de ventas | ✅ terminado | #6 |
+| 1.5 | Resumen y ganancia 50/50 (reparto con vigencia) + prueba de humo en CI | ✅ terminado | #7 |
+| **1.6** | **Ajustes de stock** | **⏭ siguiente** | — |
+| 1.7 | Simplificación del diseño (nuevo) | pendiente | — |
+| 1.8 | Importación CSV | pendiente | — |
+| 1.9 | Backups y restauración | pendiente | — |
+| 1.10 | Pasaje a producción | pendiente | — |
+
+Todos los PR son de `benjamingarma/Gestor`. Pruebas al cerrar el 1.5: 254 pgTAP, 163 Vitest + fast-check, prueba
+de concurrencia y prueba de humo (18 pantallas), todas en verde.
+
+### 12.2 Lo que falta
 
 | # | Módulo | Contenido | Sesiones |
 |---|---|---|---|
-| 1.0 | Base ✅ | Login, socios, RLS, utilidades de dinero y fechas, CI, Netlify, ping anti-pausa. | hecho |
-| — | Migraciones automáticas | PR chico aparte: aplicar migraciones al mergear a `main` (A19). | hecho en este PR |
-| 1.1 | Productos, compras y stock | Catálogo marca + modelo con precio general. Compras en USD con tipo de cambio sugerido o estimado y costo en pesos. Stock por movimientos, valorizado en USD y pesos. Anular compra. Marcado de datos de prueba (A20). | 1 a 2 |
-| 1.2 | Clientes y visitas básicas | Alta, edición, archivo, búsqueda. Marcar visitado, próxima visita, atrasados. | 1 |
-| 1.3 | Ventas con varios productos | Venta en pocos toques, FIFO, precio y costo históricos, anulación. **Incluye precios especiales** por cliente y el precio propuesto. | 2 |
-| 1.4 | Pagos y cuenta corriente | Medios, socio receptor, aplicación FIFO de pagos, saldos iniciales, saldo a favor, anulación, "quién debe". **Agregado (pedido 09/11): filtro por mes en el historial de ventas.** | 1 a 2 |
-| 1.5 | Resumen y ganancia 50/50 | Ganancia bruta y neta, reparto con vigencia, cobrado, nos deben, capital USD/pesos, a quién visitar. | 1 |
-| 1.6 | Ajustes de stock | Regalo, pérdida, rotura; su costo resta de la ganancia. | 1 |
-| 1.7 | Importación CSV | Plantillas, vista previa con totales, confirmación atómica. | 1 a 2 |
-| 1.8 | Backups y restauración | Backup diario cifrado, exportar CSV, `docs/restauracion.md`, **prueba real de restauración**, **ensayo del borrado de datos de prueba** (A20). | 1 a 2 |
-| 1.9 | Pasaje a producción | Con los socios: borrar datos de prueba, desactivar modo prueba, usuarios reales, importación de datos reales. Solo con 1.8 aprobado. | 1 |
+| 1.6 | Ajustes de stock | Regalo, pérdida, rotura con motivo; sale por FIFO con su costo en USD y pesos; ese costo resta de la ganancia (el resumen ya lo muestra en "Pérdidas por ajustes"). Anulación. Sumar la tabla al borrado de datos de prueba. | 1 |
+| 1.7 | **Simplificación del diseño** | Ver 12.3. | 1 a 2 |
+| 1.8 | Importación CSV | Plantillas (productos, clientes, compras/stock inicial con USD y tipo de cambio por tanda, precios especiales, saldos del papel), vista previa con totales, confirmación atómica e idempotente. | 1 a 2 |
+| 1.9 | Backups y restauración | Backup diario cifrado (`age`) fuera de Supabase con GitHub Actions y el secreto `SUPABASE_DB_URL`; exportar todo a CSV desde la app; `docs/restauracion.md`; **prueba real de restauración**; **ensayo del borrado de datos de prueba** (A20). | 1 a 2 |
+| 1.10 | Pasaje a producción | Con los socios: borrar datos de prueba, desactivar modo prueba, cuentas reales (vincular la cuenta del papá), importación de datos reales. Solo con 1.9 aprobado. | 1 |
 
-Total estimado: 10 a 14 sesiones. Con 1.1 a 1.5 ya se pueden registrar ventas y ver la ganancia (con datos
-inventados). Hasta que exista el módulo 1.6, las pérdidas por ajustes valen $0.
+Total estimado para lo que falta: 5 a 8 sesiones.
 
-Nota: el ping anti-pausa se adelantó al módulo 1.0. No hay un proyecto de producción separado: es el mismo
-proyecto de Supabase, limpio de datos de prueba en el módulo 1.9 (A20).
+### 12.3 Módulo 1.7 — Simplificación del diseño (pedido de los socios, 13/11/2026)
+
+**Motivo.** Hay demasiados botones por acción. El uso diario lo hace el papá, que necesita algo más simple.
+
+**Objetivo.**
+- **Vender y cobrar en 2 o 3 toques** desde la pantalla principal.
+- Sacar del flujo diario las funciones avanzadas (anulaciones, precios especiales, saldos del papel, configuración
+  del reparto, compras) y dejarlas en un lugar aparte, al que se llega a propósito.
+
+**Alcance a definir al empezar el módulo** (se propone y se aprueba antes de programar):
+- Inventario de pantallas y toques actuales para vender, cobrar y marcar visita.
+- Propuesta de pantalla principal y de flujo de venta y cobro reducidos.
+- Dónde quedan las funciones avanzadas.
+- Prueba con el papá antes de mergear.
+
+No cambia reglas de negocio ni datos: solo pantallas. Las pruebas de lógica y de base siguen igual; la prueba de
+humo se actualiza con las rutas nuevas.
+
+**Todavía no se hizo nada de este módulo.**
+
+### 12.4 Notas
+- El ping anti-pausa se adelantó al módulo 1.0.
+- No hay un proyecto de producción separado: es el mismo proyecto de Supabase, limpio de datos de prueba en el
+  módulo 1.10 (A20).
+- Renumeración del 13/11/2026: lo que antes eran 1.7 (importación), 1.8 (backups) y 1.9 (producción) ahora son
+  1.8, 1.9 y 1.10. Algunos comentarios dentro de migraciones ya aplicadas mencionan la numeración vieja; las
+  migraciones aplicadas no se editan.

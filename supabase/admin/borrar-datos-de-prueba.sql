@@ -1,5 +1,5 @@
 -- =====================================================================================
--- BORRAR DATOS DE PRUEBA (plan A20). Se ensaya en el módulo 1.8 y se usa en el 1.9.
+-- BORRAR DATOS DE PRUEBA (plan A20). Se ensaya en el módulo 1.9 y se usa en el 1.10.
 -- Borra SOLO las filas marcadas como prueba (compras, movimientos, productos y, a medida
 -- que existan, clientes, ventas, pagos...). Conserva negocio, socios y usuarios.
 --

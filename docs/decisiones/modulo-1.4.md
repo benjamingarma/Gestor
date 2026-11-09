@@ -23,7 +23,7 @@
 - Anular una venta ya cobrada deja lo cobrado a favor o aplicado a otra deuda (plan A15).
 
 ## 4. Saldos del papel (plan A5)
-- `saldos_iniciales` (deuda o a favor) se cargan a mano desde la cuenta del cliente; la importación del 1.7 va a
+- `saldos_iniciales` (deuda o a favor) se cargan a mano desde la cuenta del cliente; la importación del 1.8 va a
   usar la misma tabla. Cuentan en la cuenta corriente pero nunca como venta ni como ganancia.
 
 ## 5. Pantallas

@@ -7,5 +7,6 @@ App web mobile-first: Next.js + TypeScript, Supabase, Netlify.
 - Plan aprobado: [`docs/plan.md`](docs/plan.md)
 - Configurar servicios: [`docs/configuracion.md`](docs/configuracion.md)
 - Decisiones técnicas por módulo: [`docs/decisiones/`](docs/decisiones/)
+- Notas para retomar el trabajo (estado, problemas encontrados, cómo correr todo): [`docs/notas-de-sesion.md`](docs/notas-de-sesion.md)
 
 Comandos: `npm run dev` · `npm run verificar` · `npm run test:db`.
