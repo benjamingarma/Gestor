@@ -9,6 +9,7 @@ export type SocioActual = {
   email: string;
   negocioId: string;
   negocioNombre: string;
+  modoPrueba: boolean;
 };
 
 /**
@@ -26,19 +27,20 @@ export const obtenerSocioActual = cache(async (): Promise<SocioActual> => {
   // RLS: solo devuelve socios de negocios a los que pertenece el usuario.
   const { data, error } = await supabase
     .from("socios")
-    .select("id, nombre, negocio_id, negocios ( nombre )")
+    .select("id, nombre, negocio_id, negocios ( nombre, modo_prueba )")
     .eq("user_id", usuario.id)
     .maybeSingle();
 
   if (error) throw new Error(`No se pudo leer el socio: ${error.message}`);
   if (!data) redirect("/sin-acceso");
 
-  const negocio = data.negocios as unknown as { nombre: string } | null;
+  const negocio = data.negocios as unknown as { nombre: string; modo_prueba: boolean } | null;
   return {
     socioId: data.id,
     nombre: data.nombre,
     email: usuario.email ?? "",
     negocioId: data.negocio_id,
     negocioNombre: negocio?.nombre ?? "",
+    modoPrueba: negocio?.modo_prueba ?? true,
   };
 });
