@@ -2,7 +2,11 @@ import { notFound } from "next/navigation";
 import { Aviso } from "@/componentes/Aviso";
 import { Encabezado } from "@/componentes/Encabezado";
 import { EtiquetaEstadoVisita } from "@/componentes/EstadoVisita";
+import { BotonEnlace } from "@/componentes/BotonEnlace";
+import { ListaVentas } from "@/componentes/ListaVentas";
 import { obtenerCliente } from "@/datos/clientes";
+import { listarProductosActivos } from "@/datos/inventario";
+import { listarPreciosEspeciales, listarVentas } from "@/datos/ventas";
 import { proximaVisita, ultimaActividad } from "@/dominio/visitas";
 import { formatearDia, hoy } from "@/lib/fechas";
 import { obtenerSocioActual } from "@/lib/sesion";
@@ -12,6 +16,7 @@ import { editarCliente } from "../acciones";
 import { BotonVisitado } from "../BotonVisitado";
 import { FormularioCliente } from "../FormularioCliente";
 import { ArchivarCliente, DeshacerVisita } from "./AccionesCliente";
+import { PreciosEspeciales } from "./PreciosEspeciales";
 
 const MENSAJES: Record<string, string> = {
   creado: "Cliente creado.",
@@ -20,6 +25,8 @@ const MENSAJES: Record<string, string> = {
   deshecha: "Visita deshecha.",
   archivado: "Cliente archivado.",
   desarchivado: "Cliente desarchivado.",
+  precio: "Precio especial guardado.",
+  "precio-quitado": "Precio especial quitado.",
 };
 
 export default async function PaginaCliente({ params, searchParams }: PageProps<"/clientes/[id]">) {
@@ -30,6 +37,11 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
   const dia = hoy();
   const cliente = await obtenerCliente(socio.negocioId, id, dia);
   if (!cliente) notFound();
+  const [ventas, precios, productos] = await Promise.all([
+    listarVentas(socio.negocioId, { clienteId: id, limite: 5 }),
+    listarPreciosEspeciales(id),
+    listarProductosActivos(socio.negocioId),
+  ]);
 
   const wa = enlaceWhatsApp(cliente.telefono);
   const tel = enlaceLlamada(cliente.telefono);
@@ -95,6 +107,10 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
       )}
 
       {!cliente.archivado && (
+        <BotonEnlace href={`/ventas/nueva?cliente=${cliente.id}`}>+ Nueva venta</BotonEnlace>
+      )}
+
+      {!cliente.archivado && (
         // key: al cambiar la última visita se monta de nuevo y genera otro identificador.
         <BotonVisitado key={cliente.ultimaVisitaId ?? "sin-visitas"} clienteId={cliente.id} volverA="ficha" hoy={dia} conFecha />
       )}
@@ -106,6 +122,17 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
           <DeshacerVisita visitaId={cliente.ultimaVisitaId} clienteId={cliente.id} />
         </section>
       )}
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-lg font-bold">Últimas ventas</h2>
+        <ListaVentas ventas={ventas} mostrarCliente={false} />
+      </section>
+
+      <PreciosEspeciales
+        clienteId={cliente.id}
+        precios={precios}
+        productos={productos.map((p) => ({ id: p.id, nombre: `${p.marca} ${p.modelo}` }))}
+      />
 
       <details className="rounded-xl border border-borde bg-superficie p-4">
         <summary className="min-h-[44px] cursor-pointer content-center text-lg font-semibold">Editar cliente</summary>

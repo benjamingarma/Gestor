@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { cerrarSesion } from "@/app/acciones-sesion";
 import { Boton } from "@/componentes/Boton";
+import { BotonEnlace } from "@/componentes/BotonEnlace";
 import { listarClientes } from "@/datos/clientes";
 import { formatearDia, hoy } from "@/lib/fechas";
 import { obtenerSocioActual } from "@/lib/sesion";
 
 // Los módulos se habilitan uno por uno, a medida que se aprueban.
 const MODULOS: { nombre: string; detalle: string; href?: string }[] = [
-  { nombre: "Stock y compras", detalle: "Productos, compras en dólares y stock", href: "/productos" },
-  { nombre: "Nueva venta", detalle: "Próximamente · Módulo 1.3" },
   { nombre: "Clientes", detalle: "Visitas, atrasados y datos de contacto", href: "/clientes" },
+  { nombre: "Ventas", detalle: "Historial, detalle y anulaciones", href: "/ventas" },
+  { nombre: "Stock y compras", detalle: "Productos, compras en dólares y stock", href: "/productos" },
   { nombre: "Cobros", detalle: "Próximamente · Módulo 1.4" },
   { nombre: "Resumen y ganancia", detalle: "Próximamente · Módulo 1.5" },
 ];
@@ -43,6 +44,10 @@ export default async function PaginaInicio() {
           </span>
         </Link>
       )}
+
+      <BotonEnlace href="/ventas/nueva" className="min-h-[64px] text-xl">
+        + Nueva venta
+      </BotonEnlace>
 
       <section aria-label="Módulos" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {MODULOS.map((m) =>
