@@ -4,7 +4,18 @@ import { useRouter } from "next/navigation";
 import { nombreDelMes } from "@/lib/meses";
 
 /** Selector de mes: cambia el parámetro ?mes= de la página. */
-export function SelectorMes({ meses, actual, ruta }: { meses: string[]; actual: string; ruta: string }) {
+export function SelectorMes({
+  meses,
+  actual,
+  ruta,
+  conTodo = false,
+}: {
+  meses: string[];
+  actual: string;
+  ruta: string;
+  /** Agrega la opción "Todo el historial" (valor "todo"). */
+  conTodo?: boolean;
+}) {
   const router = useRouter();
   const i = meses.indexOf(actual);
   const ir = (mes: string) => router.push(`${ruta}?mes=${mes}`);
@@ -25,6 +36,7 @@ export function SelectorMes({ meses, actual, ruta }: { meses: string[]; actual: 
         aria-label="Mes"
         className="min-h-[52px] w-full rounded-xl border border-borde bg-superficie px-3 text-center text-lg font-semibold"
       >
+        {conTodo && <option value="todo">Todo el historial</option>}
         {meses.map((m) => (
           <option key={m} value={m}>
             {nombreDelMes(m)}

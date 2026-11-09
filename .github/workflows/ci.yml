@@ -47,3 +47,37 @@ jobs:
         run: npx supabase test db
       - name: Prueba de concurrencia (dos ventas de la última unidad)
         run: bash supabase/tests/concurrencia.sh
+
+  humo:
+    name: Prueba de humo (app completa en el navegador)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Levantar Supabase local (base, API y login)
+        run: npm run db:start
+      - name: Configurar variables locales (valores de prueba de Supabase local, no son secretos)
+        run: |
+          npx supabase status -o env > /tmp/supabase.env
+          . /tmp/supabase.env
+          printf "SUPABASE_URL=%s\nSUPABASE_PUBLISHABLE_KEY=%s\n" "$API_URL" "$PUBLISHABLE_KEY" > .env.local
+          echo "API_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "::add-mask::$SECRET_KEY"
+          echo "SECRET_KEY=$SECRET_KEY" >> "$GITHUB_ENV"
+          echo "DB_URL=$DB_URL" >> "$GITHUB_ENV"
+      - run: npm run build
+      - name: Arrancar la app
+        run: |
+          npx next start -p 3000 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:3000/login && exit 0; sleep 1; done
+          echo "La app no arrancó"; exit 1
+      - name: Instalar navegador
+        run: |
+          npm install --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Recorrer todas las pantallas
+        run: node scripts/humo.mjs

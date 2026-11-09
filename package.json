@@ -12,7 +12,8 @@
     "test:db": "supabase test db",
     "db:start": "supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor",
     "db:reset": "supabase db reset",
-    "verificar": "npm run lint && npm run tipos && npm test"
+    "verificar": "npm run lint && npm run tipos && npm test",
+    "humo": "node scripts/humo.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
