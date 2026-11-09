@@ -315,7 +315,7 @@ rollback to savepoint antes_de_dependencia;
 
 select results_eq(
   $$select tabla, filas_borradas from borrar_datos_de_prueba('10000000-0000-0000-0000-000000000001', 'BORRAR DATOS DE PRUEBA')$$,
-  $$values ('visitas'::text, 0::bigint), ('movimientos_stock'::text, 6::bigint), ('venta_items'::text, 0::bigint),
+  $$values ('visitas'::text, 0::bigint), ('pagos'::text, 0::bigint), ('saldos_iniciales'::text, 0::bigint), ('movimientos_stock'::text, 6::bigint), ('venta_items'::text, 0::bigint),
            ('ventas'::text, 0::bigint), ('precios_especiales'::text, 0::bigint), ('compras'::text, 4::bigint),
            ('clientes'::text, 0::bigint), ('productos'::text, 3::bigint)$$,
   'borra todas las filas de prueba, en orden'

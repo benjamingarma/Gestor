@@ -142,7 +142,7 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 select results_eq(
   $$select tabla, filas_borradas from borrar_datos_de_prueba('10000000-0000-0000-0000-000000000001', 'BORRAR DATOS DE PRUEBA')$$,
-  $$values ('visitas'::text, 4::bigint), ('movimientos_stock'::text, 0::bigint), ('venta_items'::text, 0::bigint),
+  $$values ('visitas'::text, 4::bigint), ('pagos'::text, 0::bigint), ('saldos_iniciales'::text, 0::bigint), ('movimientos_stock'::text, 0::bigint), ('venta_items'::text, 0::bigint),
            ('ventas'::text, 0::bigint), ('precios_especiales'::text, 0::bigint), ('compras'::text, 0::bigint),
            ('clientes'::text, 2::bigint), ('productos'::text, 0::bigint)$$,
   'el borrado de datos de prueba incluye clientes y visitas'

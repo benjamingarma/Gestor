@@ -619,7 +619,7 @@ pruebas en verde, deploy preview y aprobación de los socios. "Sesión" = una ta
 | 1.1 | Productos, compras y stock | Catálogo marca + modelo con precio general. Compras en USD con tipo de cambio sugerido o estimado y costo en pesos. Stock por movimientos, valorizado en USD y pesos. Anular compra. Marcado de datos de prueba (A20). | 1 a 2 |
 | 1.2 | Clientes y visitas básicas | Alta, edición, archivo, búsqueda. Marcar visitado, próxima visita, atrasados. | 1 |
 | 1.3 | Ventas con varios productos | Venta en pocos toques, FIFO, precio y costo históricos, anulación. **Incluye precios especiales** por cliente y el precio propuesto. | 2 |
-| 1.4 | Pagos y cuenta corriente | Medios, socio receptor, aplicación FIFO de pagos, saldos iniciales, saldo a favor, anulación, "quién debe". | 1 a 2 |
+| 1.4 | Pagos y cuenta corriente | Medios, socio receptor, aplicación FIFO de pagos, saldos iniciales, saldo a favor, anulación, "quién debe". **Agregado (pedido 09/11): filtro por mes en el historial de ventas.** | 1 a 2 |
 | 1.5 | Resumen y ganancia 50/50 | Ganancia bruta y neta, reparto con vigencia, cobrado, nos deben, capital USD/pesos, a quién visitar. | 1 |
 | 1.6 | Ajustes de stock | Regalo, pérdida, rotura; su costo resta de la ganancia. | 1 |
 | 1.7 | Importación CSV | Plantillas, vista previa con totales, confirmación atómica. | 1 a 2 |

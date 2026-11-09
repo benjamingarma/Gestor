@@ -16,7 +16,7 @@ export function AnularVenta({ ventaId }: { ventaId: string }) {
         <Campo etiqueta="Motivo" name="motivo" placeholder="Ej: la cargué mal" required />
         <p className="text-sm text-texto-suave">
           La venta no se borra: queda en el historial como anulada, no cuenta para la ganancia y cada unidad vuelve al
-          stock de la compra de la que salió, con su costo original.
+          stock de la compra de la que salió, con su costo original. Si ya estaba cobrada, lo cobrado se aplica a otras deudas del cliente o le queda a favor.
         </p>
         {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
         <Boton type="submit" variante="secundario" disabled={enviando} className="text-peligro">

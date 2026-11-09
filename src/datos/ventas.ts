@@ -1,5 +1,6 @@
 import "server-only";
 import type { CompraDisponible } from "@/dominio/ventas";
+import { rangoDelMes } from "@/lib/meses";
 import { crearClienteSupabase } from "@/lib/supabase/servidor";
 
 function fallar(contexto: string, error: { message: string }): never {
@@ -101,14 +102,25 @@ export async function datosParaNuevaVenta(negocioId: string): Promise<DatosNueva
   };
 }
 
-export async function listarVentas(negocioId: string, opciones: { clienteId?: string; limite?: number } = {}): Promise<ResumenVenta[]> {
+/**
+ * Ventas, de la más nueva a la más vieja.
+ * - mes ("AAAA-MM"): todas las ventas de ese mes (hora de Tucumán), sin límite.
+ * - sin mes: las últimas `limite` (100 por defecto).
+ */
+export async function listarVentas(
+  negocioId: string,
+  opciones: { clienteId?: string; limite?: number; mes?: string } = {},
+): Promise<ResumenVenta[]> {
   const supabase = await crearClienteSupabase();
   let consulta = supabase.from("v_ventas").select("*").eq("negocio_id", negocioId);
   if (opciones.clienteId) consulta = consulta.eq("cliente_id", opciones.clienteId);
-  const { data, error } = await consulta
-    .order("fecha", { ascending: false })
-    .order("secuencia", { ascending: false })
-    .limit(opciones.limite ?? 100);
+  if (opciones.mes) {
+    const [desde, hasta] = rangoDelMes(opciones.mes);
+    consulta = consulta.gte("dia", desde).lt("dia", hasta);
+  } else {
+    consulta = consulta.limit(opciones.limite ?? 100);
+  }
+  const { data, error } = await consulta.order("fecha", { ascending: false }).order("secuencia", { ascending: false });
   if (error) fallar("No se pudieron leer las ventas", error);
   return (data ?? []) as ResumenVenta[];
 }
@@ -205,4 +217,18 @@ export async function listarPreciosEspeciales(clienteId: string): Promise<{ prod
   return ((data ?? []) as unknown as Fila[])
     .map((f) => ({ productoId: f.producto_id, producto: `${f.productos.marca} ${f.productos.modelo}`, precio: f.precio }))
     .sort((a, b) => a.producto.localeCompare(b.producto));
+}
+
+/** Primer día con ventas (para armar el selector de meses), o null si no hay ventas. */
+export async function primerDiaConVentas(negocioId: string): Promise<string | null> {
+  const supabase = await crearClienteSupabase();
+  const { data, error } = await supabase
+    .from("v_ventas")
+    .select("dia")
+    .eq("negocio_id", negocioId)
+    .order("dia")
+    .limit(1)
+    .maybeSingle();
+  if (error) fallar("No se pudieron leer las ventas", error);
+  return data?.dia ?? null;
 }
