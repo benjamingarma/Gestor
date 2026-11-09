@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Aviso } from "@/componentes/Aviso";
 import { BotonEnlace } from "@/componentes/BotonEnlace";
 import { Encabezado } from "@/componentes/Encabezado";
+import { cobrosDeVentas } from "@/datos/cuentas";
 import { obtenerVenta } from "@/datos/ventas";
 import { formatearDolares, formatearPesos, formatearTipoDeCambio } from "@/lib/dinero";
 import { formatearDia, formatearFechaHora } from "@/lib/fechas";
@@ -18,12 +19,14 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
   const venta = await obtenerVenta(socio.negocioId, id);
   if (!venta) notFound();
   const anulada = venta.anulado_en !== null;
+  const cobro = anulada ? undefined : (await cobrosDeVentas(socio.negocioId, [venta.cliente_id])).get(venta.venta_id);
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6">
       <Encabezado titulo={`Venta a ${venta.cliente_nombre}`} volverA="/ventas" subtitulo={formatearDia(venta.dia)} />
       {ok === "venta" && <Aviso tipo="ok">Venta guardada.</Aviso>}
       {ok === "anulada" && <Aviso tipo="ok">Venta anulada. El stock volvió a sus compras.</Aviso>}
+      {ok === "cobro" && <Aviso tipo="ok">Cobro registrado.</Aviso>}
       {anulada && (
         <p className="rounded-lg border border-peligro px-4 py-3 text-peligro">
           ANULADA el {formatearFechaHora(new Date(venta.anulado_en!))} por {venta.anulado_por_nombre}. Motivo: {venta.motivo_anulacion}
@@ -45,7 +48,21 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
           <span>Ganancia</span>
           <span className={venta.ganancia < 0 ? "text-peligro" : ""}>{formatearPesos(venta.ganancia)}</span>
         </div>
-        <p className="mt-1 text-sm text-texto-suave">Cobrado y saldo pendiente: llegan con el módulo de cobros (1.4).</p>
+        {cobro && (
+          <>
+            <div className="mt-2 flex justify-between border-t border-borde pt-2 text-base">
+              <span className="text-texto-suave">Cobrado</span>
+              <span>{formatearPesos(cobro.cobrado)}</span>
+            </div>
+            <div className="flex justify-between text-lg font-semibold">
+              <span>Saldo pendiente</span>
+              <span className={cobro.saldo > 0 ? "text-peligro" : "text-acento"}>
+                {cobro.saldo > 0 ? formatearPesos(cobro.saldo) : "Pagada"}
+              </span>
+            </div>
+            <p className="text-xs text-texto-suave">Los cobros del cliente se aplican primero a sus deudas más viejas.</p>
+          </>
+        )}
       </section>
 
       <section className="flex flex-col gap-3">
@@ -82,6 +99,11 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
         </Link>
       </section>
 
+      {cobro && cobro.saldo > 0 && (
+        <BotonEnlace href={`/clientes/${venta.cliente_id}/cobrar?importe=${encodeURIComponent(formatearPesos(cobro.saldo).replace("$ ", ""))}&venta=${venta.venta_id}`}>
+          Registrar cobro
+        </BotonEnlace>
+      )}
       {!anulada && (
         <BotonEnlace href={`/ventas/nueva?cliente=${venta.cliente_id}`} variante="secundario">
           Otra venta a {venta.cliente_nombre}

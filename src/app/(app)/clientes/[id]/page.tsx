@@ -5,9 +5,11 @@ import { EtiquetaEstadoVisita } from "@/componentes/EstadoVisita";
 import { BotonEnlace } from "@/componentes/BotonEnlace";
 import { ListaVentas } from "@/componentes/ListaVentas";
 import { obtenerCliente } from "@/datos/clientes";
+import { cobrosDeVentas, saldoDeCliente } from "@/datos/cuentas";
 import { listarProductosActivos } from "@/datos/inventario";
 import { listarPreciosEspeciales, listarVentas } from "@/datos/ventas";
 import { proximaVisita, ultimaActividad } from "@/dominio/visitas";
+import { formatearPesos } from "@/lib/dinero";
 import { formatearDia, hoy } from "@/lib/fechas";
 import { obtenerSocioActual } from "@/lib/sesion";
 import { enlaceLlamada, enlaceWhatsApp } from "@/lib/telefono";
@@ -37,10 +39,12 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
   const dia = hoy();
   const cliente = await obtenerCliente(socio.negocioId, id, dia);
   if (!cliente) notFound();
-  const [ventas, precios, productos] = await Promise.all([
+  const [ventas, precios, productos, saldo, cobros] = await Promise.all([
     listarVentas(socio.negocioId, { clienteId: id, limite: 5 }),
     listarPreciosEspeciales(id),
     listarProductosActivos(socio.negocioId),
+    saldoDeCliente(socio.negocioId, id),
+    cobrosDeVentas(socio.negocioId, [id]),
   ]);
 
   const wa = enlaceWhatsApp(cliente.telefono);
@@ -106,6 +110,23 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
         </div>
       )}
 
+      <section className="flex flex-col gap-2 rounded-xl border border-borde bg-superficie p-4">
+        <div className="flex items-baseline justify-between">
+          <span className="text-texto-suave">Cuenta corriente</span>
+          <span className={`text-2xl font-bold ${saldo > 0 ? "text-peligro" : saldo < 0 ? "text-acento" : ""}`}>
+            {saldo > 0 ? `Debe ${formatearPesos(saldo)}` : saldo < 0 ? `${formatearPesos(-saldo)} a favor` : "Al día"}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <BotonEnlace href={`/clientes/${cliente.id}/cobrar`} variante={saldo > 0 ? "principal" : "secundario"}>
+            Cobrar
+          </BotonEnlace>
+          <BotonEnlace href={`/clientes/${cliente.id}/cuenta`} variante="secundario">
+            Ver cuenta
+          </BotonEnlace>
+        </div>
+      </section>
+
       {!cliente.archivado && (
         <BotonEnlace href={`/ventas/nueva?cliente=${cliente.id}`}>+ Nueva venta</BotonEnlace>
       )}
@@ -125,7 +146,7 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
 
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-bold">Últimas ventas</h2>
-        <ListaVentas ventas={ventas} mostrarCliente={false} />
+        <ListaVentas ventas={ventas} mostrarCliente={false} cobros={cobros} />
       </section>
 
       <PreciosEspeciales

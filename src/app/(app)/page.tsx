@@ -3,6 +3,8 @@ import { cerrarSesion } from "@/app/acciones-sesion";
 import { Boton } from "@/componentes/Boton";
 import { BotonEnlace } from "@/componentes/BotonEnlace";
 import { listarClientes } from "@/datos/clientes";
+import { listarSaldos } from "@/datos/cuentas";
+import { formatearPesos } from "@/lib/dinero";
 import { formatearDia, hoy } from "@/lib/fechas";
 import { obtenerSocioActual } from "@/lib/sesion";
 
@@ -11,14 +13,15 @@ const MODULOS: { nombre: string; detalle: string; href?: string }[] = [
   { nombre: "Clientes", detalle: "Visitas, atrasados y datos de contacto", href: "/clientes" },
   { nombre: "Ventas", detalle: "Historial, detalle y anulaciones", href: "/ventas" },
   { nombre: "Stock y compras", detalle: "Productos, compras en dólares y stock", href: "/productos" },
-  { nombre: "Cobros", detalle: "Próximamente · Módulo 1.4" },
+  { nombre: "Cobros", detalle: "Quién debe plata y últimos cobros", href: "/cobros" },
   { nombre: "Resumen y ganancia", detalle: "Próximamente · Módulo 1.5" },
 ];
 
 export default async function PaginaInicio() {
   const socio = await obtenerSocioActual();
   const dia = hoy();
-  const clientes = await listarClientes(socio.negocioId, dia);
+  const [clientes, saldos] = await Promise.all([listarClientes(socio.negocioId, dia), listarSaldos(socio.negocioId)]);
+  const nosDeben = saldos.filter((s) => s.saldo > 0).reduce((t, s) => t + s.saldo, 0);
   const atrasados = clientes.filter((c) => c.estado.tipo === "atrasado").length;
   const paraHoy = clientes.filter((c) => c.estado.tipo === "hoy").length;
 
@@ -48,6 +51,13 @@ export default async function PaginaInicio() {
       <BotonEnlace href="/ventas/nueva" className="min-h-[64px] text-xl">
         + Nueva venta
       </BotonEnlace>
+
+      {nosDeben > 0 && (
+        <Link href="/cobros" className="flex min-h-[56px] items-center justify-between rounded-xl border border-borde bg-superficie px-5 py-3">
+          <span className="text-lg font-semibold">Nos deben</span>
+          <span className="text-xl font-bold text-peligro">{formatearPesos(nosDeben)}</span>
+        </Link>
+      )}
 
       <section aria-label="Módulos" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {MODULOS.map((m) =>

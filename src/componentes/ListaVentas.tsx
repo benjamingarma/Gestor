@@ -1,10 +1,21 @@
 import Link from "next/link";
 import type { ResumenVenta } from "@/datos/ventas";
+import { EtiquetaCobro } from "./EstadoCobro";
 import { formatearPesos } from "@/lib/dinero";
 import { formatearDia } from "@/lib/fechas";
 
-export function ListaVentas({ ventas, mostrarCliente = true }: { ventas: ResumenVenta[]; mostrarCliente?: boolean }) {
-  if (ventas.length === 0) return <p className="text-texto-suave">Todavía no hay ventas.</p>;
+export function ListaVentas({
+  ventas,
+  mostrarCliente = true,
+  cobros,
+  textoVacio = "Todavía no hay ventas.",
+}: {
+  ventas: ResumenVenta[];
+  mostrarCliente?: boolean;
+  cobros?: Map<string, { cobrado: number; saldo: number }>;
+  textoVacio?: string;
+}) {
+  if (ventas.length === 0) return <p className="text-texto-suave">{textoVacio}</p>;
   return (
     <ul className="flex flex-col gap-2">
       {ventas.map((v) => {
@@ -26,6 +37,9 @@ export function ListaVentas({ ventas, mostrarCliente = true }: { ventas: Resumen
               <span className="flex shrink-0 flex-col items-end">
                 <span className={`text-lg font-bold ${anulada ? "line-through" : ""}`}>{formatearPesos(v.importe)}</span>
                 {!anulada && <span className="text-sm text-texto-suave">gan. {formatearPesos(v.ganancia)}</span>}
+                {!anulada && cobros?.get(v.venta_id) && (
+                  <EtiquetaCobro importe={v.importe} cobrado={cobros.get(v.venta_id)!.cobrado} saldo={cobros.get(v.venta_id)!.saldo} />
+                )}
               </span>
             </Link>
           </li>
