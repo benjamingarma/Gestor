@@ -628,7 +628,7 @@ de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 | 1.3 | Ventas con varios productos, FIFO, precios especiales, anulación | ✅ terminado | #5 |
 | 1.4 | Pagos y cuenta corriente + filtro por mes en el historial de ventas | ✅ terminado | #6 |
 | 1.5 | Resumen y ganancia 50/50 (reparto con vigencia) + prueba de humo en CI | ✅ terminado | #7 |
-| **1.6** | **Ajustes de stock** | **⏭ siguiente** | — |
+| **1.6** | **Ajustes de stock** | **🔎 en revisión de los socios** | (PR abierto) |
 | 1.7 | Simplificación del diseño (nuevo) | pendiente | — |
 | 1.8 | Importación CSV | pendiente | — |
 | 1.9 | Backups y restauración | pendiente | — |

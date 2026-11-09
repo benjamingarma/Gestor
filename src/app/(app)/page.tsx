@@ -12,7 +12,7 @@ import { obtenerSocioActual } from "@/lib/sesion";
 const MODULOS: { nombre: string; detalle: string; href?: string }[] = [
   { nombre: "Clientes", detalle: "Visitas, atrasados y datos de contacto", href: "/clientes" },
   { nombre: "Ventas", detalle: "Historial, detalle y anulaciones", href: "/ventas" },
-  { nombre: "Stock y compras", detalle: "Productos, compras en dólares y stock", href: "/productos" },
+  { nombre: "Stock y compras", detalle: "Productos, compras en dólares, stock y regalos/pérdidas/roturas", href: "/productos" },
   { nombre: "Cobros", detalle: "Quién debe plata y últimos cobros", href: "/cobros" },
   { nombre: "Resumen y ganancia", detalle: "Ganancia, reparto, cobrado, capital", href: "/resumen" },
 ];

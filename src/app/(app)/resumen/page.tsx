@@ -4,6 +4,7 @@ import { SelectorMes } from "@/componentes/SelectorMes";
 import { listarClientes } from "@/datos/clientes";
 import { listarSaldos } from "@/datos/cuentas";
 import { leerCapital, leerMovimientosDiarios, leerSociosYReparto } from "@/datos/resumen";
+import { perdidasParaGanancia, totalesPerdidas } from "@/dominio/ajustes";
 import { calcularGanancia, vigenteEn } from "@/dominio/ganancia";
 import { enPeriodo, totalesCobros, totalesVentas } from "@/dominio/resumen";
 import { compararParaVisitar } from "@/dominio/visitas";
@@ -55,7 +56,7 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
   const mesActual = mesDe(dia);
   const periodo = pedido === "todo" ? "todo" : typeof pedido === "string" && esMesValido(pedido) && pedido <= mesActual ? pedido : mesActual;
 
-  const [{ socios, vigencias }, { ganancias, cobros }, capital, saldos, clientes] = await Promise.all([
+  const [{ socios, vigencias }, { ganancias, perdidas, cobros }, capital, saldos, clientes] = await Promise.all([
     leerSociosYReparto(socio.negocioId),
     leerMovimientosDiarios(socio.negocioId),
     leerCapital(socio.negocioId),
@@ -63,15 +64,17 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
     listarClientes(socio.negocioId, dia),
   ]);
 
-  const primerMes = [ganancias[0]?.dia, cobros[0]?.dia].filter(Boolean).sort()[0];
+  const primerMes = [ganancias[0]?.dia, perdidas[0]?.dia, cobros[0]?.dia].filter(Boolean).sort()[0];
   const meses = mesesEntre(primerMes && mesDe(primerMes) < mesActual ? mesDe(primerMes) : mesActual, mesActual);
   const nombrePeriodo = periodo === "todo" ? "todo el historial" : nombreDelMes(periodo).toLowerCase();
 
-  // Ganancia del período y acumulada (las pérdidas por ajustes llegan con el módulo 1.6).
+  // Ganancia del período y acumulada: ventas menos pérdidas por ajustes de stock (regalo, pérdida, rotura).
   const delPeriodo = ganancias.filter((g) => enPeriodo(g.dia, periodo));
+  const perdidasDelPeriodo = perdidas.filter((p) => enPeriodo(p.dia, periodo));
   const ventas = totalesVentas(delPeriodo);
-  const ganancia = calcularGanancia(delPeriodo.map((g) => ({ dia: g.dia, ganancia: g.ganancia })), [], socios, vigencias);
-  const acumulada = calcularGanancia(ganancias.map((g) => ({ dia: g.dia, ganancia: g.ganancia })), [], socios, vigencias);
+  const ajustes = totalesPerdidas(perdidasDelPeriodo);
+  const ganancia = calcularGanancia(delPeriodo.map((g) => ({ dia: g.dia, ganancia: g.ganancia })), perdidasParaGanancia(perdidasDelPeriodo), socios, vigencias);
+  const acumulada = calcularGanancia(ganancias.map((g) => ({ dia: g.dia, ganancia: g.ganancia })), perdidasParaGanancia(perdidas), socios, vigencias);
   const cobrado = totalesCobros(cobros.filter((c) => enPeriodo(c.dia, periodo)));
   const porcentajesHoy = vigenteEn(vigencias, dia, socios);
 
@@ -91,7 +94,15 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
 
       <Tarjeta titulo={`Ganancia · ${nombrePeriodo}`} enlace={{ href: "/resumen/reparto", texto: "Ver o cambiar el reparto" }}>
         <Fila etiqueta="Ganancia de las ventas" valor={formatearPesos(ganancia.bruta)} />
-        <Fila etiqueta="− Pérdidas por ajustes de stock" valor={formatearPesos(ganancia.perdidas)} />
+        <Fila
+          etiqueta={
+            <Link href={`/ajustes?mes=${periodo}`} className="text-acento">
+              − Pérdidas por ajustes de stock{ajustes.unidades > 0 ? ` (${ajustes.unidades} u)` : ""}
+            </Link>
+          }
+          valor={formatearPesos(ganancia.perdidas)}
+          rojo={ganancia.perdidas > 0}
+        />
         <Fila etiqueta="Ganancia neta" valor={formatearPesos(ganancia.neta)} fuerte rojo={ganancia.neta < 0} />
         <div className="mt-1 flex flex-col gap-1 border-t border-borde pt-2">
           {ganancia.partes.map((p) => (
@@ -99,7 +110,8 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
           ))}
         </div>
         <p className="text-xs text-texto-suave">
-          Es lo que se ganó con las ventas (precio − costo de la mercadería), se haya cobrado o no. No es plata
+          Es lo que se ganó con las ventas (precio − costo de la mercadería), menos el costo de lo regalado, perdido o
+          roto, se haya cobrado o no. No es plata
           disponible: parte puede estar sin cobrar, y el costo de la mercadería es capital, no ganancia.
         </p>
       </Tarjeta>

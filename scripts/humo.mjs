@@ -31,7 +31,7 @@ const r = await fetch(`${API_URL}/auth/v1/admin/users`, {
 if (!r.ok) throw new Error(`No se pudo crear el usuario: ${r.status} ${await r.text()}`);
 const { id: userId } = await r.json();
 
-const ids = { producto: randomUUID(), cliente: randomUUID(), compra: randomUUID(), venta: randomUUID(), pago: randomUUID() };
+const ids = { producto: randomUUID(), cliente: randomUUID(), compra: randomUUID(), venta: randomUUID(), pago: randomUUID(), ajuste: randomUUID() };
 const sql = `
 update public.socios set user_id = null where user_id is not null and negocio_id = '${NEGOCIO}' and orden = 1;
 update public.socios set user_id = '${userId}' where negocio_id = '${NEGOCIO}' and orden = 1;
@@ -43,13 +43,14 @@ insert into public.clientes (id, negocio_id, nombre) values ('${ids.cliente}', '
 select public.registrar_compra('${ids.compra}', '${NEGOCIO}', '${ids.producto}', public.hoy_tucuman(), 5, 500, 140000);
 select public.registrar_venta('${ids.venta}', '${NEGOCIO}', '${ids.cliente}', '[{"producto_id":"${ids.producto}","cantidad":2,"precio_unitario":1000000}]');
 select public.registrar_pago('${ids.pago}', '${ids.cliente}', 500000, 'efectivo');
+select public.registrar_ajuste('${ids.ajuste}', '${NEGOCIO}', '${ids.producto}', 1, 'rotura');
 commit;`;
 execFileSync("psql", [DB_URL, "-q", "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio: ["ignore", "ignore", "inherit"] });
 
 // 2. Recorrido por todas las pantallas.
 const rutas = [
   "/", "/clientes", "/clientes/nuevo", `/clientes/${ids.cliente}`, `/clientes/${ids.cliente}/cuenta`, `/clientes/${ids.cliente}/cobrar`,
-  "/productos", "/productos/nuevo", `/productos/${ids.producto}`, "/compras", "/compras/nueva",
+  "/productos", "/productos/nuevo", `/productos/${ids.producto}`, `/productos/${ids.producto}/ajuste`, "/ajustes", "/ajustes?mes=todo", "/compras", "/compras/nueva",
   "/ventas", "/ventas/nueva", `/ventas/${ids.venta}`, "/cobros", "/resumen", "/resumen?mes=todo", "/resumen/reparto",
 ];
 const navegador = await chromium.launch();

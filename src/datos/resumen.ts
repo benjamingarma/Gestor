@@ -1,4 +1,5 @@
 import "server-only";
+import type { FilaPerdida } from "@/dominio/ajustes";
 import type { Socio, Vigencia } from "@/dominio/ganancia";
 import { crearClienteSupabase } from "@/lib/supabase/servidor";
 
@@ -47,13 +48,17 @@ export async function leerSociosYReparto(negocioId: string): Promise<{ socios: S
   return { socios: (socios.data ?? []) as Socio[], vigencias: [...porFecha.values()] };
 }
 
-/** Ganancia por día y cobros por día de TODO el historial (filas chicas: una por día). */
-export async function leerMovimientosDiarios(negocioId: string): Promise<{ ganancias: GananciaDia[]; cobros: CobroDia[] }> {
+/** Ganancia, pérdidas por ajustes y cobros por día de TODO el historial (filas chicas: una por día). */
+export async function leerMovimientosDiarios(negocioId: string): Promise<{ ganancias: GananciaDia[]; perdidas: FilaPerdida[]; cobros: CobroDia[] }> {
   const supabase = await crearClienteSupabase();
-  const [ganancias, cobros] = await Promise.all([
+  const [ganancias, perdidas, cobros] = await Promise.all([
     leerTodo<GananciaDia>(
       (d, h) => supabase.from("v_ganancia_diaria").select("dia, ventas, unidades, importe, costo_ars, costo_usd, ganancia").eq("negocio_id", negocioId).order("dia").range(d, h),
       "No se pudo leer la ganancia",
+    ),
+    leerTodo<FilaPerdida>(
+      (d, h) => supabase.from("v_perdidas_diarias").select("dia, ajustes, unidades, costo_ars, costo_usd").eq("negocio_id", negocioId).order("dia").range(d, h),
+      "No se pudieron leer las pérdidas por ajustes",
     ),
     leerTodo<CobroDia>(
       (d, h) =>
@@ -68,7 +73,7 @@ export async function leerMovimientosDiarios(negocioId: string): Promise<{ ganan
       "No se pudieron leer los cobros",
     ),
   ]);
-  return { ganancias, cobros };
+  return { ganancias, perdidas, cobros };
 }
 
 export async function leerCapital(negocioId: string): Promise<Capital> {
