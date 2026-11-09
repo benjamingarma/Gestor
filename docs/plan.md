@@ -1,8 +1,10 @@
-# Plan del sistema de gestión — Versión 3
+# Plan del sistema de gestión — Versión 3.1
 
 > Estado: **aprobado** por los socios (versión 2) con las correcciones de la versión 3:
 > producto sin sabor, costo de compra en dólares (blue) con tipo de cambio por compra,
 > backups sobre el plan gratis de Supabase y fast-check para pruebas.
+> Versión 3.1: nuevo orden de módulos aprobado (sección 12), migraciones automáticas al
+> mergear a `main` (A19) y datos de prueba marcados y borrables (A20).
 > Donde las versiones anteriores digan otra cosa, manda esta.
 
 Índice:
@@ -145,6 +147,24 @@ pone el socio). Debe ser > 0.
 **A18. Fecha de compra obligatoria**, también en el stock inicial, porque define el orden FIFO. Si no se
 recuerda exacta, se pone la mejor aproximación; la marca "estimado" cubre el tipo de cambio, que es lo que
 afecta el costo.
+
+**A19. Migraciones automáticas.** Al mergear a `main` un cambio en `supabase/migrations/`, GitHub Actions
+aplica a Supabase solo las migraciones pendientes (`.github/workflows/migraciones.yml`). Usa un único secreto,
+`SUPABASE_DB_URL` (conexión "Session pooler", porque GitHub no tiene IPv6). Nunca carga `seed.sql`. Las
+migraciones se prueban antes en el CI de cada PR (base local + pgTAP).
+
+**A20. Un solo proyecto de Supabase: datos de prueba marcados y borrables.** Se prueba en el mismo proyecto que
+va a ser el real. Por eso:
+- `negocios.modo_prueba` (verdadero hasta el pasaje a producción). Mientras esté activo, la app muestra una
+  franja "MODO PRUEBA" y **todo lo que se carga queda marcado** con `es_prueba = true` (lo pone la base, no el
+  celular).
+- Todas las tablas de datos (productos, compras, movimientos, clientes, ventas, pagos, etc.) tienen la columna
+  `es_prueba`. Cada módulo que agrega una tabla la suma al borrado.
+- `supabase/admin/borrar-datos-de-prueba.sql`: muestra cuántas filas de prueba hay por tabla y las borra en una
+  sola transacción, **conservando negocio, socios y usuarios**. Si alguna fila real dependiera de una de prueba,
+  no borra nada. Después desactiva `modo_prueba`.
+- Es la única excepción a "nunca borrar": solo la puede correr el administrador desde el SQL Editor de Supabase,
+  solo borra filas marcadas como prueba, y se ensaya en el módulo 1.8 y se usa en el 1.9, antes de la carga real.
 
 ---
 
@@ -532,7 +552,7 @@ GitHub Actions (repo privado)
    restaurar en un proyecto Supabase nuevo, verificar controles (cantidades por tabla y cierres de capital),
    reconfigurar variables en Netlify, recuperar contraseñas.
 5. **Prueba real de restauración** sobre un proyecto Supabase de prueba con datos inventados, **antes** de
-   cargar datos reales. Módulo 1.9; sin eso no se pasa al 1.10.
+   cargar datos reales. Módulo 1.8; sin eso no se pasa al 1.9.
 
 ---
 
@@ -589,19 +609,25 @@ celular (Playwright).
 
 ## 12. Plan de implementación por módulos (Etapa 1)
 
-| # | Módulo | Contenido |
-|---|---|---|
-| 1.0 | Base | Next.js + TS + Tailwind, Supabase (migraciones), `negocios`, `socios`, `es_socio()`, RLS base, login email/contraseña, `.env.example`, CI, Netlify, utilidades de dinero (ARS, USD, conversión) y fechas, Vitest + fast-check, pgTAP. |
-| 1.1 | Clientes y visitas básicas | Alta/edición/archivo, búsqueda, marcar visitado, atrasados. |
-| 1.2 | Productos, compras y stock | Catálogo marca + modelo, compras en USD con tipo de cambio (sugerido, estimado), stock valorizado USD/pesos, anular compra. |
-| 1.3 | Precios especiales | Precio propuesto. |
-| 1.4 | Ventas | Multi-producto, FIFO, costos históricos, anulación. |
-| 1.5 | Pagos y cuenta corriente | Medios, socio receptor, FIFO de pagos, saldos iniciales, saldo a favor. |
-| 1.6 | Ajustes de stock | Regalo/pérdida/rotura, anulación. |
-| 1.7 | Ganancia, reparto y resumen | Neta, % con vigencia, cobrado / deuda / capital USD y pesos; pantalla de resumen. |
-| 1.8 | Importación CSV | Plantillas, vista previa con totales, confirmación atómica. |
-| 1.9 | Backups y exportación | Backup diario cifrado, ping anti-pausa, exportar CSV, `docs/restauracion.md`, **prueba real de restauración**. |
-| 1.10 | Pasaje a producción | Proyecto de producción, usuarios reales, importación de datos reales. Solo con 1.9 aprobado. |
+Orden aprobado el 09/11/2026: primero todo lo necesario para registrar ventas. Cada módulo: rama propia, PR,
+pruebas en verde, deploy preview y aprobación de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 
-Nota: el ping anti-pausa se adelanta al módulo 1.0 (es una tarea chica y evita que el proyecto de prueba se
-pause durante el desarrollo).
+| # | Módulo | Contenido | Sesiones |
+|---|---|---|---|
+| 1.0 | Base ✅ | Login, socios, RLS, utilidades de dinero y fechas, CI, Netlify, ping anti-pausa. | hecho |
+| — | Migraciones automáticas | PR chico aparte: aplicar migraciones al mergear a `main` (A19). | hecho en este PR |
+| 1.1 | Productos, compras y stock | Catálogo marca + modelo con precio general. Compras en USD con tipo de cambio sugerido o estimado y costo en pesos. Stock por movimientos, valorizado en USD y pesos. Anular compra. Marcado de datos de prueba (A20). | 1 a 2 |
+| 1.2 | Clientes y visitas básicas | Alta, edición, archivo, búsqueda. Marcar visitado, próxima visita, atrasados. | 1 |
+| 1.3 | Ventas con varios productos | Venta en pocos toques, FIFO, precio y costo históricos, anulación. **Incluye precios especiales** por cliente y el precio propuesto. | 2 |
+| 1.4 | Pagos y cuenta corriente | Medios, socio receptor, aplicación FIFO de pagos, saldos iniciales, saldo a favor, anulación, "quién debe". | 1 a 2 |
+| 1.5 | Resumen y ganancia 50/50 | Ganancia bruta y neta, reparto con vigencia, cobrado, nos deben, capital USD/pesos, a quién visitar. | 1 |
+| 1.6 | Ajustes de stock | Regalo, pérdida, rotura; su costo resta de la ganancia. | 1 |
+| 1.7 | Importación CSV | Plantillas, vista previa con totales, confirmación atómica. | 1 a 2 |
+| 1.8 | Backups y restauración | Backup diario cifrado, exportar CSV, `docs/restauracion.md`, **prueba real de restauración**, **ensayo del borrado de datos de prueba** (A20). | 1 a 2 |
+| 1.9 | Pasaje a producción | Con los socios: borrar datos de prueba, desactivar modo prueba, usuarios reales, importación de datos reales. Solo con 1.8 aprobado. | 1 |
+
+Total estimado: 10 a 14 sesiones. Con 1.1 a 1.5 ya se pueden registrar ventas y ver la ganancia (con datos
+inventados). Hasta que exista el módulo 1.6, las pérdidas por ajustes valen $0.
+
+Nota: el ping anti-pausa se adelantó al módulo 1.0. No hay un proyecto de producción separado: es el mismo
+proyecto de Supabase, limpio de datos de prueba en el módulo 1.9 (A20).

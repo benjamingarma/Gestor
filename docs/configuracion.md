@@ -14,12 +14,7 @@ Mientras estemos en desarrollo: **proyecto de prueba y datos inventados**.
    un gestor de contraseñas.
 2. Authentication > Sign In / Providers: **desactivar "Allow new users to sign up"**. Email habilitado.
    Authentication > Policies/Password: largo mínimo 10, letras y números.
-3. Aplicar las migraciones desde tu computadora (o pedímelo y te guío):
-   ```bash
-   npx supabase login
-   npx supabase link --project-ref TU_PROJECT_REF
-   npx supabase db push
-   ```
+3. Las migraciones se aplican solas al mergear a `main` (ver "Migraciones automáticas" abajo).
 4. SQL Editor: correr `supabase/admin/crear-negocio.sql` (cambiando el nombre del negocio).
 5. Authentication > Users > Add user > Create new user: tu email y una contraseña (marcar "Auto confirm").
 6. SQL Editor: correr `supabase/admin/vincular-socio.sql` con tu email y `Benjamín`.
@@ -37,6 +32,26 @@ Mientras estemos en desarrollo: **proyecto de prueba y datos inventados**.
 GitHub > Settings > Secrets and variables > Actions > New repository secret:
 - `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` (los mismos de Netlify).
 Probala a mano: Actions > "Mantener activo Supabase" > Run workflow. Debe mostrar "Supabase respondió: ...".
+
+## 5. Migraciones automáticas (una sola vez, desde la PC)
+Al mergear un PR que cambia la base, GitHub Actions aplica solo las migraciones nuevas a Supabase
+(`.github/workflows/migraciones.yml`). Necesita **un solo secreto**: `SUPABASE_DB_URL`.
+
+1. **Contraseña de la base sin símbolos.** Supabase > tu proyecto > **Project Settings** > **Database** >
+   **Reset database password** > **Generate a password**. Si la generada tiene símbolos (`@ : / ? # %`),
+   generá otra hasta que sea solo letras y números. Copiala. (La app no usa esta contraseña: cambiarla no rompe nada.)
+2. **Cadena de conexión.** Botón **Connect** (arriba en el proyecto) > pestaña **Connection String** >
+   tipo **URI** > sección **Session pooler**. Copiá la línea; se parece a
+   `postgresql://postgres.abcdefghijklmnop:[YOUR-PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`
+3. **Armala.** En un bloc de notas, reemplazá `[YOUR-PASSWORD]` (con los corchetes) por la contraseña del paso 1.
+4. **Cargala en GitHub.** Repositorio > **Settings** > **Secrets and variables** > **Actions** >
+   **New repository secret**. Name: `SUPABASE_DB_URL`. Secret: la línea del paso 3. **Add secret**.
+   Borrá la línea del bloc de notas.
+5. **Probala.** GitHub > **Actions** > "Aplicar migraciones a Supabase" > **Run workflow** (rama `main`).
+   Tiene que terminar en verde. Como la migración del módulo 1.0 ya está aplicada, dice que no hay nada nuevo.
+
+Este mismo secreto lo va a usar el backup diario del módulo 1.8. Si alguna vez se filtra, repetí el paso 1
+(cambiar la contraseña invalida la cadena vieja) y actualizá el secreto.
 
 ## Desarrollo local (opcional, necesita Docker)
 ```bash
