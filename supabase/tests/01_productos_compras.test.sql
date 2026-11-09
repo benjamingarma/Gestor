@@ -10,8 +10,8 @@ select plan(63);
 -- Datos base (como administrador)
 -- ---------------------------------------------------------------------------------
 insert into auth.users (id, email, aud, role) values
-  ('00000000-0000-0000-0000-0000000000a1', 'socio.a@ejemplo.test', 'authenticated', 'authenticated'),
-  ('00000000-0000-0000-0000-0000000000b1', 'otro@ejemplo.test',    'authenticated', 'authenticated');
+  ('00000000-0000-0000-0000-0000000000a1', 'socio.a@pgtap.test', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-0000000000b1', 'otro@pgtap.test',    'authenticated', 'authenticated');
 
 insert into negocios (id, nombre) values
   ('10000000-0000-0000-0000-000000000001', 'Negocio de prueba'),
@@ -315,7 +315,8 @@ rollback to savepoint antes_de_dependencia;
 
 select results_eq(
   $$select tabla, filas_borradas from borrar_datos_de_prueba('10000000-0000-0000-0000-000000000001', 'BORRAR DATOS DE PRUEBA')$$,
-  $$values ('movimientos_stock'::text, 6::bigint), ('compras'::text, 4::bigint), ('productos'::text, 3::bigint)$$,
+  $$values ('visitas'::text, 0::bigint), ('movimientos_stock'::text, 6::bigint), ('compras'::text, 4::bigint),
+           ('clientes'::text, 0::bigint), ('productos'::text, 3::bigint)$$,
   'borra todas las filas de prueba, en orden'
 );
 select results_eq(
@@ -326,7 +327,7 @@ select results_eq(
 select results_eq(
   $$select (select count(*)::int from negocios where id::text like '10000000-%'),
            (select count(*)::int from socios where id::text like '20000000-%'),
-           (select count(*)::int from auth.users where email like '%@ejemplo.test')$$,
+           (select count(*)::int from auth.users where email like '%@pgtap.test')$$,
   $$values (2, 3, 2)$$,
   'negocio, socios y usuarios se conservan'
 );
