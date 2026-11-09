@@ -25,9 +25,11 @@ export const obtenerSocioActual = cache(async (): Promise<SocioActual> => {
   if (!usuario) redirect("/login");
 
   // RLS: solo devuelve socios de negocios a los que pertenece el usuario.
+  // La relación se nombra explícitamente: hay más de un camino entre socios y negocios
+  // (por ejemplo, a través de reparto_porcentajes) y la API no adivina cuál usar.
   const { data, error } = await supabase
     .from("socios")
-    .select("id, nombre, negocio_id, negocios ( nombre, modo_prueba )")
+    .select("id, nombre, negocio_id, negocios!socios_negocio_id_fkey ( nombre, modo_prueba )")
     .eq("user_id", usuario.id)
     .maybeSingle();
 

@@ -14,7 +14,7 @@ const MODULOS: { nombre: string; detalle: string; href?: string }[] = [
   { nombre: "Ventas", detalle: "Historial, detalle y anulaciones", href: "/ventas" },
   { nombre: "Stock y compras", detalle: "Productos, compras en dólares y stock", href: "/productos" },
   { nombre: "Cobros", detalle: "Quién debe plata y últimos cobros", href: "/cobros" },
-  { nombre: "Resumen y ganancia", detalle: "Próximamente · Módulo 1.5" },
+  { nombre: "Resumen y ganancia", detalle: "Ganancia, reparto, cobrado, capital", href: "/resumen" },
 ];
 
 export default async function PaginaInicio() {

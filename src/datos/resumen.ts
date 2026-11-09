@@ -1,0 +1,79 @@
+import "server-only";
+import type { Socio, Vigencia } from "@/dominio/ganancia";
+import { crearClienteSupabase } from "@/lib/supabase/servidor";
+
+function fallar(contexto: string, error: { message: string }): never {
+  throw new Error(`${contexto}: ${error.message}`);
+}
+
+/**
+ * Lee todas las filas de una consulta en páginas de 1000 (la API de Supabase devuelve como
+ * máximo 1000 filas por pedido; sin esto los totales quedarían cortados sin aviso).
+ */
+async function leerTodo<T>(pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>, contexto: string): Promise<T[]> {
+  const TAM = 1000;
+  const filas: T[] = [];
+  for (let desde = 0; ; desde += TAM) {
+    const { data, error } = await pagina(desde, desde + TAM - 1);
+    if (error) fallar(contexto, error);
+    filas.push(...(data ?? []));
+    if (!data || data.length < TAM) return filas;
+  }
+}
+
+export type GananciaDia = { dia: string; ventas: number; unidades: number; importe: number; costo_ars: number; costo_usd: number; ganancia: number };
+export type CobroDia = { dia: string; medio: "efectivo" | "transferencia" | "mercado_pago"; recibido_por: string; recibido_por_nombre: string; cobros: number; total: number };
+export type Capital = {
+  invertido_usd: number; invertido_ars: number;
+  vendido_usd: number; vendido_ars: number;
+  perdidas_usd: number; perdidas_ars: number;
+  stock_usd: number; stock_ars: number;
+};
+
+export async function leerSociosYReparto(negocioId: string): Promise<{ socios: Socio[]; vigencias: Vigencia[] }> {
+  const supabase = await crearClienteSupabase();
+  const [socios, reparto] = await Promise.all([
+    supabase.from("socios").select("id, nombre, orden").eq("negocio_id", negocioId).order("orden"),
+    supabase.from("reparto_porcentajes").select("vigente_desde, socio_id, centesimos").eq("negocio_id", negocioId).order("vigente_desde"),
+  ]);
+  if (socios.error) fallar("No se pudieron leer los socios", socios.error);
+  if (reparto.error) fallar("No se pudo leer el reparto", reparto.error);
+  const porFecha = new Map<string, Vigencia>();
+  for (const r of reparto.data ?? []) {
+    const v: Vigencia = porFecha.get(r.vigente_desde) ?? { desde: r.vigente_desde, porcentajes: [] };
+    v.porcentajes.push({ socioId: r.socio_id, centesimos: r.centesimos });
+    porFecha.set(r.vigente_desde, v);
+  }
+  return { socios: (socios.data ?? []) as Socio[], vigencias: [...porFecha.values()] };
+}
+
+/** Ganancia por día y cobros por día de TODO el historial (filas chicas: una por día). */
+export async function leerMovimientosDiarios(negocioId: string): Promise<{ ganancias: GananciaDia[]; cobros: CobroDia[] }> {
+  const supabase = await crearClienteSupabase();
+  const [ganancias, cobros] = await Promise.all([
+    leerTodo<GananciaDia>(
+      (d, h) => supabase.from("v_ganancia_diaria").select("dia, ventas, unidades, importe, costo_ars, costo_usd, ganancia").eq("negocio_id", negocioId).order("dia").range(d, h),
+      "No se pudo leer la ganancia",
+    ),
+    leerTodo<CobroDia>(
+      (d, h) =>
+        supabase
+          .from("v_cobros_diarios")
+          .select("dia, medio, recibido_por, recibido_por_nombre, cobros, total")
+          .eq("negocio_id", negocioId)
+          .order("dia")
+          .order("medio")
+          .order("recibido_por")
+          .range(d, h),
+      "No se pudieron leer los cobros",
+    ),
+  ]);
+  return { ganancias, cobros };
+}
+
+export async function leerCapital(negocioId: string): Promise<Capital> {
+  const supabase = await crearClienteSupabase();
+  const { data, error } = await supabase.from("v_capital").select("*").eq("negocio_id", negocioId).single();
+  if (error) fallar("No se pudo leer el capital", error);
+  return data as Capital;
+}
