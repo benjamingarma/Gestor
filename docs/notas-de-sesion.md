@@ -2,12 +2,12 @@
 
 > Para leer al empezar una sesión nueva, junto con `CLAUDE.md` (reglas), `docs/plan.md` (plan y estado,
 > sección 12) y `docs/decisiones/modulo-*.md` (decisiones de cada módulo).
-> Última actualización: 13/11/2026, al cerrar el módulo 1.5.
+> Última actualización: al abrir el PR del módulo 1.6 (pendiente de prueba de los socios y merge).
 
 ## 1. Dónde estamos
 
-- Terminados y mergeados en `main`: módulos 1.0 a 1.5 (PR #1 a #7 de `benjamingarma/Gestor`).
-- **Siguiente: 1.6 Ajustes de stock.** Después: 1.7 Simplificación del diseño (nuevo, ver `docs/plan.md` 12.3),
+- Terminados y mergeados en `main`: módulos 1.0 a 1.5 (PR #1 a #8 de `benjamingarma/Gestor`).
+- **En revisión: 1.6 Ajustes de stock** (PR abierto, falta la prueba de los socios en el celular). Después: 1.7 Simplificación del diseño (nuevo, ver `docs/plan.md` 12.3),
   1.8 Importación CSV, 1.9 Backups y restauración, 1.10 Pasaje a producción.
 - Repositorio privado, rama por defecto `main` (verificado el 13/11). Se trabaja con una rama `claude/...` por
   módulo y un PR; los socios prueban en el deploy preview de Netlify y mergean ellos.
@@ -29,9 +29,11 @@ tamaño celular (Pixel 7, `es-AR`, hora de Tucumán) y prueba de los socios desd
 | 1.3 | Venta que consume dos compras a distinto TC, multi-producto, precios especiales, anulación | 196 pgTAP + concurrencia, 126 Vitest |
 | 1.4 | Saldo del papel, cobros parciales, saldo a favor, anular cobro, filtro por mes | 233 pgTAP, 145 Vitest |
 | 1.5 | Resumen del mes, capital ✓, reparto 60/40 sin alterar el pasado | 254 pgTAP, 163 Vitest, humo (18 pantallas) |
+| 1.6 | (pendiente de los socios) | 307 pgTAP, 176 Vitest, concurrencia venta contra ajuste, humo (21 pantallas) |
 
 Todos los números del ejemplo del plan (sección 6) están verificados en pgTAP y en Vitest: V1 $74.000 / USD 60,
-ventas $199.000, ganancia $74.000, capital USD 195 = 96 + 99 y $267.500 = $125.000 + $142.500, cuenta de Bruno
+ventas $199.000, ganancia $74.000, capital USD 195 = 96 + 99 y $267.500 = $125.000 + $142.500 (con A1 del 1.6:
+195 = 96 + 5 + 94 y $267.500 = $125.000 + $7.000 + $135.500, ganancia neta $67.000), cuenta de Bruno
 $99.000 → $49.000 → $1.000 a favor.
 
 ## 3. Problemas que aparecieron (y cómo se resolvieron)
@@ -95,13 +97,10 @@ $99.000 → $49.000 → $1.000 a favor.
   5. pruebas pgTAP (RLS entre negocios, anónimo, inmutabilidad, idempotencia) y correr la prueba de humo.
 - Las pruebas generales de `00_base_rls.test.sql` ("toda tabla tiene RLS" y "el anónimo no tiene permisos")
   cubren automáticamente las tablas nuevas.
-- Movimientos de stock: los de tipo `venta`/`anulacion_venta` deben tener `venta_item_id` (regla en la tabla). En el
-  1.6, los de `ajuste`/`anulacion_ajuste` deberían exigir `ajuste_id` de la misma forma (hoy no se exige porque la
-  tabla de ajustes no existe; la prueba `01` usa un movimiento `ajuste` sin `ajuste_id` para simular una salida:
-  habrá que adaptarla).
-- La vista `v_capital` ya cuenta las pérdidas por ajustes (`tipo in ('ajuste','anulacion_ajuste')`), y el resumen ya
-  tiene la fila "Pérdidas por ajustes": en el 1.6 hay que pasarle las pérdidas a `calcularGanancia` (hoy recibe `[]`
-  en `src/app/(app)/resumen/page.tsx`).
+- Movimientos de stock: los de tipo `venta`/`anulacion_venta` exigen `venta_item_id` y, desde el 1.6, los de
+  `ajuste`/`anulacion_ajuste` exigen `ajuste_id` (reglas en la tabla). La prueba `01` ya usa `registrar_ajuste`.
+- Pérdidas por ajustes: la ganancia las toma de `v_perdidas_diarias` (tabla `ajustes_stock`, por la fecha del ajuste)
+  y el capital de `v_capital` (movimientos). Una prueba pgTAP verifica que las dos den lo mismo.
 - Fechas: los días son texto `AAAA-MM-DD` en hora de Tucumán. Ventas guardan fecha y hora; si se carga una fecha
   pasada, se guarda al mediodía de ese día en Tucumán. Pagos, visitas, compras y saldos del papel guardan solo el día.
 - Porcentajes del reparto en centésimos (5000 = 50 %); en pantalla se leen con `parsearImporte`, que da centésimos

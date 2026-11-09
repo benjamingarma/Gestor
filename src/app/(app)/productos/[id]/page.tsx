@@ -2,10 +2,12 @@ import { notFound } from "next/navigation";
 import { Aviso } from "@/componentes/Aviso";
 import { BotonEnlace } from "@/componentes/BotonEnlace";
 import { Encabezado } from "@/componentes/Encabezado";
+import { listarAjustes } from "@/datos/ajustes";
 import { listarComprasDeProducto, obtenerStockProducto } from "@/datos/inventario";
 import { formatearDolares, formatearPesos } from "@/lib/dinero";
 import { obtenerSocioActual } from "@/lib/sesion";
 import { esUuid } from "@/lib/uuid";
+import { TarjetaAjuste } from "../../ajustes/TarjetaAjuste";
 import { TarjetaCompra } from "../../compras/TarjetaCompra";
 import { editarProducto } from "../acciones";
 import { FormularioProducto } from "../FormularioProducto";
@@ -15,6 +17,8 @@ const MENSAJES: Record<string, string> = {
   editado: "Cambios guardados.",
   compra: "Compra guardada.",
   anulada: "Compra anulada.",
+  ajuste: "Ajuste guardado: las unidades salieron del stock y su costo se resta de la ganancia.",
+  "ajuste-anulado": "Ajuste anulado: las unidades volvieron al stock.",
 };
 
 function centavosATexto(centavos: number | null): string {
@@ -28,9 +32,10 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
   if (!esUuid(id)) notFound();
 
   const socio = await obtenerSocioActual();
-  const [producto, compras] = await Promise.all([
+  const [producto, compras, ajustes] = await Promise.all([
     obtenerStockProducto(socio.negocioId, id),
     listarComprasDeProducto(socio.negocioId, id),
+    listarAjustes(socio.negocioId, { productoId: id, limite: 20 }),
   ]);
   if (!producto) notFound();
 
@@ -77,6 +82,11 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
       {producto.activo && (
         <BotonEnlace href={`/compras/nueva?producto=${producto.producto_id}`}>+ Cargar compra</BotonEnlace>
       )}
+      {producto.unidades > 0 && (
+        <BotonEnlace href={`/productos/${producto.producto_id}/ajuste`} variante="secundario">
+          − Regalo, pérdida o rotura
+        </BotonEnlace>
+      )}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-xl font-bold">Compras</h2>
@@ -85,6 +95,15 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
         {compras.map((c) => (
           <TarjetaCompra key={c.compra_id} compra={c} permitirAnular />
         ))}
+      </section>
+
+      <section id="ajustes" className="flex flex-col gap-3">
+        <h2 className="text-xl font-bold">Regalos, pérdidas y roturas</h2>
+        {ajustes.length === 0 ? (
+          <p className="text-texto-suave">Ninguno todavía.</p>
+        ) : (
+          ajustes.map((a) => <TarjetaAjuste key={a.ajuste_id} ajuste={a} volverA={`/productos/${producto.producto_id}`} />)
+        )}
       </section>
 
       <details className="rounded-xl border border-borde bg-superficie p-4">

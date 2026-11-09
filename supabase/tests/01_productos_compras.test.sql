@@ -266,14 +266,13 @@ $$, '42501', null, 'el anónimo no puede registrar compras');
 reset role;
 select set_config('request.jwt.claims', '', true);
 
--- Simula una salida de C1 (un ajuste; las ventas tienen su propia prueba en 03_ventas).
-insert into movimientos_stock (negocio_id, compra_id, producto_id, tipo, cantidad, costo_unitario_usd, costo_unitario_ars, fecha, registrado_por)
-values ('10000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001',
-        'ajuste', -2, 500, 600000, now(), '20000000-0000-0000-0000-000000000001');
-
+-- Una salida de C1 (un ajuste por rotura; los ajustes tienen su propia prueba en 06_ajustes
+-- y las ventas en 03_ventas).
 set local role authenticated;
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true);
+select registrar_ajuste('60000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000001', 2, 'rotura');
 select throws_like($$
   select anular_compra('40000000-0000-0000-0000-000000000001', 'intento')
 $$, '%ya salieron 2 unidades%', 'no se anula una compra de la que ya salieron unidades');
@@ -316,7 +315,7 @@ rollback to savepoint antes_de_dependencia;
 select results_eq(
   $$select tabla, filas_borradas from borrar_datos_de_prueba('10000000-0000-0000-0000-000000000001', 'BORRAR DATOS DE PRUEBA')$$,
   $$values ('visitas'::text, 0::bigint), ('pagos'::text, 0::bigint), ('saldos_iniciales'::text, 0::bigint), ('movimientos_stock'::text, 6::bigint), ('venta_items'::text, 0::bigint),
-           ('ventas'::text, 0::bigint), ('precios_especiales'::text, 0::bigint), ('compras'::text, 4::bigint),
+           ('ventas'::text, 0::bigint), ('ajustes_stock'::text, 1::bigint), ('precios_especiales'::text, 0::bigint), ('compras'::text, 4::bigint),
            ('clientes'::text, 0::bigint), ('productos'::text, 3::bigint)$$,
   'borra todas las filas de prueba, en orden'
 );

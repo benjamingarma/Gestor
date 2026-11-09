@@ -45,7 +45,7 @@ jobs:
         run: npx supabase db start
       - name: Pruebas pgTAP
         run: npx supabase test db
-      - name: Prueba de concurrencia (dos ventas de la última unidad)
+      - name: Prueba de concurrencia (última unidad: venta contra venta y venta contra ajuste)
         run: bash supabase/tests/concurrencia.sh
 
   humo:
