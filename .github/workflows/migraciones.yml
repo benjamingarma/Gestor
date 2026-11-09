@@ -1,0 +1,53 @@
+name: Aplicar migraciones a Supabase
+
+# Al mergear a main un cambio en supabase/migrations, aplica las migraciones nuevas
+# al proyecto de Supabase (el que usa la app publicada en Netlify).
+# Solo aplica las que todavía no están aplicadas: correrlo dos veces no hace nada.
+# Nunca carga supabase/seed.sql (datos de desarrollo local).
+#
+# Secreto requerido (GitHub > Settings > Secrets and variables > Actions):
+#   SUPABASE_DB_URL  cadena de conexión "Session pooler" con la contraseña incluida.
+#   Ver docs/configuracion.md, sección "Migraciones automáticas".
+#   (Se usa el Session pooler porque los servidores de GitHub no tienen IPv6 y la
+#   conexión directa del plan gratis de Supabase es solo IPv6.)
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+  workflow_dispatch:
+
+# Nunca dos despliegues a la vez; si llega otro, espera.
+concurrency:
+  group: migraciones-produccion
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_YES: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Verificar secreto
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Falta el secreto SUPABASE_DB_URL. Ver docs/configuracion.md."
+            exit 1
+          fi
+
+      - name: Migraciones pendientes (solo muestra)
+        run: npx supabase db push --dry-run --remote="$SUPABASE_DB_URL"
+
+      - name: Aplicar migraciones
+        run: npx supabase db push --yes --remote="$SUPABASE_DB_URL"
