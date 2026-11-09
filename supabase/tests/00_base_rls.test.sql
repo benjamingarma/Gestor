@@ -8,10 +8,10 @@ select plan(21);
 
 -- Datos de prueba (como administrador) ---------------------------------------------
 insert into auth.users (id, email, aud, role) values
-  ('00000000-0000-0000-0000-0000000000a1', 'socio.a@ejemplo.test',  'authenticated', 'authenticated'),
-  ('00000000-0000-0000-0000-0000000000a2', 'socio.b@ejemplo.test',  'authenticated', 'authenticated'),
-  ('00000000-0000-0000-0000-0000000000b1', 'otro@ejemplo.test',     'authenticated', 'authenticated'),
-  ('00000000-0000-0000-0000-0000000000c1', 'intruso@ejemplo.test',  'authenticated', 'authenticated');
+  ('00000000-0000-0000-0000-0000000000a1', 'socio.a@pgtap.test',  'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-0000000000a2', 'socio.b@pgtap.test',  'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-0000000000b1', 'otro@pgtap.test',     'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-0000000000c1', 'intruso@pgtap.test',  'authenticated', 'authenticated');
 
 insert into negocios (id, nombre) values
   ('10000000-0000-0000-0000-000000000001', 'Negocio de prueba'),
