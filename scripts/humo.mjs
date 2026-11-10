@@ -80,13 +80,17 @@ for (const ruta of rutas) {
   const nombre = (await pagina.locator("li", { has: pagina.locator(`button[aria-label^="Agregar Humo"]`) }).first().locator("span.font-bold").textContent())?.trim();
   await pagina.click(`button[aria-label="Agregar ${nombre}"]`);
   await pagina.click(`button[aria-label="Uno más de ${nombre}"]`);
+  // La caja de precio viene con el sugerido ($ 10.000, precio general) y se tipea directo.
+  const sugerido = await pagina.inputValue(`input[aria-label="Precio de ${nombre}"]`);
+  if (sugerido !== "10.000") errores.push(`la caja de precio debería venir con 10.000 y vino con "${sugerido}"`);
+  await pagina.fill(`input[aria-label="Precio de ${nombre}"]`, "12.000");
   await pagina.locator("button[type=submit]:visible", { hasText: "Guardar venta" }).click();
   await pagina.waitForURL(/\/ventas\/[0-9a-f-]{36}\/guardada$/, { timeout: 20_000 });
   const ventaId = pagina.url().split("/").at(-2);
   const guardada = enBaseTexto(`select importe || '|' || unidades from public.v_ventas where venta_id = '${ventaId}'`);
-  const okVenta = guardada === "2000000|2" && (await pagina.getByRole("heading", { name: "Venta guardada" }).isVisible());
-  console.log(`${okVenta ? "OK   " : "FALLA"} venta por la pantalla nueva: 2 u a $ 10.000 = ${guardada}`);
-  if (!okVenta) errores.push(`la venta por la pantalla nueva quedó como ${guardada} (se esperaba 2000000|2)`);
+  const okVenta = guardada === "2400000|2" && (await pagina.getByRole("heading", { name: "Venta guardada" }).isVisible());
+  console.log(`${okVenta ? "OK   " : "FALLA"} venta por la pantalla nueva: 2 u a $ 12.000 tipeado en la caja (sugerido ${sugerido}) = ${guardada}`);
+  if (!okVenta) errores.push(`la venta por la pantalla nueva quedó como ${guardada} (se esperaba 2400000|2)`);
   await pagina.click("text=Deshacer (anular)");
   await pagina.fill("input[name=motivo]", "Prueba de humo");
   await pagina.click("text=Confirmar anulación");

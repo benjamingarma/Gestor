@@ -33,7 +33,6 @@ export function FormularioVenta({
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [busquedaProducto, setBusquedaProducto] = useState("");
   const [items, setItems] = useState<ItemCarrito[]>([]);
-  const [editandoPrecio, setEditandoPrecio] = useState<string | null>(null);
   const [opciones, setOpciones] = useState(false);
   const [fecha, setFecha] = useState(hoy);
   const [vendidoPor, setVendidoPor] = useState(socioActual);
@@ -207,31 +206,28 @@ export function FormularioVenta({
                 <li key={p.id} className="flex items-center justify-between gap-3 py-3">
                   <div className="flex min-w-0 flex-col gap-1">
                     <span className="font-bold">{p.nombre}</span>
-                    <span className="text-[0.82rem] text-texto-suave">
-                      {item && editandoPrecio === p.id ? (
-                        <input
-                          autoFocus
-                          inputMode="decimal"
-                          value={item.precio}
-                          onChange={(e) => cambiarPrecio(p.id, e.target.value)}
-                          onBlur={() => setEditandoPrecio(null)}
-                          aria-label={`Precio de ${p.nombre}`}
-                          className="w-28 rounded-lg border border-acento bg-superficie px-2 py-1 text-base font-bold text-texto"
-                        />
-                      ) : item ? (
-                        <button
-                          type="button"
-                          onClick={() => setEditandoPrecio(p.id)}
-                          aria-label={`Cambiar el precio de ${p.nombre}`}
-                          className="num font-bold text-texto underline decoration-dotted underline-offset-4"
-                        >
-                          {item.precio ? `$ ${item.precio}` : "Poner precio"}
-                        </button>
-                      ) : (
-                        <span className="num">{propuesto.precio !== null ? formatearPesos(propuesto.precio) : "Sin precio"}</span>
-                      )}{" "}
-                      · {TEXTO_ORIGEN[origen]}
-                    </span>
+                    {item ? (
+                      // Caja de precio siempre visible (como antes): viene con el precio sugerido y se tipea directo.
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[0.72rem] text-texto-suave">Precio por unidad</span>
+                        <span className={`flex h-11 w-36 items-center gap-1 rounded-[12px] border bg-superficie px-2.5 ${fila?.precioError ? "border-peligro" : "border-borde"}`}>
+                          <span className="font-bold text-texto-suave">$</span>
+                          <input
+                            inputMode="decimal"
+                            value={item.precio}
+                            onChange={(e) => cambiarPrecio(p.id, e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                            aria-label={`Precio de ${p.nombre}`}
+                            className="num w-full min-w-0 bg-transparent text-lg font-bold text-texto outline-none"
+                          />
+                        </span>
+                        <span className="text-[0.72rem] text-texto-suave">Propuesto: {TEXTO_ORIGEN[origen]}</span>
+                      </label>
+                    ) : (
+                      <span className="text-[0.82rem] text-texto-suave">
+                        <span className="num">{propuesto.precio !== null ? formatearPesos(propuesto.precio) : "Sin precio"}</span> · {TEXTO_ORIGEN[origen]}
+                      </span>
+                    )}
                     <span className="text-[0.72rem] text-texto-suave">Quedan {p.unidades}</span>
                     {fila?.precioError && <span className="text-[0.72rem] text-peligro">{fila.precioError}</span>}
                   </div>
