@@ -4,6 +4,7 @@ import { esPantallaCompleta, GESTION, GESTION_LATERAL, PRINCIPALES } from "./men
 describe("estructura de navegación (maquetas aprobadas)", () => {
   it("barra inferior: Inicio, Clientes, (Vender), Cobrar y Más", () => {
     expect(PRINCIPALES.map((p) => p.texto)).toEqual(["Inicio", "Clientes", "Cobrar"]);
+    expect(PRINCIPALES.find((p) => p.texto === "Cobrar")?.href).toBe("/cobrar");
   });
   it("Más: tres grupos en el orden de la maqueta", () => {
     expect(GESTION.map((g) => `${g.grupo} / ${g.texto}`)).toEqual([
@@ -24,6 +25,10 @@ describe("estructura de navegación (maquetas aprobadas)", () => {
   it("venta y cobro ocupan toda la pantalla del celular (sin barra inferior)", () => {
     expect(esPantallaCompleta("/ventas/nueva")).toBe(true);
     expect(esPantallaCompleta("/clientes/123/cobrar")).toBe(true);
+    expect(esPantallaCompleta("/cobrar/123")).toBe(true);
+    expect(esPantallaCompleta("/cobros/123/guardado")).toBe(true);
+    expect(esPantallaCompleta("/cobrar")).toBe(false); // la lista de quién debe lleva la barra inferior (maqueta)
+    expect(esPantallaCompleta("/cobros")).toBe(false);
     expect(esPantallaCompleta("/ventas/123/guardada")).toBe(true);
     expect(esPantallaCompleta("/clientes/123")).toBe(false);
     expect(esPantallaCompleta("/ventas")).toBe(false);
@@ -33,6 +38,10 @@ describe("estructura de navegación (maquetas aprobadas)", () => {
     expect(activo("/")).toEqual(["Inicio"]);
     expect(activo("/clientes/abc")).toEqual(["Clientes"]);
     expect(activo("/clientes/abc/cobrar")).toEqual(["Cobrar"]);
+    expect(activo("/cobrar")).toEqual(["Cobrar"]);
+    expect(activo("/cobrar/abc")).toEqual(["Cobrar"]);
+    expect(activo("/cobros/abc/guardado")).toEqual(["Cobrar"]);
+    expect(activo("/cobros")).toEqual(["Cobros"]);
     expect(activo("/productos/abc/ajuste")).toEqual(["Stock y productos"]);
     expect(activo("/resumen/reparto")).toEqual(["Reparto entre socios"]);
   });

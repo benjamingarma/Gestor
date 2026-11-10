@@ -3,13 +3,13 @@ import type { NombreIcono } from "./Iconos";
 
 export type Item = { href: string; texto: string; icono: NombreIcono; activo: (ruta: string) => boolean };
 
+const esCobroGuardado = (ruta: string) => /^\/cobros\/[^/]+\/guardado$/.test(ruta);
 const empieza = (...prefijos: string[]) => (ruta: string) => prefijos.some((p) => ruta === p || ruta.startsWith(`${p}/`));
 
-// Hasta el PR de cobro (3 del módulo 1.7), "Cobrar" lleva a la lista de quién debe (/cobros).
 export const PRINCIPALES: Item[] = [
   { href: "/", texto: "Inicio", icono: "inicio", activo: (r) => r === "/" },
   { href: "/clientes", texto: "Clientes", icono: "clientes", activo: (r) => empieza("/clientes")(r) && !r.endsWith("/cobrar") },
-  { href: "/cobros", texto: "Cobrar", icono: "cobrar", activo: (r) => empieza("/cobros")(r) || r.endsWith("/cobrar") },
+  { href: "/cobrar", texto: "Cobrar", icono: "cobrar", activo: (r) => empieza("/cobrar")(r) || r.endsWith("/cobrar") || esCobroGuardado(r) },
 ];
 
 export const GESTION: (Item & { detalle: string; grupo: "Negocio" | "Historial y correcciones" | "Configuración" })[] = [
@@ -17,7 +17,7 @@ export const GESTION: (Item & { detalle: string; grupo: "Negocio" | "Historial y
   { href: "/productos", texto: "Stock y productos", detalle: "Precios, costo, cargar compras", icono: "stock", grupo: "Negocio", activo: empieza("/productos") },
   { href: "/compras", texto: "Compras", detalle: "En dólares, con tipo de cambio", icono: "caja", grupo: "Negocio", activo: empieza("/compras") },
   { href: "/ventas", texto: "Ventas", detalle: "Ver y anular", icono: "historial", grupo: "Historial y correcciones", activo: (r) => empieza("/ventas")(r) && r !== "/ventas/nueva" && !r.endsWith("/guardada") },
-  { href: "/cobros", texto: "Cobros", detalle: "Ver y anular", icono: "historial", grupo: "Historial y correcciones", activo: () => false },
+  { href: "/cobros", texto: "Cobros", detalle: "Ver y anular", icono: "historial", grupo: "Historial y correcciones", activo: (r) => empieza("/cobros")(r) && !esCobroGuardado(r) },
   { href: "/ajustes", texto: "Regalos, pérdidas y roturas", detalle: "Dar de baja stock", icono: "roto", grupo: "Historial y correcciones", activo: empieza("/ajustes") },
   { href: "/resumen/reparto", texto: "Reparto entre socios", detalle: "", icono: "reparto", grupo: "Configuración", activo: empieza("/resumen/reparto") },
 ];
@@ -30,6 +30,12 @@ export const GESTION_LATERAL = [...GESTION]
 
 /** Pantallas que ocupan todo el celular (venta y cobro): sin barra inferior. */
 export function esPantallaCompleta(ruta: string): boolean {
-  return ruta === "/ventas/nueva" || /^\/ventas\/[^/]+\/guardada$/.test(ruta) || /^\/clientes\/[^/]+\/cobrar$/.test(ruta);
+  return (
+    ruta === "/ventas/nueva" ||
+    /^\/ventas\/[^/]+\/guardada$/.test(ruta) ||
+    /^\/cobrar\/[^/]+$/.test(ruta) ||
+    esCobroGuardado(ruta) ||
+    /^\/clientes\/[^/]+\/cobrar$/.test(ruta)
+  );
 }
 

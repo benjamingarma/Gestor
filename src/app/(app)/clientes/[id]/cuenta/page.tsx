@@ -56,7 +56,7 @@ export default async function PaginaCuenta({ params, searchParams }: PageProps<"
         </span>
       </section>
 
-      <BotonEnlace href={`/clientes/${id}/cobrar`}>Registrar cobro</BotonEnlace>
+      <BotonEnlace href={`/cobrar/${id}`}>Registrar cobro</BotonEnlace>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-xl font-bold">Deudas</h2>
