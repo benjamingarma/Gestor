@@ -2,13 +2,14 @@
 
 > Para leer al empezar una sesión nueva, junto con `CLAUDE.md` (reglas), `docs/plan.md` (plan y estado,
 > sección 12) y `docs/decisiones/modulo-*.md` (decisiones de cada módulo).
-> Última actualización: 10/11/2026, al empezar el módulo 1.7 (1.6 cerrado y aprobado).
+> Última actualización: 10/11/2026, con los PR 1 y 2 del módulo 1.7 mergeados (sigue el PR 3: cobro).
 
 ## 1. Dónde estamos
 
 - Terminados y mergeados en `main`: módulos 1.0 a 1.6 (PR #1 a #10 de `benjamingarma/Gestor`).
-- **En curso: 1.7 Simplificación del diseño.** Maquetas aprobadas en `docs/maquetas/` (leer su README antes de tocar
-  pantallas). Plan de PRs en `docs/plan.md` 12.3. Después: 1.8 Importación CSV, 1.9 Backups y restauración, 1.10 Pasaje a producción.
+- **En curso: 1.7 Simplificación del diseño** — PR 1 y 2 mergeados (#11, #12); **sigue el PR 3 (cobro)**, que
+  todavía no se empezó: esperar el OK de los socios. Estado detallado en la sección 6. Maquetas aprobadas en
+  `docs/maquetas/` (leer su README antes de tocar pantallas). Después: 1.8 Importación CSV, 1.9 Backups y restauración, 1.10 Pasaje a producción.
 - Repositorio privado, rama por defecto `main` (verificado el 13/11). Se trabaja con una rama `claude/...` por
   módulo y un PR; los socios prueban en el deploy preview de Netlify y mergean ellos.
 - Al mergear, las migraciones se aplican solas a Supabase (`.github/workflows/migraciones.yml`, secreto
@@ -30,6 +31,8 @@ tamaño celular (Pixel 7, `es-AR`, hora de Tucumán) y prueba de los socios desd
 | 1.4 | Saldo del papel, cobros parciales, saldo a favor, anular cobro, filtro por mes | 233 pgTAP, 145 Vitest |
 | 1.5 | Resumen del mes, capital ✓, reparto 60/40 sin alterar el pasado | 254 pgTAP, 163 Vitest, humo (18 pantallas) |
 | 1.6 | Rotura/regalo/pérdida desde la ficha, resumen descuenta, anulación (aprobado 10/11) | 307 pgTAP, 176 Vitest, concurrencia venta contra ajuste, humo (21 pantallas) |
+| 1.7 PR 1 | Navegación, Más, nuevo Inicio (aprobado 10/11) | 307 pgTAP, 192 Vitest, humo (23 pantallas + 15 totales contra la base) |
+| 1.7 PR 2 | Venta en una pantalla, caja de precio, confirmación y deshacer (aprobado 10/11) | 307 pgTAP, 200 Vitest, humo (25 pantallas + venta de punta a punta) |
 
 Todos los números del ejemplo del plan (sección 6) están verificados en pgTAP y en Vitest: V1 $74.000 / USD 60,
 ventas $199.000, ganancia $74.000, capital USD 195 = 96 + 99 y $267.500 = $125.000 + $142.500 (con A1 del 1.6:
@@ -124,11 +127,80 @@ $99.000 → $49.000 → $1.000 a favor.
 - Playwright: en el contenedor se usa el instalado globalmente (1.63, no instalar otra versión). En CI se instala
   `playwright@1.63.0` con `--no-save`.
 - El Chromium automático muestra los `<input type="date">` en formato mm/dd; en celulares en español se ven dd/mm.
+- `pkill -f "next start"` **no** mata el servidor de Next (el proceso se llama `next-server`): usar `pkill -f next-server`
+  antes de volver a arrancar, o se sigue viendo la versión vieja (pasó en el 1.7).
+- Si el contenedor de la sesión se reinicia, Docker queda apagado: volver a levantar `dockerd` y la base.
+- Comandos de shell con paréntesis anidados (`( ... || ( ... & ) )`) pueden ser bloqueados por el control de
+  seguridad aunque no borren nada: escribirlos en pasos simples.
+- Capturas para comparar con la maqueta: datos inventados cargados con un script (usuario `@ejemplo.test`, socios
+  renombrados a Benjamín/Papá solo en la base local), Playwright a 390×844 (celular) y 1366×768 (PC), `colorScheme`
+  claro y oscuro. Para que la barra inferior fija quede abajo, no usar `fullPage`: agrandar la ventana al alto de la
+  página. Las comparaciones se guardan en `docs/maquetas/comparaciones/prN-.../`.
 - Comandos: `npm run verificar` (lint + tipos + Vitest), `npx supabase test db` (pgTAP),
   `bash supabase/tests/concurrencia.sh`, `npm run humo` (con la app corriendo y `API_URL`/`SECRET_KEY` en el entorno).
 
 ## 5. Pendientes e ideas que quedaron anotadas (no pedidas todavía)
+- Avisos de GitHub Actions: `actions/checkout@v4` y `actions/setup-node@v4` usan Node 20 (obsoleto; hoy solo avisa).
+- Supabase CLI 3.0.0 → hay 3.1.0 (aviso en el CI).
 - Historial de ventas "ver más" sin filtro de mes (hoy: por mes, o las últimas 5 en la ficha del cliente).
 - Costo de reposición frente a la suba del dólar (plan T4): no se muestra; solo el capital en USD.
 - Etapa 2: historial de visitas y recordatorios, devoluciones y reposiciones de fallados, retiros por socio.
 - Si alguna vez hay más de un negocio o más de dos socios, revisar pantallas que asumen dos (el reparto ya soporta N).
+
+## 6. Módulo 1.7 — Simplificación del diseño (estado al 10/11/2026)
+
+Especificación visual: `docs/maquetas/` (README, HTML, imágenes en claro/oscuro, celular/PC). Plan de PRs en
+`docs/plan.md` 12.3. **Sin migraciones ni cambios en la lógica de dinero en todo el módulo.**
+
+### Forma de trabajo pedida por los socios (vale para cada PR que falta)
+1. Respetar la maqueta: jerarquía, textos, orden, espacios, navegación y los dos temas. **No agregar ni sacar
+   elementos sin avisar.**
+2. Antes de pedir que prueben: capturas reales (celular y PC, claro y oscuro) al lado de la maqueta, guardarlas en
+   `docs/maquetas/comparaciones/`, y listar cada diferencia con su motivo en el PR.
+3. CI en verde **en GitHub** y revisar en el log que las pruebas corrieron (cantidad de Vitest y pgTAP, líneas OK de la
+   prueba de humo). Prueba de humo actualizada con las rutas nuevas.
+4. Los socios prueban en el deploy preview y mergean ellos. No mergear nunca. Después del merge, confirmar el CI de `main`.
+5. Mantener siempre separados ganancia, cobrado y plata disponible, con sus avisos ("La ganancia no es plata
+   disponible", saldo a favor, origen del precio).
+
+### PRs
+| # | Contenido | Estado |
+|---|---|---|
+| 1 (#11) | Maquetas en `docs/maquetas/`; nombre **McStock**; barra inferior (Inicio · Clientes · **Vender** · Cobrar · Más) y barra lateral en PC; pantalla Más; nuevo Inicio; `/buscar`; `dominio/tablero.ts` (mismos totales en Inicio y Resumen); humo compara totales de Inicio/Resumen/Cobros/Ventas/Stock contra la base | ✅ mergeado |
+| 2 (#12) | Venta en una sola pantalla (`dominio/carrito.ts`), caja de precio siempre visible, confirmación con ✓ (`componentes/Confirmacion.tsx`) y Deshacer; humo hace una venta por la pantalla y la deshace | ✅ mergeado |
+| 3 | **Cobro**: `/cobrar` (lista de quién debe con buscador) + cobro en una pantalla (monto grande con "Todo", medio y quién recibe preseleccionados con el último cobro de ese socio, "Le queda debiendo" en vivo, aviso de saldo a favor) + confirmación con Deshacer. Cambiar "Cobrar" de la barra y del Inicio de `/cobros` a `/cobrar` (`componentes/menu.ts`) | ⏭ siguiente, sin empezar |
+| 4 | Resto de pantallas adaptadas al estilo (clientes, ficha, productos, compras, ventas, cobros, resumen, ajustes, reparto), animaciones sutiles y humo con rutas nuevas | pendiente |
+| 5 | "Repetir última venta" en la ficha del cliente (PR aparte, al final) | pendiente |
+
+### Decisiones tomadas (socios, 10/11/2026)
+- La app se llama **McStock**.
+- "Deshacer (anular)" en la confirmación: **solo justo después de guardar** (implementado: 10 minutos) y pidiendo motivo.
+- "Repetir última venta": sí, en un PR aparte al final.
+- **Caja de precio en la venta**: siempre visible en cada producto agregado (como antes del 1.7), con el precio
+  sugerido (especial → último que pagó → general) y "Propuesto: …" debajo. Confirmado que quede así.
+- Inicio muestra hasta 5 clientes en "A visitar hoy" y "Quién debe plata", con "Ver los N ›" si hay más.
+
+### Decisiones técnicas
+- Colores de la maqueta como tokens en `globals.css` (claro y oscuro, sin selector de tema). Íconos propios en
+  `componentes/Iconos.tsx`. Piezas comunes en `componentes/UI.tsx` (Tarjeta, Chip, AvisoInfo, Avatar).
+- `componentes/menu.ts` tiene la estructura de navegación (sirve al servidor y al cliente: **no** importar datos desde
+  un archivo `"use client"` en una página de servidor, falla con 500). `esPantallaCompleta` oculta la barra inferior
+  en venta, confirmación y cobro.
+- Interlineado de las pantallas nuevas: `leading-[1.2]` (Tailwind trae 1.5 y se veía más alto que la maqueta).
+- Animaciones solo CSS en `globals.css` (`confirmacion-check`, `confirmacion-texto`) y bloque global de
+  `prefers-reduced-motion`.
+- Las pantallas marcan sus totales con `data-dato` / `data-centavos`; la prueba de humo los compara contra la base.
+  Al agregar una pantalla que muestre esos totales, marcarlos igual.
+- "Deuda más vieja" de Inicio: `deudasMasViejas` en `datos/cuentas.ts` (usa la cuenta corriente existente; lee sin
+  paginar, mismo riesgo de 1000 filas anotado en la sección 3).
+
+### Diferencias con la maqueta que quedaron (aceptadas o pendientes)
+- Franja MODO PRUEBA arriba (intencional, se va en el 1.10).
+- "Cobrar" (barra, botón de Nos deben) lleva a la lista vieja `/cobros` hasta el PR 3.
+- Pantallas viejas con navegación nueva pero diseño viejo hasta el PR 4; en Clientes sigue "Toca visitar hoy" (Inicio
+  dice "Le toca hoy").
+- "Ver los N ›" en listas largas del Inicio (no está en la maqueta).
+- Capital en mercadería del Inicio es tocable (lleva a Stock). Cerrar sesión muestra el email completo.
+- Venta: productos en orden alfabético fijo (en la maqueta los agregados iban arriba; se dejó fijo para que la lista
+  no salte bajo el dedo; si los socios lo piden, cambiarlo). Caja de precio (pedido de los socios). Confirmación de
+  venta con "Ahora debe $ X". Buscador de cliente cuando la venta no viene con cliente.

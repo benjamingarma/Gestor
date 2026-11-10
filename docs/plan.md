@@ -629,7 +629,7 @@ de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 | 1.4 | Pagos y cuenta corriente + filtro por mes en el historial de ventas | ✅ terminado | #6 |
 | 1.5 | Resumen y ganancia 50/50 (reparto con vigencia) + prueba de humo en CI | ✅ terminado | #7 |
 | 1.6 | Ajustes de stock | ✅ terminado | #9, #10 (arreglo del CI) |
-| **1.7** | **Simplificación del diseño** | **🚧 en curso** (maquetas aprobadas) | — |
+| **1.7** | **Simplificación del diseño** | **🚧 en curso**: PR 1 y 2 mergeados, sigue el PR 3 (cobro) | #11, #12 |
 | 1.8 | Importación CSV | pendiente | — |
 | 1.9 | Backups y restauración | pendiente | — |
 | 1.10 | Pasaje a producción | pendiente | — |
@@ -671,9 +671,9 @@ humo se actualiza con las rutas nuevas.
 decisiones). La app pasa a llamarse **McStock**.
 
 **PRs del módulo** (cada uno con CI en verde, capturas reales al lado de la maqueta y prueba en el deploy preview):
-1. Maquetas en `docs/maquetas/`, navegación (barra inferior y lateral, pantalla Más) y nuevo Inicio.
-2. Pantalla de venta.
-3. Pantalla de cobro.
+1. Maquetas en `docs/maquetas/`, navegación (barra inferior y lateral, pantalla Más) y nuevo Inicio. ✅ #11
+2. Pantalla de venta. ✅ #12
+3. Pantalla de cobro. ⏭ siguiente
 4. Resto de pantallas adaptadas, animaciones y prueba de humo con las rutas nuevas.
 5. (Aparte, al final) "Repetir última venta" en la ficha del cliente.
 
