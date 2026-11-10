@@ -10,23 +10,30 @@ export default async function PaginaNuevaVenta({ searchParams }: PageProps<"/ven
   const socio = await obtenerSocioActual();
   const datos = await datosParaNuevaVenta(socio.negocioId);
   const clienteInicial = typeof cliente === "string" && datos.clientes.some((c) => c.id === cliente) ? cliente : "";
+  const volverA = clienteInicial ? `/clientes/${clienteInicial}` : "/";
+
+  if (datos.clientes.length === 0 || datos.productos.length === 0) {
+    return (
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6">
+        <Encabezado titulo="Nueva venta" volverA={volverA} />
+        {datos.clientes.length === 0 ? (
+          <>
+            <p>Primero cargá un cliente.</p>
+            <BotonEnlace href="/clientes/nuevo">+ Nuevo cliente</BotonEnlace>
+          </>
+        ) : (
+          <>
+            <p>No hay productos con stock. Cargá una compra primero.</p>
+            <BotonEnlace href="/compras/nueva">+ Cargar compra</BotonEnlace>
+          </>
+        )}
+      </main>
+    );
+  }
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6">
-      <Encabezado titulo="Nueva venta" volverA={clienteInicial ? `/clientes/${clienteInicial}` : "/"} />
-      {datos.clientes.length === 0 ? (
-        <>
-          <p>Primero cargá un cliente.</p>
-          <BotonEnlace href="/clientes/nuevo">+ Nuevo cliente</BotonEnlace>
-        </>
-      ) : datos.productos.length === 0 ? (
-        <>
-          <p>No hay productos con stock. Cargá una compra primero.</p>
-          <BotonEnlace href="/compras/nueva">+ Cargar compra</BotonEnlace>
-        </>
-      ) : (
-        <FormularioVenta datos={datos} clienteInicial={clienteInicial} socioActual={socio.socioId} hoy={hoy()} />
-      )}
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col">
+      <FormularioVenta datos={datos} clienteInicial={clienteInicial} socioActual={socio.socioId} hoy={hoy()} volverA={volverA} />
     </main>
   );
 }

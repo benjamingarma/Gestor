@@ -24,6 +24,7 @@ describe("estructura de navegación (maquetas aprobadas)", () => {
   it("venta y cobro ocupan toda la pantalla del celular (sin barra inferior)", () => {
     expect(esPantallaCompleta("/ventas/nueva")).toBe(true);
     expect(esPantallaCompleta("/clientes/123/cobrar")).toBe(true);
+    expect(esPantallaCompleta("/ventas/123/guardada")).toBe(true);
     expect(esPantallaCompleta("/clientes/123")).toBe(false);
     expect(esPantallaCompleta("/ventas")).toBe(false);
   });

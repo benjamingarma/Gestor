@@ -1,331 +1,303 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { Aviso } from "@/componentes/Aviso";
-import { Boton } from "@/componentes/Boton";
-import { precioPropuesto, simularFifo, type OrigenPrecio } from "@/dominio/ventas";
-import { formatearDolares, formatearPesos, parsearImporte } from "@/lib/dinero";
-import { nuevoUuid } from "@/lib/uuid";
+import { Icono } from "@/componentes/Iconos";
+import { Avatar } from "@/componentes/UI";
+import { cambiarCantidad, proponerPrecio, reproponerPrecios, resumirCarrito, TEXTO_ORIGEN, type ItemCarrito } from "@/dominio/carrito";
 import type { DatosNuevaVenta } from "@/datos/ventas";
+import { formatearDolares, formatearPesos } from "@/lib/dinero";
+import { formatearDia } from "@/lib/fechas";
+import { coincide } from "@/lib/texto";
+import { nuevoUuid } from "@/lib/uuid";
 import { registrarVenta } from "../acciones";
 
-type Item = { productoId: string; cantidad: number; precio: string; origen: OrigenPrecio };
-
-const TEXTO_ORIGEN: Record<OrigenPrecio, string> = {
-  especial: "precio especial del cliente",
-  ultimo: "último precio que pagó",
-  general: "precio general",
-  ninguno: "sin precio cargado",
-};
-
-function normalizar(t: string) {
-  return t.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-}
-function centavosATexto(c: number) {
-  return formatearPesos(c).replace("$ ", "");
-}
-
+/** Pantalla de venta (maqueta docs/maquetas, pantalla 2): todo en una sola pantalla y un solo botón. */
 export function FormularioVenta({
   datos,
   clienteInicial,
   socioActual,
   hoy,
+  volverA,
 }: {
   datos: DatosNuevaVenta;
   clienteInicial: string;
   socioActual: string;
   hoy: string;
+  volverA: string;
 }) {
   const [estado, enviar, enviando] = useActionState(registrarVenta, {});
   const [id] = useState(() => nuevoUuid()); // una venta = un identificador: reenviar no duplica
   const [clienteId, setClienteId] = useState(clienteInicial);
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [busquedaProducto, setBusquedaProducto] = useState("");
-  const [agregando, setAgregando] = useState(true);
-  const [items, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<ItemCarrito[]>([]);
+  const [editandoPrecio, setEditandoPrecio] = useState<string | null>(null);
+  const [opciones, setOpciones] = useState(false);
   const [fecha, setFecha] = useState(hoy);
   const [vendidoPor, setVendidoPor] = useState(socioActual);
   const [nota, setNota] = useState("");
 
   const productos = useMemo(() => new Map(datos.productos.map((p) => [p.id, p])), [datos.productos]);
+  const precios = useMemo(() => ({ especiales: datos.especiales, ultimos: datos.ultimos }), [datos.especiales, datos.ultimos]);
   const cliente = datos.clientes.find((c) => c.id === clienteId);
-
-  const proponer = (productoId: string, cId: string) => {
-    const p = productos.get(productoId);
-    return precioPropuesto({
-      especial: datos.especiales[cId]?.[productoId] ?? null,
-      ultimoPagado: datos.ultimos[cId]?.[productoId] ?? null,
-      general: p?.precioGeneral ?? null,
-    });
-  };
+  const resumen = useMemo(() => resumirCarrito(items, productos, Boolean(cliente)), [items, productos, cliente]);
+  const enCarrito = new Map(items.map((i) => [i.productoId, i]));
 
   const elegirCliente = (cId: string) => {
     setClienteId(cId);
     setBusquedaCliente("");
-    // Si ya había productos, se recalcula el precio propuesto para el nuevo cliente.
-    setItems((lista) =>
-      lista.map((it) => {
-        const pr = proponer(it.productoId, cId);
-        return { ...it, precio: pr.precio !== null ? centavosATexto(pr.precio) : "", origen: pr.origen };
-      }),
-    );
+    setItems((l) => reproponerPrecios(l, cId, productos, precios));
   };
+  const sumar = (productoId: string, delta: number) => setItems((l) => cambiarCantidad(l, productoId, delta, { clienteId, productos, precios }));
+  const cambiarPrecio = (productoId: string, precio: string) => setItems((l) => l.map((i) => (i.productoId === productoId ? { ...i, precio } : i)));
 
-  const agregar = (productoId: string) => {
-    const pr = proponer(productoId, clienteId);
-    setItems((l) => [...l, { productoId, cantidad: 1, precio: pr.precio !== null ? centavosATexto(pr.precio) : "", origen: pr.origen }]);
-    setBusquedaProducto("");
-    setAgregando(false);
-  };
-  const cambiarItem = (i: number, cambio: Partial<Item>) => setItems((l) => l.map((it, j) => (j === i ? { ...it, ...cambio } : it)));
-  const quitarItem = (i: number) => setItems((l) => l.filter((_, j) => j !== i));
+  const clientesFiltrados = datos.clientes.filter((c) => coincide(c.nombre, busquedaCliente)).slice(0, 8);
+  const productosFiltrados = datos.productos.filter((p) => coincide(p.nombre, busquedaProducto));
+  const nombreSocio = datos.socios.find((s) => s.id === vendidoPor)?.nombre ?? "";
+  const textoOpciones = `${fecha === hoy ? "Hoy" : formatearDia(fecha)} · vendió ${nombreSocio} · ${nota.trim() ? `nota: “${nota.trim()}”` : "sin nota"}`;
+  const datosJson = JSON.stringify({ id, clienteId, vendidoPor, fecha, nota, items: items.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad, precio: i.precio })) });
 
-  // Vista previa: precio, costo FIFO estimado y ganancia (la base recalcula el costo real al guardar).
-  const resumen = useMemo(() => {
-    const filas = items.map((it) => {
-      const p = productos.get(it.productoId)!;
-      const precio = parsearImporte(it.precio);
-      const fifo = simularFifo(p.compras, it.cantidad);
-      return {
-        precioError: precio.ok ? null : it.precio.trim() === "" ? "Poné el precio." : precio.error,
-        subtotal: precio.ok ? precio.centavos * it.cantidad : null,
-        faltan: fifo.faltan,
-        costoArs: fifo.costoArs,
-        costoUsd: fifo.costoUsd,
-      };
-    });
-    const importe = filas.reduce((s, f) => s + (f.subtotal ?? 0), 0);
-    const costo = filas.reduce((s, f) => s + f.costoArs, 0);
-    const costoUsd = filas.reduce((s, f) => s + f.costoUsd, 0);
-    return {
-      filas,
-      importe,
-      costo,
-      costoUsd,
-      ganancia: importe - costo,
-      completo: filas.every((f) => f.subtotal !== null),
-      sinStock: filas.some((f) => f.faltan > 0),
-    };
-  }, [items, productos]);
+  const saldo = cliente ? (datos.saldos[cliente.id] ?? 0) : 0;
+  const tarjetaCliente = cliente ? (
+    <div className="flex items-center justify-between gap-3 rounded-[20px] border border-borde bg-superficie px-3.5 py-3 shadow-tarjeta">
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar nombre={cliente.nombre} />
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate font-bold">{cliente.nombre}</span>
+          <span className={`text-[0.82rem] ${saldo > 0 ? "text-peligro" : "text-texto-suave"}`}>
+            {saldo > 0 ? `Debe ${formatearPesos(saldo)}` : saldo < 0 ? `Tiene ${formatearPesos(-saldo)} a favor` : "No debe nada"}
+          </span>
+        </div>
+      </div>
+      <button type="button" onClick={() => setClienteId("")} className="min-h-[44px] px-1 text-[0.82rem] font-semibold text-acento">
+        Cambiar
+      </button>
+    </div>
+  ) : (
+    <div className="flex flex-col gap-2 rounded-[20px] border border-borde bg-superficie p-3 shadow-tarjeta">
+      <label className="flex min-h-[50px] items-center gap-2.5 rounded-[14px] bg-superficie-2 px-3.5 text-texto-suave">
+        <Icono nombre="buscar" />
+        <input
+          type="search"
+          value={busquedaCliente}
+          onChange={(e) => setBusquedaCliente(e.target.value)}
+          placeholder="Buscar cliente"
+          aria-label="Buscar cliente"
+          className="min-w-0 flex-1 bg-transparent text-texto outline-none placeholder:text-texto-suave"
+        />
+      </label>
+      <ul className="flex flex-col divide-y divide-borde">
+        {clientesFiltrados.map((c) => {
+          const s = datos.saldos[c.id] ?? 0;
+          return (
+            <li key={c.id}>
+              <button type="button" onClick={() => elegirCliente(c.id)} className="flex w-full items-center justify-between gap-3 py-2.5 text-left">
+                <span className="flex items-center gap-3">
+                  <Avatar nombre={c.nombre} />
+                  <span className="font-bold">{c.nombre}</span>
+                </span>
+                {s > 0 && <span className="num text-[0.82rem] font-semibold text-peligro">Debe {formatearPesos(s)}</span>}
+              </button>
+            </li>
+          );
+        })}
+        {clientesFiltrados.length === 0 && <li className="py-2 text-texto-suave">No hay clientes que coincidan.</li>}
+      </ul>
+    </div>
+  );
 
-  const clientesFiltrados = useMemo(() => {
-    const q = normalizar(busquedaCliente.trim());
-    return (q ? datos.clientes.filter((c) => normalizar(c.nombre).includes(q)) : datos.clientes).slice(0, 8);
-  }, [busquedaCliente, datos.clientes]);
+  const lineaOpciones = (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3 px-1 text-[0.82rem] text-texto-suave">
+        <span>{textoOpciones}</span>
+        <button type="button" onClick={() => setOpciones((o) => !o)} className="min-h-[40px] shrink-0 font-semibold text-acento" aria-expanded={opciones}>
+          {opciones ? "Listo" : "Cambiar"}
+        </button>
+      </div>
+      {opciones && (
+        <div className="flex flex-col gap-3 rounded-[20px] border border-borde bg-superficie p-4">
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.85rem] font-semibold">Fecha</span>
+            <input type="date" value={fecha} max={hoy} onChange={(e) => setFecha(e.target.value)} className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.85rem] font-semibold">Vendió</span>
+            <select value={vendidoPor} onChange={(e) => setVendidoPor(e.target.value)} className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3">
+              {datos.socios.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.85rem] font-semibold">Nota</span>
+            <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={500} className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3" />
+          </label>
+        </div>
+      )}
+    </div>
+  );
 
-  const productosFiltrados = useMemo(() => {
-    const q = normalizar(busquedaProducto.trim());
-    const usados = new Set(items.map((i) => i.productoId));
-    return datos.productos.filter((p) => !usados.has(p.id) && (!q || normalizar(p.nombre).includes(q)));
-  }, [busquedaProducto, datos.productos, items]);
+  const total = (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-texto-suave">
+          {resumen.unidades} producto{resumen.unidades === 1 ? "" : "s"}
+        </span>
+        <span className="num text-[1.8rem] font-extrabold tracking-[-0.02em]">{formatearPesos(resumen.importe)}</span>
+      </div>
+      {resumen.productos > 0 && (
+        <span className="text-right text-[0.72rem] text-texto-suave">
+          Ganancia estimada {formatearPesos(resumen.ganancia)} · costo {formatearPesos(resumen.costoArs)} ({formatearDolares(resumen.costoUsd)})
+        </span>
+      )}
+    </div>
+  );
 
-  const puedeConfirmar = cliente && items.length > 0 && resumen.completo && !resumen.sinStock && !enviando;
-  const datosJson = JSON.stringify({
-    id,
-    clienteId,
-    vendidoPor,
-    fecha,
-    nota,
-    items: items.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad, precio: i.precio })),
-  });
+  const guardar = (
+    <>
+      {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
+      {resumen.problema && (items.length > 0 || cliente) && <p className="text-center text-[0.82rem] text-peligro">{resumen.problema}</p>}
+      <button
+        type="submit"
+        disabled={resumen.problema !== null || enviando}
+        className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl bg-acento text-[1.1rem] font-bold text-acento-texto transition-opacity disabled:opacity-50"
+      >
+        {enviando && <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none" />}
+        {enviando ? "Guardando…" : "Guardar venta"}
+      </button>
+    </>
+  );
 
   return (
-    <form action={enviar} className="flex flex-col gap-5" noValidate>
+    <form action={enviar} className="flex flex-1 flex-col leading-[1.2]" noValidate>
       <input type="hidden" name="datos" value={datosJson} />
 
-      {/* 1. Cliente */}
-      <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-bold">1. Cliente</h2>
-        {cliente ? (
-          <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-acento bg-superficie px-4 py-3">
-            <span className="text-xl font-semibold">{cliente.nombre}</span>
-            <button type="button" onClick={() => setClienteId("")} className="min-h-[44px] px-2 font-medium text-acento">
-              Cambiar
-            </button>
-          </div>
-        ) : (
-          <>
+      <header className="flex items-center justify-between px-[18px] pt-2 pb-3 lg:px-9 lg:pt-7 lg:pb-5">
+        <h1 className="text-[1.25rem] font-extrabold lg:text-[1.6rem]">Nueva venta</h1>
+        <Link href={volverA} aria-label="Cerrar sin guardar" className="grid h-11 w-11 place-items-center text-texto-suave lg:hidden">
+          <Icono nombre="cerrar" />
+        </Link>
+      </header>
+
+      <div className="flex flex-col gap-3 px-4 pb-[200px] lg:grid lg:grid-cols-[1.5fr_1fr] lg:items-start lg:gap-5 lg:px-9 lg:pb-9">
+        <div className="flex flex-col gap-3">
+          <div className="lg:hidden">{tarjetaCliente}</div>
+          <label className="flex min-h-[50px] items-center gap-2.5 rounded-[14px] bg-superficie-2 px-3.5 text-texto-suave lg:border lg:border-borde lg:bg-superficie">
+            <Icono nombre="buscar" />
             <input
               type="search"
-              value={busquedaCliente}
-              onChange={(e) => setBusquedaCliente(e.target.value)}
-              placeholder="Buscar cliente"
-              aria-label="Buscar cliente"
-              className="min-h-[52px] rounded-xl border border-borde bg-superficie px-4 text-lg"
+              value={busquedaProducto}
+              onChange={(e) => setBusquedaProducto(e.target.value)}
+              placeholder="Buscar producto"
+              aria-label="Buscar producto"
+              className="min-w-0 flex-1 bg-transparent text-texto outline-none placeholder:text-texto-suave"
             />
-            <ul className="flex flex-col gap-1">
-              {clientesFiltrados.map((c) => (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    onClick={() => elegirCliente(c.id)}
-                    className="min-h-[52px] w-full rounded-xl border border-borde bg-superficie px-4 text-left text-lg"
-                  >
-                    {c.nombre}
-                  </button>
-                </li>
-              ))}
-              {clientesFiltrados.length === 0 && <li className="py-2 text-texto-suave">No hay clientes que coincidan.</li>}
-            </ul>
-          </>
-        )}
-      </section>
-
-      {/* 2. Productos */}
-      {cliente && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold">2. Productos</h2>
-          {items.map((it, i) => {
-            const p = productos.get(it.productoId)!;
-            const fila = resumen.filas[i];
-            return (
-              <article key={it.productoId} className="flex flex-col gap-2 rounded-xl border border-borde bg-superficie p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-lg font-semibold">{p.nombre}</span>
-                  <button type="button" onClick={() => quitarItem(i)} className="min-h-[44px] px-2 text-peligro" aria-label={`Quitar ${p.nombre}`}>
-                    Quitar
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm text-texto-suave">Cantidad (hay {p.unidades})</span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => cambiarItem(i, { cantidad: Math.max(1, it.cantidad - 1) })}
-                        className="h-[52px] w-[52px] rounded-xl border border-borde text-2xl font-bold"
-                        aria-label="Uno menos"
-                      >
+          </label>
+          <ul className="flex flex-col divide-y divide-borde rounded-[20px] border border-borde bg-superficie px-4 py-1 shadow-tarjeta lg:px-[18px]" aria-label="Productos">
+            {productosFiltrados.map((p) => {
+              const item = enCarrito.get(p.id);
+              const fila = resumen.filas.find((f) => f.productoId === p.id);
+              const propuesto = proponerPrecio(p.id, clienteId, productos, precios);
+              const origen = item ? item.origen : propuesto.origen;
+              return (
+                <li key={p.id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="font-bold">{p.nombre}</span>
+                    <span className="text-[0.82rem] text-texto-suave">
+                      {item && editandoPrecio === p.id ? (
+                        <input
+                          autoFocus
+                          inputMode="decimal"
+                          value={item.precio}
+                          onChange={(e) => cambiarPrecio(p.id, e.target.value)}
+                          onBlur={() => setEditandoPrecio(null)}
+                          aria-label={`Precio de ${p.nombre}`}
+                          className="w-28 rounded-lg border border-acento bg-superficie px-2 py-1 text-base font-bold text-texto"
+                        />
+                      ) : item ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditandoPrecio(p.id)}
+                          aria-label={`Cambiar el precio de ${p.nombre}`}
+                          className="num font-bold text-texto underline decoration-dotted underline-offset-4"
+                        >
+                          {item.precio ? `$ ${item.precio}` : "Poner precio"}
+                        </button>
+                      ) : (
+                        <span className="num">{propuesto.precio !== null ? formatearPesos(propuesto.precio) : "Sin precio"}</span>
+                      )}{" "}
+                      · {TEXTO_ORIGEN[origen]}
+                    </span>
+                    <span className="text-[0.72rem] text-texto-suave">Quedan {p.unidades}</span>
+                    {fila?.precioError && <span className="text-[0.72rem] text-peligro">{fila.precioError}</span>}
+                  </div>
+                  {item ? (
+                    <div className="flex shrink-0 items-center gap-1 rounded-[14px] bg-superficie-2 p-1">
+                      <button type="button" onClick={() => sumar(p.id, -1)} aria-label={`Uno menos de ${p.nombre}`} className="grid h-10 w-10 place-items-center rounded-[11px] border border-borde bg-superficie text-[1.4rem] font-bold">
                         −
                       </button>
-                      <input
-                        inputMode="numeric"
-                        value={it.cantidad}
-                        onChange={(e) => {
-                          const n = parseInt(e.target.value.replace(/\D/g, ""), 10);
-                          cambiarItem(i, { cantidad: Number.isFinite(n) && n > 0 ? Math.min(n, 10000) : 1 });
-                        }}
-                        aria-label={`Cantidad de ${p.nombre}`}
-                        className="h-[52px] w-full min-w-0 rounded-xl border border-borde bg-superficie text-center text-xl font-bold"
-                      />
+                      <b className="num min-w-7 text-center text-[1.1rem]" aria-label={`Cantidad de ${p.nombre}`}>
+                        {item.cantidad}
+                      </b>
                       <button
                         type="button"
-                        onClick={() => cambiarItem(i, { cantidad: it.cantidad + 1 })}
-                        className="h-[52px] w-[52px] rounded-xl border border-borde text-2xl font-bold"
-                        aria-label="Uno más"
+                        onClick={() => sumar(p.id, 1)}
+                        disabled={item.cantidad >= p.unidades}
+                        aria-label={`Uno más de ${p.nombre}`}
+                        className="grid h-10 w-10 place-items-center rounded-[11px] bg-acento text-[1.4rem] font-bold text-acento-texto disabled:opacity-40"
                       >
                         +
                       </button>
                     </div>
-                  </div>
-                  <label className="flex flex-col gap-1">
-                    <span className="text-sm text-texto-suave">Precio por unidad</span>
-                    <input
-                      inputMode="decimal"
-                      value={it.precio}
-                      onChange={(e) => cambiarItem(i, { precio: e.target.value, origen: it.origen })}
-                      aria-label={`Precio de ${p.nombre}`}
-                      className={`h-[52px] rounded-xl border bg-superficie px-3 text-xl font-bold ${fila.precioError ? "border-peligro" : "border-borde"}`}
-                    />
-                  </label>
-                </div>
-                <span className="text-sm text-texto-suave">Propuesto: {TEXTO_ORIGEN[it.origen]}</span>
-                {fila.precioError && <span className="text-sm text-peligro">{fila.precioError}</span>}
-                {fila.faltan > 0 && <span className="text-sm font-semibold text-peligro">No alcanza el stock: hay {p.unidades}.</span>}
-                {fila.subtotal !== null && <span className="text-right text-base font-semibold">Subtotal {formatearPesos(fila.subtotal)}</span>}
-              </article>
-            );
-          })}
-
-          {agregando || items.length === 0 ? (
-            <div className="flex flex-col gap-2 rounded-xl border border-dashed border-borde p-3">
-              <input
-                type="search"
-                value={busquedaProducto}
-                onChange={(e) => setBusquedaProducto(e.target.value)}
-                placeholder="Buscar producto"
-                aria-label="Buscar producto"
-                className="min-h-[52px] rounded-xl border border-borde bg-superficie px-4 text-lg"
-              />
-              <ul className="flex flex-col gap-1">
-                {productosFiltrados.map((p) => (
-                  <li key={p.id}>
-                    <button
-                      type="button"
-                      onClick={() => agregar(p.id)}
-                      className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-borde bg-superficie px-4 text-left text-lg"
-                    >
-                      <span>{p.nombre}</span>
-                      <span className="text-sm text-texto-suave">{p.unidades} u</span>
+                  ) : (
+                    <button type="button" onClick={() => sumar(p.id, 1)} aria-label={`Agregar ${p.nombre}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-acento text-[1.4rem] font-bold text-acento-texto">
+                      +
                     </button>
+                  )}
+                </li>
+              );
+            })}
+            {productosFiltrados.length === 0 && <li className="py-3 text-texto-suave">No hay productos con stock que coincidan.</li>}
+          </ul>
+          <div className="lg:hidden">{lineaOpciones}</div>
+        </div>
+
+        {/* PC: cliente y resumen a la derecha. */}
+        <div className="hidden flex-col gap-3 lg:flex">
+          {tarjetaCliente}
+          <section className="flex flex-col gap-3 rounded-[20px] border border-borde bg-superficie p-4 shadow-tarjeta" aria-label="Resumen de la venta">
+            <h2 className="text-[1.05rem] font-bold">Resumen</h2>
+            {resumen.filas.length === 0 ? (
+              <p className="text-[0.82rem] text-texto-suave">Agregá productos con el botón +.</p>
+            ) : (
+              <ul className="flex flex-col gap-2 text-[0.82rem]">
+                {resumen.filas.map((f) => (
+                  <li key={f.productoId} className="flex justify-between gap-3">
+                    <span>
+                      {f.cantidad} × {f.nombre}
+                    </span>
+                    <span className="num">{f.subtotal !== null ? formatearPesos(f.subtotal) : "—"}</span>
                   </li>
                 ))}
-                {productosFiltrados.length === 0 && (
-                  <li className="py-2 text-texto-suave">
-                    {datos.productos.length === 0 ? "No hay productos con stock." : "No hay más productos con stock que coincidan."}
-                  </li>
-                )}
               </ul>
-              {items.length > 0 && (
-                <button type="button" onClick={() => setAgregando(false)} className="min-h-[44px] font-medium text-acento">
-                  Listo
-                </button>
-              )}
-            </div>
-          ) : (
-            <Boton type="button" variante="secundario" onClick={() => setAgregando(true)}>
-              + Agregar otro producto
-            </Boton>
-          )}
-        </section>
-      )}
+            )}
+            <div className="h-px bg-borde" />
+            {total}
+            {lineaOpciones}
+            {guardar}
+          </section>
+        </div>
+      </div>
 
-      {/* 3. Confirmar */}
-      {cliente && items.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <div className="rounded-xl border border-borde bg-superficie p-4">
-            <div className="flex items-baseline justify-between">
-              <span className="text-lg">Total</span>
-              <span className="text-3xl font-bold">{formatearPesos(resumen.importe)}</span>
-            </div>
-            <p className="mt-1 text-sm text-texto-suave">
-              Costo estimado {formatearPesos(resumen.costo)} ({formatearDolares(resumen.costoUsd)}) · Ganancia estimada{" "}
-              <strong className={resumen.ganancia < 0 ? "text-peligro" : ""}>{formatearPesos(resumen.ganancia)}</strong>
-            </p>
-          </div>
-
-          <details className="rounded-xl border border-borde bg-superficie p-3">
-            <summary className="min-h-[44px] cursor-pointer content-center font-medium">
-              Más opciones (fecha, quién vendió, nota)
-            </summary>
-            <div className="mt-2 flex flex-col gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="font-medium">Fecha</span>
-                <input type="date" value={fecha} max={hoy} onChange={(e) => setFecha(e.target.value)} className="min-h-[52px] rounded-xl border border-borde bg-superficie px-4 text-lg" />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="font-medium">Vendió</span>
-                <select value={vendidoPor} onChange={(e) => setVendidoPor(e.target.value)} className="min-h-[52px] rounded-xl border border-borde bg-superficie px-3 text-lg">
-                  {datos.socios.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.nombre}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="font-medium">Nota</span>
-                <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={500} className="min-h-[52px] rounded-xl border border-borde bg-superficie px-4 text-lg" />
-              </label>
-            </div>
-          </details>
-
-          {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
-          <Boton type="submit" disabled={!puedeConfirmar}>
-            {enviando ? "Guardando…" : `Confirmar venta · ${formatearPesos(resumen.importe)}`}
-          </Boton>
-        </section>
-      )}
+      {/* Celular: total y botón fijos abajo. */}
+      <div className="fixed inset-x-0 bottom-0 z-20 flex flex-col gap-3 border-t border-borde bg-superficie px-4 pt-3.5 pb-[max(env(safe-area-inset-bottom),1.5rem)] lg:hidden">
+        {total}
+        {guardar}
+      </div>
     </form>
   );
 }

@@ -1,6 +1,7 @@
 import "server-only";
 import type { CompraDisponible } from "@/dominio/ventas";
 import { rangoDelMes } from "@/lib/meses";
+import { listarSaldos } from "./cuentas";
 import { crearClienteSupabase } from "@/lib/supabase/servidor";
 
 function fallar(contexto: string, error: { message: string }): never {
@@ -40,11 +41,13 @@ export type DatosNuevaVenta = {
   /** clienteId -> productoId -> precio */
   especiales: Record<string, Record<string, number>>;
   ultimos: Record<string, Record<string, number>>;
+  /** clienteId -> saldo de su cuenta (> 0 debe, < 0 a favor). */
+  saldos: Record<string, number>;
 };
 
 export async function datosParaNuevaVenta(negocioId: string): Promise<DatosNuevaVenta> {
   const supabase = await crearClienteSupabase();
-  const [clientes, productos, compras, socios, especiales, ultimos] = await Promise.all([
+  const [clientes, productos, compras, socios, especiales, ultimos, saldos] = await Promise.all([
     supabase.from("clientes").select("id, nombre").eq("negocio_id", negocioId).is("archivado_en", null).order("nombre"),
     supabase
       .from("v_stock_productos")
@@ -63,6 +66,7 @@ export async function datosParaNuevaVenta(negocioId: string): Promise<DatosNueva
     supabase.from("socios").select("id, nombre").eq("negocio_id", negocioId).order("orden"),
     supabase.from("precios_especiales").select("cliente_id, producto_id, precio").eq("negocio_id", negocioId),
     supabase.from("v_ultimo_precio_cliente").select("cliente_id, producto_id, precio_unitario").eq("negocio_id", negocioId),
+    listarSaldos(negocioId),
   ]);
   for (const r of [clientes, productos, compras, socios, especiales, ultimos]) {
     if (r.error) fallar("No se pudieron leer los datos para vender", r.error);
@@ -99,6 +103,7 @@ export async function datosParaNuevaVenta(negocioId: string): Promise<DatosNueva
     })),
     especiales: mapa(especiales.data ?? [], (f: { precio: number }) => f.precio),
     ultimos: mapa(ultimos.data ?? [], (f: { precio_unitario: number }) => f.precio_unitario),
+    saldos: Object.fromEntries(saldos.map((s) => [s.cliente_id, s.saldo])),
   };
 }
 
@@ -136,7 +141,7 @@ export type DetalleRenglon = {
   consumos: { cantidad: number; costoUnitarioArs: number; costoUnitarioUsd: number; fechaCompra: string; tipoCambio: number; estimado: boolean }[];
 };
 
-export type DetalleVenta = ResumenVenta & { registrado_por_nombre: string; anulado_por_nombre: string | null; renglones: DetalleRenglon[] };
+export type DetalleVenta = ResumenVenta & { registrado_por_nombre: string; creado_en: string; anulado_por_nombre: string | null; renglones: DetalleRenglon[] };
 
 export async function obtenerVenta(negocioId: string, ventaId: string): Promise<DetalleVenta | null> {
   const supabase = await crearClienteSupabase();
@@ -150,7 +155,7 @@ export async function obtenerVenta(negocioId: string, ventaId: string): Promise<
   if (!venta) return null;
 
   const [extra, items, socios] = await Promise.all([
-    supabase.from("ventas").select("registrado_por, anulado_por").eq("id", ventaId).single(),
+    supabase.from("ventas").select("registrado_por, anulado_por, creado_en").eq("id", ventaId).single(),
     supabase
       .from("venta_items")
       .select("id, renglon, cantidad, precio_unitario, costo_total_ars, costo_total_usd, productos ( marca, modelo ), movimientos_stock ( tipo, cantidad, costo_unitario_ars, costo_unitario_usd, compras ( fecha, tipo_cambio, tipo_cambio_estimado ) )")
@@ -182,6 +187,7 @@ export async function obtenerVenta(negocioId: string, ventaId: string): Promise<
   return {
     ...(venta as ResumenVenta),
     registrado_por_nombre: nombreSocio.get(extra.data.registrado_por) ?? "",
+    creado_en: extra.data.creado_en as string,
     anulado_por_nombre: extra.data.anulado_por ? (nombreSocio.get(extra.data.anulado_por) ?? "") : null,
     renglones: ((items.data ?? []) as unknown as FilaItem[]).map((i) => ({
       id: i.id,

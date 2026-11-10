@@ -51,7 +51,7 @@ execFileSync("psql", [DB_URL, "-q", "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio
 const rutas = [
   "/", "/clientes", "/clientes/nuevo", `/clientes/${ids.cliente}`, `/clientes/${ids.cliente}/cuenta`, `/clientes/${ids.cliente}/cobrar`,
   "/productos", "/productos/nuevo", `/productos/${ids.producto}`, `/productos/${ids.producto}/ajuste`, "/ajustes", "/ajustes?mes=todo", "/compras", "/compras/nueva",
-  "/ventas", "/ventas/nueva", `/ventas/${ids.venta}`, "/cobros", "/resumen", "/resumen?mes=todo", "/resumen/reparto",
+  "/ventas", "/ventas/nueva", `/ventas/nueva?cliente=${ids.cliente}`, `/ventas/${ids.venta}`, `/ventas/${ids.venta}/guardada`, "/cobros", "/resumen", "/resumen?mes=todo", "/resumen/reparto",
   "/mas", "/buscar?q=humo",
 ];
 const navegador = await chromium.launch();
@@ -73,7 +73,30 @@ for (const ruta of rutas) {
   console.log(`${ok ? "OK   " : "FALLA"} ${estado} ${ruta}`);
   if (!ok) errores.push(`${ruta} respondió ${estado}`);
 }
-// 3. Los mismos totales en todas las pantallas, y coinciden con la base (plan del módulo 1.7).
+// 3. Una venta de punta a punta con la pantalla nueva (módulo 1.7): + dos veces, guardar, confirmación y deshacer.
+{
+  const enBaseTexto = (consulta) => execFileSync("psql", [DB_URL, "-tAq", "-c", consulta]).toString().trim();
+  await pagina.goto(`${BASE}/ventas/nueva?cliente=${ids.cliente}`);
+  const nombre = (await pagina.locator("li", { has: pagina.locator(`button[aria-label^="Agregar Humo"]`) }).first().locator("span.font-bold").textContent())?.trim();
+  await pagina.click(`button[aria-label="Agregar ${nombre}"]`);
+  await pagina.click(`button[aria-label="Uno más de ${nombre}"]`);
+  await pagina.locator("button[type=submit]:visible", { hasText: "Guardar venta" }).click();
+  await pagina.waitForURL(/\/ventas\/[0-9a-f-]{36}\/guardada$/, { timeout: 20_000 });
+  const ventaId = pagina.url().split("/").at(-2);
+  const guardada = enBaseTexto(`select importe || '|' || unidades from public.v_ventas where venta_id = '${ventaId}'`);
+  const okVenta = guardada === "2000000|2" && (await pagina.getByRole("heading", { name: "Venta guardada" }).isVisible());
+  console.log(`${okVenta ? "OK   " : "FALLA"} venta por la pantalla nueva: 2 u a $ 10.000 = ${guardada}`);
+  if (!okVenta) errores.push(`la venta por la pantalla nueva quedó como ${guardada} (se esperaba 2000000|2)`);
+  await pagina.click("text=Deshacer (anular)");
+  await pagina.fill("input[name=motivo]", "Prueba de humo");
+  await pagina.click("text=Confirmar anulación");
+  await pagina.waitForURL(/ok=anulada/, { timeout: 20_000 });
+  const anulada = enBaseTexto(`select anulado_en is not null from public.ventas where id = '${ventaId}'`);
+  console.log(`${anulada === "t" ? "OK   " : "FALLA"} deshacer desde la confirmación anula la venta`);
+  if (anulada !== "t") errores.push("Deshacer no anuló la venta");
+}
+
+// 4. Los mismos totales en todas las pantallas, y coinciden con la base (plan del módulo 1.7).
 //    Cada pantalla marca sus totales con data-dato / data-centavos.
 async function totales(ruta) {
   await pagina.goto(`${BASE}${ruta}`);

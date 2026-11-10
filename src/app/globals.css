@@ -78,3 +78,25 @@ body {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
+
+/* Confirmación al guardar: el ✓ aparece con un pequeño rebote y el texto sube suave (≈ 250 ms). */
+@keyframes aparecer-check {
+  from { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.06); opacity: 1; }
+  to { transform: scale(1); }
+}
+@keyframes subir {
+  from { transform: translateY(6px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.confirmacion-check { animation: aparecer-check 260ms ease-out both; }
+.confirmacion-texto { animation: subir 200ms ease-out 80ms both; }
+
+/* Respeta "reducir movimiento" del dispositivo: sin animaciones ni transiciones. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

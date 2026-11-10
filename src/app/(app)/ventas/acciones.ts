@@ -66,12 +66,14 @@ export async function registrarVenta(_p: EstadoVenta, formulario: FormData): Pro
   if (error) return { error: mensajeDeError(error, "No se pudo guardar la venta.") };
 
   revalidatePath("/", "layout");
-  redirect(`/ventas/${v.id}?ok=venta`);
+  // Pantalla de confirmación (maqueta, pantalla 4), con "Deshacer" solo justo después de guardar.
+  redirect(`/ventas/${v.id}/guardada`);
 }
 
 export async function anularVenta(_p: EstadoVenta, formulario: FormData): Promise<EstadoVenta> {
   await obtenerSocioActual();
   const ventaId = String(formulario.get("ventaId") ?? "");
+  if (!esUuid(ventaId)) return { error: "Recargá la pantalla." };
   const motivo = String(formulario.get("motivo") ?? "").trim();
   if (!motivo) return { error: "Escribí el motivo de la anulación." };
   const supabase = await crearClienteSupabase();

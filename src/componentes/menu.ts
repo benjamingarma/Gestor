@@ -16,7 +16,7 @@ export const GESTION: (Item & { detalle: string; grupo: "Negocio" | "Historial y
   { href: "/resumen", texto: "Resumen y ganancia", detalle: "Ganancia, cobrado, capital, reparto", icono: "grafico", grupo: "Negocio", activo: (r) => r === "/resumen" },
   { href: "/productos", texto: "Stock y productos", detalle: "Precios, costo, cargar compras", icono: "stock", grupo: "Negocio", activo: empieza("/productos") },
   { href: "/compras", texto: "Compras", detalle: "En dólares, con tipo de cambio", icono: "caja", grupo: "Negocio", activo: empieza("/compras") },
-  { href: "/ventas", texto: "Ventas", detalle: "Ver y anular", icono: "historial", grupo: "Historial y correcciones", activo: (r) => empieza("/ventas")(r) && r !== "/ventas/nueva" },
+  { href: "/ventas", texto: "Ventas", detalle: "Ver y anular", icono: "historial", grupo: "Historial y correcciones", activo: (r) => empieza("/ventas")(r) && r !== "/ventas/nueva" && !r.endsWith("/guardada") },
   { href: "/cobros", texto: "Cobros", detalle: "Ver y anular", icono: "historial", grupo: "Historial y correcciones", activo: () => false },
   { href: "/ajustes", texto: "Regalos, pérdidas y roturas", detalle: "Dar de baja stock", icono: "roto", grupo: "Historial y correcciones", activo: empieza("/ajustes") },
   { href: "/resumen/reparto", texto: "Reparto entre socios", detalle: "", icono: "reparto", grupo: "Configuración", activo: empieza("/resumen/reparto") },
@@ -30,6 +30,6 @@ export const GESTION_LATERAL = [...GESTION]
 
 /** Pantallas que ocupan todo el celular (venta y cobro): sin barra inferior. */
 export function esPantallaCompleta(ruta: string): boolean {
-  return ruta === "/ventas/nueva" || /^\/clientes\/[^/]+\/cobrar$/.test(ruta);
+  return ruta === "/ventas/nueva" || /^\/ventas\/[^/]+\/guardada$/.test(ruta) || /^\/clientes\/[^/]+\/cobrar$/.test(ruta);
 }
 
