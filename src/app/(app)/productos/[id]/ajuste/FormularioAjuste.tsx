@@ -37,8 +37,8 @@ export function FormularioAjuste({ productoId, stock, compras, hoy }: Props) {
           {MOTIVOS.map((m) => (
             <label
               key={m.valor}
-              className={`flex min-h-[64px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 px-2 text-center text-lg font-semibold ${
-                campos.motivo === m.valor ? "border-acento bg-fondo" : "border-borde bg-superficie"
+              className={`flex min-h-[64px] cursor-pointer flex-col items-center justify-center rounded-[14px] border-2 px-2 text-center text-[1.05rem] font-bold ${
+                campos.motivo === m.valor ? "border-acento bg-acento-suave text-acento" : "border-borde bg-superficie"
               }`}
             >
               <input type="radio" name="motivo" value={m.valor} checked={campos.motivo === m.valor} onChange={cambiar("motivo")} className="sr-only" />
@@ -46,8 +46,8 @@ export function FormularioAjuste({ productoId, stock, compras, hoy }: Props) {
             </label>
           ))}
         </div>
-        {campos.motivo && <span className="text-sm text-texto-suave">{MOTIVOS.find((m) => m.valor === campos.motivo)?.ayuda}</span>}
-        {errores.motivo && <span className="text-sm text-peligro">{errores.motivo}</span>}
+        {campos.motivo && <span className="text-[0.82rem] text-texto-suave">{MOTIVOS.find((m) => m.valor === campos.motivo)?.ayuda}</span>}
+        {errores.motivo && <span className="text-[0.82rem] text-peligro">{errores.motivo}</span>}
       </fieldset>
 
       <div className="grid grid-cols-2 gap-3">
@@ -75,7 +75,7 @@ export function FormularioAjuste({ productoId, stock, compras, hoy }: Props) {
       />
 
       {vista && (
-        <section aria-label="Costo del ajuste" className="flex flex-col gap-1 rounded-xl border border-borde bg-superficie p-4">
+        <section aria-label="Costo del ajuste" className="flex flex-col gap-1 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-texto-suave">Se resta de la ganancia</span>
             <strong className="text-xl text-peligro">−{formatearPesos(vista.costoArs)}</strong>
@@ -84,7 +84,7 @@ export function FormularioAjuste({ productoId, stock, compras, hoy }: Props) {
             <span className="text-texto-suave">Costo en dólares</span>
             <span className="font-semibold">{formatearDolares(vista.costoUsd)}</span>
           </div>
-          <p className="text-xs text-texto-suave">
+          <p className="text-[0.72rem] text-texto-suave">
             Es el costo de compra de esas unidades (salen primero las más viejas, igual que en una venta). Queda guardado así
             aunque después cambie el dólar.
           </p>

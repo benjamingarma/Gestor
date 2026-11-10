@@ -25,7 +25,7 @@ export function TarjetaCompra({
   const anulada = compra.anulado_en !== null;
   const sinSalidas = compra.disponible === compra.cantidad;
   return (
-    <article className={`flex flex-col gap-2 rounded-xl border border-borde bg-superficie p-4 ${anulada ? "opacity-60" : ""}`}>
+    <article className={`flex flex-col gap-2 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4 ${anulada ? "opacity-60" : ""}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-semibold">{formatearDia(compra.fecha)}</span>
         {titulo && <span className="font-semibold">· {titulo}</span>}
@@ -38,7 +38,7 @@ export function TarjetaCompra({
         <br />
         <span className="font-semibold">= {formatearPesos(compra.costo_unitario_ars)} c/u</span>
       </p>
-      <p className="text-sm text-texto-suave">
+      <p className="text-[0.82rem] text-texto-suave">
         Total {formatearDolares(compra.costo_total_usd)} · {formatearPesos(compra.costo_total_ars)}
       </p>
       {!anulada && (
@@ -46,9 +46,9 @@ export function TarjetaCompra({
           Quedan <strong>{compra.disponible}</strong> de {compra.cantidad}
         </p>
       )}
-      {compra.nota && <p className="text-sm text-texto-suave">Nota: {compra.nota}</p>}
+      {compra.nota && <p className="text-[0.82rem] text-texto-suave">Nota: {compra.nota}</p>}
       {anulada && compra.motivo_anulacion && (
-        <p className="text-sm text-texto-suave">Motivo de anulación: {compra.motivo_anulacion}</p>
+        <p className="text-[0.82rem] text-texto-suave">Motivo de anulación: {compra.motivo_anulacion}</p>
       )}
       {permitirAnular && !anulada && sinSalidas && (
         <FormularioAnular compraId={compra.compra_id} productoId={compra.producto_id} />

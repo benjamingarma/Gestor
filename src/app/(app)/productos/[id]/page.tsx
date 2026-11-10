@@ -42,7 +42,7 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
   const mensaje = typeof ok === "string" ? MENSAJES[ok] : undefined;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado
         titulo={`${producto.marca} ${producto.modelo}`}
         volverA="/productos"
@@ -50,24 +50,24 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
       />
       {mensaje && <Aviso tipo="ok">{mensaje}</Aviso>}
 
-      <section className="grid grid-cols-2 gap-3 rounded-xl border border-borde bg-superficie p-4">
+      <section className="grid grid-cols-2 gap-3 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
         <div className="flex flex-col">
-          <span className="text-sm text-texto-suave">En stock</span>
+          <span className="text-[0.82rem] text-texto-suave">En stock</span>
           <span className="text-3xl font-bold">{producto.unidades}</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-sm text-texto-suave">Precio general</span>
-          <span className="text-xl font-bold">
+          <span className="text-[0.82rem] text-texto-suave">Precio general</span>
+          <span className="num text-[1.3rem] font-extrabold">
             {producto.precio_general !== null ? formatearPesos(producto.precio_general) : "—"}
           </span>
         </div>
         <div className="flex flex-col">
-          <span className="text-sm text-texto-suave">Stock a costo</span>
+          <span className="text-[0.82rem] text-texto-suave">Stock a costo</span>
           <span className="font-semibold">{formatearDolares(producto.valor_usd)}</span>
           <span className="font-semibold">{formatearPesos(producto.valor_ars)}</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-sm text-texto-suave">Próxima unidad (FIFO)</span>
+          <span className="text-[0.82rem] text-texto-suave">Próxima unidad (FIFO)</span>
           {producto.proximo_costo_ars !== null && producto.proximo_costo_usd !== null ? (
             <>
               <span className="font-semibold">{formatearPesos(producto.proximo_costo_ars)}</span>
@@ -89,8 +89,8 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-xl font-bold">Compras</h2>
-        <p className="text-sm text-texto-suave">De la más vieja a la más nueva: al vender, sale primero la de arriba.</p>
+        <h2 className="text-[1.05rem] font-bold">Compras</h2>
+        <p className="text-[0.82rem] text-texto-suave">De la más vieja a la más nueva: al vender, sale primero la de arriba.</p>
         {compras.length === 0 && <p className="text-texto-suave">Todavía no hay compras de este producto.</p>}
         {compras.map((c) => (
           <TarjetaCompra key={c.compra_id} compra={c} permitirAnular />
@@ -98,7 +98,7 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
       </section>
 
       <section id="ajustes" className="flex flex-col gap-3">
-        <h2 className="text-xl font-bold">Regalos, pérdidas y roturas</h2>
+        <h2 className="text-[1.05rem] font-bold">Regalos, pérdidas y roturas</h2>
         {ajustes.length === 0 ? (
           <p className="text-texto-suave">Ninguno todavía.</p>
         ) : (
@@ -106,8 +106,8 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
         )}
       </section>
 
-      <details className="rounded-xl border border-borde bg-superficie p-4">
-        <summary className="min-h-[44px] cursor-pointer content-center text-lg font-semibold">Editar producto</summary>
+      <details className="rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
+        <summary className="min-h-[44px] cursor-pointer content-center text-[1.05rem] font-bold">Editar producto</summary>
         <div className="mt-3">
           <FormularioProducto
             accion={editarProducto}

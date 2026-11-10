@@ -30,9 +30,9 @@ function QuitarPrecio({ clienteId, productoId, producto }: { clienteId: string; 
 export function PreciosEspeciales({ clienteId, precios, productos }: Props) {
   const [estado, enviar, enviando] = useActionState(fijarPrecioEspecial, {});
   return (
-    <section id="precios" className="flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-4">
+    <section id="precios" className="flex flex-col gap-3 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
       <h2 className="text-lg font-bold">Precios especiales</h2>
-      <p className="text-sm text-texto-suave">
+      <p className="text-[0.82rem] text-texto-suave">
         Al venderle, se propone primero su precio especial; si no tiene, el último que pagó; si no, el general.
       </p>
       {precios.length === 0 && <p className="text-texto-suave">No tiene precios especiales.</p>}
@@ -53,7 +53,7 @@ export function PreciosEspeciales({ clienteId, precios, productos }: Props) {
           <input type="hidden" name="clienteId" value={clienteId} />
           <label className="flex flex-col gap-1">
             <span className="font-medium">Producto</span>
-            <select name="productoId" defaultValue="" className="min-h-[52px] rounded-xl border border-borde bg-superficie px-3 text-lg">
+            <select name="productoId" defaultValue="" className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3 text-lg">
               <option value="">Elegí un producto…</option>
               {productos.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -64,7 +64,7 @@ export function PreciosEspeciales({ clienteId, precios, productos }: Props) {
           </label>
           <label className="flex flex-col gap-1">
             <span className="font-medium">Precio por unidad</span>
-            <input name="precio" inputMode="decimal" placeholder="Ej: 10.500" className="min-h-[52px] rounded-xl border border-borde bg-superficie px-4 text-lg" />
+            <input name="precio" inputMode="decimal" placeholder="Ej: 10.500" className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3.5 text-lg" />
           </label>
           {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
           <Boton type="submit" variante="secundario" disabled={enviando}>

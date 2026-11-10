@@ -68,27 +68,27 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
   const mensaje = typeof ok === "string" ? MENSAJES[ok] : undefined;
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo={cliente.nombre} volverA="/clientes" />
       {mensaje && <Aviso tipo="ok">{mensaje}</Aviso>}
 
-      <section className="flex flex-col gap-2 rounded-xl border border-borde bg-superficie p-4">
+      <section className="flex flex-col gap-2 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
         {cliente.estado.tipo !== "al_dia" && <EtiquetaEstadoVisita estado={cliente.estado} />}
         <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
           <div>
-            <dt className="text-sm text-texto-suave">Última visita o compra</dt>
+            <dt className="text-[0.82rem] text-texto-suave">Última visita o compra</dt>
             <dd className="font-semibold">{actividad ? formatearDia(actividad) : "Nunca"}</dd>
           </div>
           <div>
-            <dt className="text-sm text-texto-suave">Próxima visita</dt>
+            <dt className="text-[0.82rem] text-texto-suave">Próxima visita</dt>
             <dd className="font-semibold">{cliente.archivado ? "—" : formatearDia(proxima)}</dd>
           </div>
           <div>
-            <dt className="text-sm text-texto-suave">Visitar cada</dt>
+            <dt className="text-[0.82rem] text-texto-suave">Visitar cada</dt>
             <dd className="font-semibold">{cliente.intervaloDias} días</dd>
           </div>
           <div>
-            <dt className="text-sm text-texto-suave">Teléfono</dt>
+            <dt className="text-[0.82rem] text-texto-suave">Teléfono</dt>
             <dd className="font-semibold break-words">{cliente.telefono ?? "—"}</dd>
           </div>
         </dl>
@@ -98,22 +98,22 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
       {(wa || tel) && (
         <div className={`grid gap-2 ${wa && tel ? "grid-cols-2" : "grid-cols-1"}`}>
           {wa && (
-            <a href={wa} target="_blank" rel="noopener noreferrer" className="flex min-h-[52px] items-center justify-center rounded-xl border border-borde bg-superficie text-lg font-semibold">
+            <a href={wa} target="_blank" rel="noopener noreferrer" className="boton-toque flex min-h-[56px] items-center justify-center rounded-2xl border border-borde bg-superficie text-[1.1rem] font-bold">
               WhatsApp
             </a>
           )}
           {tel && (
-            <a href={tel} className="flex min-h-[52px] items-center justify-center rounded-xl border border-borde bg-superficie text-lg font-semibold">
+            <a href={tel} className="boton-toque flex min-h-[56px] items-center justify-center rounded-2xl border border-borde bg-superficie text-[1.1rem] font-bold">
               Llamar
             </a>
           )}
         </div>
       )}
 
-      <section className="flex flex-col gap-2 rounded-xl border border-borde bg-superficie p-4">
-        <div className="flex items-baseline justify-between">
-          <span className="text-texto-suave">Cuenta corriente</span>
-          <span className={`text-2xl font-bold ${saldo > 0 ? "text-peligro" : saldo < 0 ? "text-acento" : ""}`}>
+      <section className="flex flex-col gap-2 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-[0.82rem] text-texto-suave">Cuenta corriente</span>
+          <span className={`num text-[1.6rem] font-extrabold tracking-[-0.02em] ${saldo > 0 ? "text-peligro" : saldo < 0 ? "text-acento" : ""}`}>
             {saldo > 0 ? `Debe ${formatearPesos(saldo)}` : saldo < 0 ? `${formatearPesos(-saldo)} a favor` : "Al día"}
           </span>
         </div>
@@ -137,8 +137,8 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
       )}
 
       {cliente.ultimaVisitaId && cliente.ultimaVisita && (
-        <section className="flex flex-col gap-1 rounded-xl border border-borde bg-superficie p-4">
-          <span className="text-sm text-texto-suave">Última visita marcada</span>
+        <section className="flex flex-col gap-1 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
+          <span className="text-[0.82rem] text-texto-suave">Última visita marcada</span>
           <span className="font-semibold">{formatearDia(cliente.ultimaVisita)}</span>
           <DeshacerVisita visitaId={cliente.ultimaVisitaId} clienteId={cliente.id} />
         </section>
@@ -155,8 +155,8 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
         productos={productos.map((p) => ({ id: p.id, nombre: `${p.marca} ${p.modelo}` }))}
       />
 
-      <details className="rounded-xl border border-borde bg-superficie p-4">
-        <summary className="min-h-[44px] cursor-pointer content-center text-lg font-semibold">Editar cliente</summary>
+      <details className="rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
+        <summary className="min-h-[44px] cursor-pointer content-center text-[1.05rem] font-bold">Editar cliente</summary>
         <div className="mt-3">
           <FormularioCliente
             accion={editarCliente}

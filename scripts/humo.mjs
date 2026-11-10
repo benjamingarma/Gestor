@@ -71,8 +71,11 @@ for (const ruta of rutas) {
   const estado = respuesta?.status() ?? 0;
   const texto = await pagina.textContent("body");
   const ok = estado < 400 && !/Application error|This page couldn.t load|Internal Server Error/i.test(texto ?? "");
-  console.log(`${ok ? "OK   " : "FALLA"} ${estado} ${ruta}`);
+  // Estilo (módulo 1.7): en el celular nada se sale del ancho de la pantalla (sin scroll horizontal).
+  const desborde = await pagina.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  console.log(`${ok && desborde <= 0 ? "OK   " : "FALLA"} ${estado} ${ruta}${desborde > 0 ? ` (se sale ${desborde} px de ancho)` : ""}`);
   if (!ok) errores.push(`${ruta} respondió ${estado}`);
+  if (desborde > 0) errores.push(`${ruta} se sale ${desborde} px del ancho del celular`);
 }
 // 3. Una venta de punta a punta con la pantalla nueva (módulo 1.7): + dos veces, guardar, confirmación y deshacer.
 {

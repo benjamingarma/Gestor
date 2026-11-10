@@ -21,7 +21,7 @@ export default async function PaginaBuscar({ searchParams }: PageProps<"/buscar"
   const ps = productos.filter((p) => coincide(`${p.marca} ${p.modelo}`, texto)).slice(0, 30);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo="Buscar" volverA="/" />
       <form action="/buscar" className="flex min-h-[50px] items-center gap-2.5 rounded-[14px] border border-borde bg-superficie px-3.5 text-texto-suave">
         <Icono nombre="buscar" />

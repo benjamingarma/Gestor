@@ -52,7 +52,7 @@ export function FormularioCompra({ productos, productoInicial, hoy, tipoDeCambio
           name="productoId"
           value={campos.productoId}
           onChange={cambiar("productoId")}
-          className={`min-h-[52px] rounded-xl border bg-superficie px-3 text-lg ${errores.productoId ? "border-peligro" : "border-borde"}`}
+          className={`min-h-[50px] rounded-[14px] border bg-superficie px-3 text-lg ${errores.productoId ? "border-peligro" : "border-borde"}`}
         >
           <option value="">Elegí un producto…</option>
           {productos.map((p) => (
@@ -61,7 +61,7 @@ export function FormularioCompra({ productos, productoInicial, hoy, tipoDeCambio
             </option>
           ))}
         </select>
-        {errores.productoId && <span className="text-sm text-peligro">{errores.productoId}</span>}
+        {errores.productoId && <span className="text-[0.82rem] text-peligro">{errores.productoId}</span>}
       </label>
 
       <div className="grid grid-cols-2 gap-3">
@@ -126,15 +126,15 @@ export function FormularioCompra({ productos, productoInicial, hoy, tipoDeCambio
 
       <Campo etiqueta="Nota (opcional)" name="nota" value={campos.nota} onChange={cambiar("nota")} maxLength={500} autoComplete="off" />
 
-      <section aria-live="polite" className="rounded-xl border border-borde bg-superficie p-4">
+      <section aria-live="polite" className="rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
         {vista.ok ? (
           <div className="flex flex-col gap-1">
-            <span className="text-sm text-texto-suave">Costo por unidad en pesos</span>
-            <span className="text-2xl font-bold">{formatearPesos(vista.costos.costoUnitarioArs)}</span>
+            <span className="text-[0.82rem] text-texto-suave">Costo por unidad en pesos</span>
+            <span className="num text-[1.6rem] font-extrabold tracking-[-0.02em]">{formatearPesos(vista.costos.costoUnitarioArs)}</span>
             <span className="text-base">
               Total: <strong>{formatearDolares(vista.costos.totalUsd)}</strong> = <strong>{formatearPesos(vista.costos.totalArs)}</strong>
             </span>
-            <span className="text-xs text-texto-suave">
+            <span className="text-[0.72rem] text-texto-suave">
               El costo en pesos queda fijo con este tipo de cambio y no cambia aunque suba el dólar.
             </span>
           </div>

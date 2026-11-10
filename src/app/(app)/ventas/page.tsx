@@ -28,33 +28,33 @@ export default async function PaginaVentas({ searchParams }: PageProps<"/ventas"
   const anuladas = ventas.length - validas.length;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo="Ventas" volverA="/" />
       <BotonEnlace href="/ventas/nueva">+ Nueva venta</BotonEnlace>
       <SelectorMes meses={meses} actual={mes} ruta="/ventas" />
 
-      <section aria-label={`Resumen de ${nombreDelMes(mes)}`} className="grid grid-cols-2 gap-3 rounded-xl border border-borde bg-superficie p-4">
+      <section aria-label={`Resumen de ${nombreDelMes(mes)}`} className="grid grid-cols-2 gap-3 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
         <div className="flex flex-col">
-          <span className="text-sm text-texto-suave">Vendido</span>
-          <span className="text-xl font-bold" data-dato="vendido-mes" data-centavos={total}>
+          <span className="text-[0.82rem] text-texto-suave">Vendido</span>
+          <span className="num text-[1.3rem] font-extrabold" data-dato="vendido-mes" data-centavos={total}>
             {formatearPesos(total)}
           </span>
-          <span className="text-sm text-texto-suave">
+          <span className="text-[0.82rem] text-texto-suave">
             {validas.length} venta{validas.length === 1 ? "" : "s"} · {unidades} u
           </span>
         </div>
         <div className="flex flex-col">
-          <span className="text-sm text-texto-suave">Ganancia generada</span>
-          <span className="text-xl font-bold">{formatearPesos(ganancia)}</span>
+          <span className="text-[0.82rem] text-texto-suave">Ganancia generada</span>
+          <span className="num text-[1.3rem] font-extrabold">{formatearPesos(ganancia)}</span>
         </div>
         <div className="col-span-2 flex flex-col">
-          <span className="text-sm text-texto-suave">De estas ventas falta cobrar</span>
+          <span className="text-[0.82rem] text-texto-suave">De estas ventas falta cobrar</span>
           <span className={`text-lg font-bold ${pendiente > 0 ? "text-peligro" : ""}`} data-falta-cobrar={pendiente}>
             {formatearPesos(pendiente)}
           </span>
         </div>
         {anuladas > 0 && (
-          <p className="col-span-2 text-xs text-texto-suave">
+          <p className="col-span-2 text-[0.72rem] text-texto-suave">
             {anuladas} venta{anuladas === 1 ? "" : "s"} anulada{anuladas === 1 ? "" : "s"} (no suman).
           </p>
         )}

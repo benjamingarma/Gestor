@@ -16,11 +16,11 @@ const NOMBRE_MEDIO: Record<string, string> = { efectivo: "Efectivo", transferenc
 
 function Tarjeta({ titulo, children, enlace }: { titulo: string; children: React.ReactNode; enlace?: { href: string; texto: string } }) {
   return (
-    <section className="flex flex-col gap-2 rounded-xl border border-borde bg-superficie p-4">
-      <h2 className="text-lg font-bold">{titulo}</h2>
+    <section className="flex flex-col gap-2 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
+      <h2 className="text-[1.05rem] font-bold">{titulo}</h2>
       {children}
       {enlace && (
-        <Link href={enlace.href} className="min-h-[44px] content-center font-medium text-acento">
+        <Link href={enlace.href} className="min-h-[44px] content-center text-[0.9rem] font-semibold text-acento">
           {enlace.texto} →
         </Link>
       )}
@@ -42,7 +42,7 @@ function Fila({ etiqueta, valor, fuerte, rojo, dato }: { etiqueta: React.ReactNo
   return (
     <div className={`flex items-baseline justify-between gap-3 ${fuerte ? "text-lg font-bold" : ""}`}>
       <span className={fuerte ? "" : "text-texto-suave"}>{etiqueta}</span>
-      <span className={`shrink-0 whitespace-nowrap text-right ${rojo ? "text-peligro" : ""} ${fuerte ? "" : "font-semibold"}`} data-dato={dato?.[0]} data-centavos={dato?.[1]}>
+      <span className={`num shrink-0 whitespace-nowrap text-right ${rojo ? "text-peligro" : ""} ${fuerte ? "" : "font-semibold"}`} data-dato={dato?.[0]} data-centavos={dato?.[1]}>
         {valor}
       </span>
     </div>
@@ -78,7 +78,7 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
   const pct = (socioId: string) => (porcentajesHoy.find((p) => p.socioId === socioId)?.centesimos ?? 0) / 100;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo="Resumen" volverA="/" />
       <SelectorMes meses={meses} actual={periodo} ruta="/resumen" conTodo />
 
@@ -99,7 +99,7 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
             <Fila key={p.socioId} etiqueta={`Le corresponde a ${p.nombre}`} valor={formatearPesos(p.importe)} />
           ))}
         </div>
-        <p className="text-xs text-texto-suave">
+        <p className="text-[0.72rem] text-texto-suave">
           Es lo que se ganó con las ventas (precio − costo de la mercadería), menos el costo de lo regalado, perdido o
           roto, se haya cobrado o no. No es plata
           disponible: parte puede estar sin cobrar, y el costo de la mercadería es capital, no ganancia.
@@ -124,7 +124,7 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
             ))}
           </div>
         )}
-        <p className="text-xs text-texto-suave">Incluye lo cobrado de deudas viejas y la recuperación del costo: no es todo ganancia.</p>
+        <p className="text-[0.72rem] text-texto-suave">Incluye lo cobrado de deudas viejas y la recuperación del costo: no es todo ganancia.</p>
       </Tarjeta>
 
       <Tarjeta titulo="Hoy">

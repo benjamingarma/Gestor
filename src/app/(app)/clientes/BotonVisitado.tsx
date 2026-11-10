@@ -31,7 +31,7 @@ export function BotonVisitado({
       {conFecha && otraFecha && (
         <label className="flex flex-col gap-1">
           <span className="text-base font-medium">Fecha de la visita</span>
-          <input type="date" name="fecha" defaultValue={hoy} max={hoy} className="min-h-[52px] rounded-xl border border-borde bg-superficie px-4 text-lg" />
+          <input type="date" name="fecha" defaultValue={hoy} max={hoy} className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3.5 text-lg" />
         </label>
       )}
       <Boton type="submit" variante={volverA === "lista" ? "secundario" : "principal"} disabled={enviando} className={volverA === "lista" ? "min-h-[44px] text-base" : ""}>
