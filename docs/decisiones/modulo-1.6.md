@@ -45,10 +45,10 @@ implementaron y qué se descartó.
   llega tocando "− Pérdidas por ajustes de stock" en el resumen.
 - El resumen ya tenía la fila; ahora recibe las pérdidas reales.
 
-## 6. Decisiones menores (para confirmar con los socios)
+## 6. Decisiones menores (confirmadas por los socios el 10/11/2026)
 - **Se puede ajustar un producto desactivado** (a diferencia de la venta): es la forma de dar de baja lo que quedó de
   un producto que ya no se trabaja.
-- El regalo no guarda a qué cliente fue (el plan no lo pide); se puede anotar en la nota.
+- El regalo **no** guarda a qué cliente fue: no hace falta; si se quiere, va en la nota.
 
 ## 7. Pruebas
 - pgTAP `06_ajustes.test.sql` (53): validaciones, A1 del plan ($7.000 / USD 5 de C2, stock C2 = 11), ajuste que
