@@ -26,7 +26,7 @@ export function ArchivarCliente({ clienteId, archivado }: { clienteId: string; a
       <input type="hidden" name="clienteId" value={clienteId} />
       <input type="hidden" name="archivar" value={archivado ? "no" : "si"} />
       {!archivado && (
-        <p className="text-sm text-texto-suave">
+        <p className="text-[0.82rem] text-texto-suave">
           Archivar lo saca de la búsqueda y de las visitas. No se pierde nada: se puede desarchivar.
         </p>
       )}

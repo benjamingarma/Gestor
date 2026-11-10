@@ -28,12 +28,12 @@ export default async function PaginaAjustes({ searchParams }: PageProps<"/ajuste
   const anulados = ajustes.length - validos.length;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo="Regalos, pérdidas y roturas" volverA="/resumen" />
       {ok === "ajuste-anulado" && <Aviso tipo="ok">Ajuste anulado: las unidades volvieron al stock.</Aviso>}
       <SelectorMes meses={meses} actual={periodo} ruta="/ajustes" conTodo />
 
-      <section aria-label={`Total de ${nombrePeriodo}`} className="flex flex-col gap-2 rounded-xl border border-borde bg-superficie p-4">
+      <section aria-label={`Total de ${nombrePeriodo}`} className="flex flex-col gap-2 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
         <div className="flex items-baseline justify-between gap-3">
           <span className="text-texto-suave">Se restó de la ganancia</span>
           <strong className={`text-xl ${totalArs > 0 ? "text-peligro" : ""}`}>−{formatearPesos(totalArs)}</strong>
@@ -42,7 +42,7 @@ export default async function PaginaAjustes({ searchParams }: PageProps<"/ajuste
           <span className="text-texto-suave">Costo en dólares</span>
           <span className="font-semibold">{formatearDolares(totalUsd)}</span>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-texto-suave">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.82rem] text-texto-suave">
           {MOTIVOS.map((m) => {
             const u = validos.filter((a) => a.motivo === m.valor).reduce((s, a) => s + a.cantidad, 0);
             return (
@@ -53,11 +53,11 @@ export default async function PaginaAjustes({ searchParams }: PageProps<"/ajuste
           })}
         </div>
         {anulados > 0 && (
-          <p className="text-xs text-texto-suave">
+          <p className="text-[0.72rem] text-texto-suave">
             {anulados} ajuste{anulados === 1 ? "" : "s"} anulado{anulados === 1 ? "" : "s"} (no suman).
           </p>
         )}
-        <p className="text-xs text-texto-suave">Para cargar uno nuevo, entrá al producto desde Stock y compras.</p>
+        <p className="text-[0.72rem] text-texto-suave">Para cargar uno nuevo, entrá al producto desde Stock y compras.</p>
       </section>
 
       {ajustes.length === 0 && <p className="text-texto-suave">No hay regalos, pérdidas ni roturas en {nombrePeriodo}.</p>}

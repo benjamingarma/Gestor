@@ -2,13 +2,13 @@
 
 > Para leer al empezar una sesión nueva, junto con `CLAUDE.md` (reglas), `docs/plan.md` (plan y estado,
 > sección 12) y `docs/decisiones/modulo-*.md` (decisiones de cada módulo).
-> Última actualización: 10/11/2026, con el PR 3 del módulo 1.7 (cobro) abierto, esperando la prueba de los socios.
+> Última actualización: 10/11/2026, con el PR 3 del módulo 1.7 mergeado (#14) y el PR 4 (resto de pantallas) abierto.
 
 ## 1. Dónde estamos
 
 - Terminados y mergeados en `main`: módulos 1.0 a 1.6 (PR #1 a #10 de `benjamingarma/Gestor`).
-- **En curso: 1.7 Simplificación del diseño** — PR 1 y 2 mergeados (#11, #12); **PR 3 (cobro) abierto**, esperando
-  la prueba de los socios en el deploy preview. Después sigue el PR 4. Estado detallado en la sección 6. Maquetas aprobadas en
+- **En curso: 1.7 Simplificación del diseño** — PR 1, 2 y 3 mergeados (#11, #12, #14); **PR 4 (resto de pantallas)
+  abierto**, esperando la prueba de los socios. Después queda el PR 5 ("Repetir última venta"). Estado detallado en la sección 6. Maquetas aprobadas en
   `docs/maquetas/` (leer su README antes de tocar pantallas). Después: 1.8 Importación CSV, 1.9 Backups y restauración, 1.10 Pasaje a producción.
 - Repositorio privado, rama por defecto `main` (verificado el 13/11). Se trabaja con una rama `claude/...` por
   módulo y un PR; los socios prueban en el deploy preview de Netlify y mergean ellos.
@@ -33,7 +33,7 @@ tamaño celular (Pixel 7, `es-AR`, hora de Tucumán) y prueba de los socios desd
 | 1.6 | Rotura/regalo/pérdida desde la ficha, resumen descuenta, anulación (aprobado 10/11) | 307 pgTAP, 176 Vitest, concurrencia venta contra ajuste, humo (21 pantallas) |
 | 1.7 PR 1 | Navegación, Más, nuevo Inicio (aprobado 10/11) | 307 pgTAP, 192 Vitest, humo (23 pantallas + 15 totales contra la base) |
 | 1.7 PR 2 | Venta en una pantalla, caja de precio, confirmación y deshacer (aprobado 10/11) | 307 pgTAP, 200 Vitest, humo (25 pantallas + venta de punta a punta) |
-| 1.7 PR 3 | (pendiente de prueba de los socios) | 307 pgTAP, 212 Vitest, humo (29 pantallas + cobro de punta a punta + 32 totales contra la base, con y sin el cobro) |
+| 1.7 PR 3 | Cobro en una pantalla, confirmación y deshacer (mergeado 10/11) | 307 pgTAP, 212 Vitest, humo (29 pantallas + cobro de punta a punta + 32 totales contra la base, con y sin el cobro) |
 
 Todos los números del ejemplo del plan (sección 6) están verificados en pgTAP y en Vitest: V1 $74.000 / USD 60,
 ventas $199.000, ganancia $74.000, capital USD 195 = 96 + 99 y $267.500 = $125.000 + $142.500 (con A1 del 1.6:
@@ -169,8 +169,8 @@ Especificación visual: `docs/maquetas/` (README, HTML, imágenes en claro/oscur
 |---|---|---|
 | 1 (#11) | Maquetas en `docs/maquetas/`; nombre **McStock**; barra inferior (Inicio · Clientes · **Vender** · Cobrar · Más) y barra lateral en PC; pantalla Más; nuevo Inicio; `/buscar`; `dominio/tablero.ts` (mismos totales en Inicio y Resumen); humo compara totales de Inicio/Resumen/Cobros/Ventas/Stock contra la base | ✅ mergeado |
 | 2 (#12) | Venta en una sola pantalla (`dominio/carrito.ts`), caja de precio siempre visible, confirmación con ✓ (`componentes/Confirmacion.tsx`) y Deshacer; humo hace una venta por la pantalla y la deshace | ✅ mergeado |
-| 3 | **Cobro**: `/cobrar` (lista de quién debe con buscador), `/cobrar/[cliente]` (cobro en una pantalla; en PC con la lista a la izquierda), `/cobros/[id]/guardado` (confirmación con Deshacer). Lógica de pantalla en `dominio/cobro.ts`. `/clientes/[id]/cobrar` quedó como redirección. "Cobrar" de la barra y del Inicio lleva a `/cobrar` | 🔍 PR abierto, esperando prueba de los socios |
-| 4 | Resto de pantallas adaptadas al estilo (clientes, ficha, productos, compras, ventas, cobros, resumen, ajustes, reparto), animaciones sutiles y humo con rutas nuevas | pendiente |
+| 3 (#14) | **Cobro**: `/cobrar` (lista de quién debe con buscador), `/cobrar/[cliente]` (cobro en una pantalla; en PC con la lista a la izquierda), `/cobros/[id]/guardado` (confirmación con Deshacer). Lógica de pantalla en `dominio/cobro.ts`. `/clientes/[id]/cobrar` quedó como redirección. "Cobrar" de la barra y del Inicio lleva a `/cobrar` | ✅ mergeado |
+| 4 | Resto de pantallas con el estilo de las maquetas **sin agregar ni sacar elementos** (no tienen maqueta): componentes comunes (`Encabezado`, `Boton`/`BotonEnlace` con `estiloBoton`, `Campo`, `Aviso`, `SelectorMes`, `ListaVentas`, etiquetas de visita y cobro) y clases de cada pantalla; animaciones CSS (`boton-toque`, `aviso-aparecer`, `pantalla-entrar`, details); "Toca visitar hoy" → "Le toca hoy"; "1 unidades" → "1 unidad"; humo controla que nada se salga del ancho del celular. Capturas antes → después en `comparaciones/pr4-pantallas/` | 🔍 PR abierto |
 | 5 | "Repetir última venta" en la ficha del cliente (PR aparte, al final) | pendiente |
 
 ### Decisiones tomadas (socios, 10/11/2026)
@@ -201,8 +201,6 @@ Especificación visual: `docs/maquetas/` (README, HTML, imágenes en claro/oscur
   nunca cobró, no se preselecciona medio (hay que elegirlo); con monto mayor a la deuda aparece el aviso de saldo a
   favor; en PC, `/cobrar` sin cliente muestra un texto a la derecha (no está en la maqueta); "Listo" vuelve al Inicio
   (o a la venta si el cobro se hizo desde una venta). Los botones rápidos y "Le queda debiendo" usan `dominio/cobro.ts`.
-- Pantallas viejas con navegación nueva pero diseño viejo hasta el PR 4; en Clientes sigue "Toca visitar hoy" (Inicio
-  dice "Le toca hoy").
 - "Ver los N ›" en listas largas del Inicio (no está en la maqueta).
 - Capital en mercadería del Inicio es tocable (lleva a Stock). Cerrar sesión muestra el email completo.
 - Venta: productos en orden alfabético fijo (en la maqueta los agregados iban arriba; se dejó fijo para que la lista

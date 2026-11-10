@@ -9,7 +9,7 @@ export default async function PaginaCompras() {
   const compras = await listarUltimasCompras(socio.negocioId);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo="Compras" volverA="/productos" subtitulo="Las últimas 100, de la más nueva a la más vieja." />
       <BotonEnlace href="/compras/nueva">+ Cargar compra</BotonEnlace>
       {compras.length === 0 && <p className="text-texto-suave">Todavía no hay compras.</p>}

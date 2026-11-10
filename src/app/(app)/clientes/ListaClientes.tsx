@@ -51,9 +51,9 @@ export function ListaClientes({ clientes, hoy, vistaInicial }: { clientes: FilaC
         onChange={(e) => setBusqueda(e.target.value)}
         placeholder="Buscar por nombre o teléfono"
         aria-label="Buscar cliente"
-        className="min-h-[52px] rounded-xl border border-borde bg-superficie px-4 text-lg"
+        className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3.5 text-lg"
       />
-      <div role="tablist" className="grid grid-cols-3 gap-1 rounded-xl border border-borde bg-superficie p-1">
+      <div role="tablist" className="grid grid-cols-3 gap-1 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-1">
         {pestañas.map((p) => (
           <button
             key={p.id}
@@ -61,7 +61,7 @@ export function ListaClientes({ clientes, hoy, vistaInicial }: { clientes: FilaC
             type="button"
             aria-selected={vista === p.id}
             onClick={() => setVista(p.id)}
-            className={`min-h-[44px] rounded-lg px-1 text-sm font-semibold ${vista === p.id ? "bg-acento text-acento-texto" : "text-texto"}`}
+            className={`boton-toque min-h-[44px] rounded-[11px] px-1 text-[0.85rem] font-bold ${vista === p.id ? "bg-acento text-acento-texto" : "text-texto"}`}
           >
             {p.texto}
           </button>
@@ -84,9 +84,9 @@ export function ListaClientes({ clientes, hoy, vistaInicial }: { clientes: FilaC
         {lista.map((c) => {
           const wa = enlaceWhatsApp(c.telefono);
           return (
-            <li key={c.id} className="flex flex-col gap-2 rounded-xl border border-borde bg-superficie p-3">
+            <li key={c.id} className="flex flex-col gap-2 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-3">
               <Link href={`/clientes/${c.id}`} className="flex min-h-[48px] flex-col justify-center">
-                <span className="text-lg font-semibold">{c.nombre}</span>
+                <span className="text-[1.05rem] font-bold">{c.nombre}</span>
                 <EtiquetaEstadoVisita estado={c.estado} />
               </Link>
               {c.estado.tipo !== "archivado" && (
@@ -96,7 +96,7 @@ export function ListaClientes({ clientes, hoy, vistaInicial }: { clientes: FilaC
                       href={wa}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex min-h-[44px] items-center justify-center rounded-xl border border-borde text-base font-semibold"
+                      className="boton-toque flex min-h-[44px] items-center justify-center rounded-[12px] border border-borde text-[0.95rem] font-bold"
                     >
                       WhatsApp
                     </a>

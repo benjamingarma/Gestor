@@ -13,7 +13,7 @@ export default async function PaginaClientes({ searchParams }: PageProps<"/clien
   const clientes = await listarClientes(socio.negocioId, dia);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo="Clientes" volverA="/" />
       {ok === "visitado" && <Aviso tipo="ok">Visita registrada.</Aviso>}
       <BotonEnlace href="/clientes/nuevo">+ Nuevo cliente</BotonEnlace>

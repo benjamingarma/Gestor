@@ -14,7 +14,7 @@ export default async function PaginaNuevoAjuste({ params }: PageProps<"/producto
   if (!producto) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo="Regalo, pérdida o rotura" subtitulo={`${producto.marca} ${producto.modelo}`} volverA={`/productos/${id}`} />
       {producto.unidades === 0 ? (
         <p>No hay stock de este producto: no hay nada para dar de baja.</p>

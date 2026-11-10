@@ -21,14 +21,14 @@ function AnularConMotivo({
   const [estado, enviar, enviando] = useActionState(accion, {});
   const idMotivo = `motivo-${Object.values(campos)[0]}`;
   return (
-    <details className="rounded-lg border border-borde px-3 py-1">
+    <details className="rounded-[14px] border border-borde px-3 py-1">
       <summary className="min-h-[44px] cursor-pointer content-center text-peligro">{texto}</summary>
       <form action={enviar} className="mt-2 flex flex-col gap-2 pb-2">
         {Object.entries(campos).map(([k, v]) => (
           <input key={k} type="hidden" name={k} value={v} />
         ))}
         <Campo etiqueta="Motivo" name="motivo" id={idMotivo} required placeholder="Ej: lo cargué dos veces" />
-        <p className="text-sm text-texto-suave">{explicacion}</p>
+        <p className="text-[0.82rem] text-texto-suave">{explicacion}</p>
         {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
         <Boton type="submit" variante="secundario" disabled={enviando} className="text-peligro">
           {enviando ? "Anulando…" : "Confirmar anulación"}
@@ -64,20 +64,20 @@ export function FormularioSaldoInicial({ clienteId, hoy }: { clienteId: string; 
   const [estado, enviar, enviando] = useActionState(registrarSaldoInicial, {});
   const [id] = useState(() => nuevoUuid());
   return (
-    <details className="rounded-xl border border-borde bg-superficie p-4">
+    <details className="rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
       <summary className="min-h-[44px] cursor-pointer content-center font-semibold">+ Cargar saldo del papel</summary>
       <form action={enviar} className="mt-3 flex flex-col gap-3">
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="clienteId" value={clienteId} />
-        <p className="text-sm text-texto-suave">
+        <p className="text-[0.82rem] text-texto-suave">
           Para deudas o saldos a favor anteriores a la app. Cuentan en la cuenta corriente pero no como venta ni como
           ganancia.
         </p>
         <fieldset className="grid grid-cols-2 gap-2">
-          <label className="flex min-h-[52px] items-center gap-2 rounded-xl border border-borde px-3 text-lg">
+          <label className="flex min-h-[50px] items-center gap-2 rounded-[14px] border border-borde px-3 text-lg">
             <input type="radio" name="tipo" value="deuda" defaultChecked className="h-5 w-5" /> Nos debía
           </label>
-          <label className="flex min-h-[52px] items-center gap-2 rounded-xl border border-borde px-3 text-lg">
+          <label className="flex min-h-[50px] items-center gap-2 rounded-[14px] border border-borde px-3 text-lg">
             <input type="radio" name="tipo" value="a_favor" className="h-5 w-5" /> Tenía a favor
           </label>
         </fieldset>

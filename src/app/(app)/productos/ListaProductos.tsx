@@ -36,7 +36,7 @@ export function ListaProductos({ productos }: { productos: FilaProducto[] }) {
         onChange={(e) => setBusqueda(e.target.value)}
         placeholder="Buscar marca o modelo"
         aria-label="Buscar producto"
-        className="min-h-[52px] rounded-xl border border-borde bg-superficie px-4 text-lg"
+        className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3.5 text-lg"
       />
       {filtrados.length === 0 && (
         <p className="py-6 text-center text-texto-suave">
@@ -48,25 +48,25 @@ export function ListaProductos({ productos }: { productos: FilaProducto[] }) {
           <li key={p.id}>
             <Link
               href={`/productos/${p.id}`}
-              className={`flex min-h-[72px] items-center justify-between gap-3 rounded-xl border border-borde bg-superficie px-4 py-3 ${p.activo ? "" : "opacity-60"}`}
+              className={`flex min-h-[72px] items-center justify-between gap-3 rounded-[20px] border border-borde bg-superficie shadow-tarjeta px-4 py-3 ${p.activo ? "" : "opacity-60"}`}
             >
               <span className="flex min-w-0 flex-col">
-                <span className="truncate text-lg font-semibold">
+                <span className="truncate text-[1.05rem] font-bold">
                   {p.marca} {p.modelo}
                 </span>
-                <span className="text-sm text-texto-suave">
+                <span className="text-[0.82rem] text-texto-suave">
                   {p.activo ? "" : "Desactivado · "}
                   {p.precioGeneral !== null ? `Precio ${formatearPesos(p.precioGeneral)}` : "Sin precio general"}
                 </span>
                 {p.unidades > 0 && (
-                  <span className="text-sm text-texto-suave">
+                  <span className="text-[0.82rem] text-texto-suave">
                     A costo: {formatearDolares(p.valorUsd)} · {formatearPesos(p.valorArs)}
                   </span>
                 )}
               </span>
               <span className="flex shrink-0 flex-col items-end">
-                <span className={`text-2xl font-bold ${p.unidades === 0 ? "text-texto-suave" : ""}`}>{p.unidades}</span>
-                <span className="text-sm text-texto-suave">unid.</span>
+                <span className={`num text-[1.6rem] font-extrabold tracking-[-0.02em] ${p.unidades === 0 ? "text-texto-suave" : ""}`}>{p.unidades}</span>
+                <span className="text-[0.82rem] text-texto-suave">unid.</span>
               </span>
             </Link>
           </li>

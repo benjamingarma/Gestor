@@ -14,24 +14,24 @@ export default async function PaginaProductos() {
   const capitalArs = stock.reduce((s, p) => s + p.valor_ars, 0);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo="Stock y compras" volverA="/" />
 
-      <section aria-label="Resumen del stock" className="grid grid-cols-2 gap-3 rounded-xl border border-borde bg-superficie p-4">
+      <section aria-label="Resumen del stock" className="grid grid-cols-2 gap-3 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
         <div className="flex flex-col">
-          <span className="text-sm text-texto-suave">Unidades en stock</span>
-          <span className="text-2xl font-bold">{unidades}</span>
+          <span className="text-[0.82rem] text-texto-suave">Unidades en stock</span>
+          <span className="num text-[1.6rem] font-extrabold tracking-[-0.02em]">{unidades}</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-sm text-texto-suave">Capital en mercadería</span>
-          <span className="text-xl font-bold" data-dato="capital-usd" data-centavos={capitalUsd}>
+          <span className="text-[0.82rem] text-texto-suave">Capital en mercadería</span>
+          <span className="num text-[1.3rem] font-extrabold" data-dato="capital-usd" data-centavos={capitalUsd}>
             {formatearDolares(capitalUsd)}
           </span>
           <span className="text-base font-semibold" data-dato="capital-ars" data-centavos={capitalArs}>
             {formatearPesos(capitalArs)}
           </span>
         </div>
-        <p className="col-span-2 text-xs text-texto-suave">
+        <p className="col-span-2 text-[0.72rem] text-texto-suave">
           Valuado al costo de cada compra (dólares y pesos al tipo de cambio de esa compra).
         </p>
       </section>

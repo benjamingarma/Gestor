@@ -22,18 +22,18 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
   const cobro = anulada ? undefined : (await cobrosDeVentas(socio.negocioId, [venta.cliente_id])).get(venta.venta_id);
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo={`Venta a ${venta.cliente_nombre}`} volverA="/ventas" subtitulo={formatearDia(venta.dia)} />
       {ok === "venta" && <Aviso tipo="ok">Venta guardada.</Aviso>}
       {ok === "anulada" && <Aviso tipo="ok">Venta anulada. El stock volvió a sus compras.</Aviso>}
       {ok === "cobro" && <Aviso tipo="ok">Cobro registrado.</Aviso>}
       {anulada && (
-        <p className="rounded-lg border border-peligro px-4 py-3 text-peligro">
+        <p className="rounded-[14px] bg-peligro-suave px-4 py-3 font-semibold text-peligro">
           ANULADA el {formatearFechaHora(new Date(venta.anulado_en!))} por {venta.anulado_por_nombre}. Motivo: {venta.motivo_anulacion}
         </p>
       )}
 
-      <section className={`flex flex-col gap-1 rounded-xl border border-borde bg-superficie p-4 ${anulada ? "opacity-60" : ""}`}>
+      <section className={`flex flex-col gap-1 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4 ${anulada ? "opacity-60" : ""}`}>
         <div className="flex items-baseline justify-between">
           <span>Total</span>
           <span className="text-3xl font-bold">{formatearPesos(venta.importe)}</span>
@@ -60,24 +60,24 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
                 {cobro.saldo > 0 ? formatearPesos(cobro.saldo) : "Pagada"}
               </span>
             </div>
-            <p className="text-xs text-texto-suave">Los cobros del cliente se aplican primero a sus deudas más viejas.</p>
+            <p className="text-[0.72rem] text-texto-suave">Los cobros del cliente se aplican primero a sus deudas más viejas.</p>
           </>
         )}
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-xl font-bold">Productos</h2>
+        <h2 className="text-[1.05rem] font-bold">Productos</h2>
         {venta.renglones.map((r) => (
-          <article key={r.id} className="flex flex-col gap-1 rounded-xl border border-borde bg-superficie p-4">
-            <span className="text-lg font-semibold">{r.producto}</span>
+          <article key={r.id} className="flex flex-col gap-1 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
+            <span className="text-[1.05rem] font-bold">{r.producto}</span>
             <span>
               {r.cantidad} × {formatearPesos(r.precioUnitario)} = <strong>{formatearPesos(r.cantidad * r.precioUnitario)}</strong>
             </span>
-            <span className="text-sm text-texto-suave">
+            <span className="text-[0.82rem] text-texto-suave">
               Costo {formatearPesos(r.costoArs)} ({formatearDolares(r.costoUsd)}) · Ganancia{" "}
               {formatearPesos(r.cantidad * r.precioUnitario - r.costoArs)}
             </span>
-            <ul className="mt-1 flex flex-col gap-0.5 border-l-2 border-borde pl-3 text-sm text-texto-suave">
+            <ul className="mt-1 flex flex-col gap-0.5 border-l-2 border-borde pl-3 text-[0.82rem] text-texto-suave">
               {r.consumos.map((c, i) => (
                 <li key={i}>
                   {c.cantidad} u de la compra del {formatearDia(c.fechaCompra)} (TC {formatearTipoDeCambio(c.tipoCambio)}

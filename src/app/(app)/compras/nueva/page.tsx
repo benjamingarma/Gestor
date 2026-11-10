@@ -16,7 +16,7 @@ export default async function PaginaNuevaCompra({ searchParams }: PageProps<"/co
 
   if (productos.length === 0) {
     return (
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-6">
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
         <Encabezado titulo="Cargar compra" volverA="/productos" />
         <p>Primero creá el producto que compraste.</p>
         <BotonEnlace href="/productos/nuevo">+ Nuevo producto</BotonEnlace>
@@ -32,7 +32,7 @@ export default async function PaginaNuevaCompra({ searchParams }: PageProps<"/co
     : "El dólar blue del día de la compra.";
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo="Cargar compra" volverA={productoInicial ? `/productos/${productoInicial}` : "/productos"} />
       <FormularioCompra
         productos={productos.map((p) => ({ id: p.id, nombre: `${p.marca} ${p.modelo}` }))}

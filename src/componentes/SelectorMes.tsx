@@ -26,7 +26,7 @@ export function SelectorMes({
         onClick={() => ir(meses[i + 1])}
         disabled={i < 0 || i >= meses.length - 1}
         aria-label="Mes anterior"
-        className="h-[52px] w-[52px] shrink-0 rounded-xl border border-borde bg-superficie text-xl font-bold disabled:opacity-30"
+        className="boton-toque h-[50px] w-[50px] shrink-0 rounded-[14px] border border-borde bg-superficie text-xl font-bold disabled:opacity-30"
       >
         ‹
       </button>
@@ -34,7 +34,7 @@ export function SelectorMes({
         value={actual}
         onChange={(e) => ir(e.target.value)}
         aria-label="Mes"
-        className="min-h-[52px] w-full rounded-xl border border-borde bg-superficie px-3 text-center text-lg font-semibold"
+        className="min-h-[50px] w-full rounded-[14px] border border-borde bg-superficie px-3 text-center text-lg font-bold"
       >
         {conTodo && <option value="todo">Todo el historial</option>}
         {meses.map((m) => (
@@ -48,7 +48,7 @@ export function SelectorMes({
         onClick={() => ir(meses[i - 1])}
         disabled={i <= 0}
         aria-label="Mes siguiente"
-        className="h-[52px] w-[52px] shrink-0 rounded-xl border border-borde bg-superficie text-xl font-bold disabled:opacity-30"
+        className="boton-toque h-[50px] w-[50px] shrink-0 rounded-[14px] border border-borde bg-superficie text-xl font-bold disabled:opacity-30"
       >
         ›
       </button>

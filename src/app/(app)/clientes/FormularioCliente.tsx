@@ -49,10 +49,10 @@ export function FormularioCliente({ accion, inicial, textoBoton }: Props) {
           defaultValue={v?.notas}
           rows={3}
           maxLength={1000}
-          className="rounded-xl border border-borde bg-superficie px-4 py-3 text-lg"
+          className="rounded-[20px] border border-borde bg-superficie shadow-tarjeta px-4 py-3 text-lg"
           placeholder="Ej: dirección, horario, preferencias"
         />
-        {e.notas && <span className="text-sm text-peligro">{e.notas}</span>}
+        {e.notas && <span className="text-[0.82rem] text-peligro">{e.notas}</span>}
       </label>
       {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
       <Boton type="submit" disabled={enviando}>

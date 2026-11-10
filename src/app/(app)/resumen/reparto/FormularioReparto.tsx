@@ -29,7 +29,7 @@ export function FormularioReparto({ socios, hoy }: Props) {
               inputMode="decimal"
               value={valores[s.id]}
               onChange={(e) => setValores((v) => ({ ...v, [s.id]: e.target.value }))}
-              className="h-[52px] w-28 rounded-xl border border-borde bg-superficie px-3 text-right text-xl font-bold"
+              className="h-[50px] w-28 rounded-[14px] border border-borde bg-superficie px-3 text-right text-xl font-bold"
               aria-label={`Porcentaje de ${s.nombre}`}
             />
             <span className="text-xl">%</span>
@@ -41,8 +41,8 @@ export function FormularioReparto({ socios, hoy }: Props) {
       </p>
       <label className="flex flex-col gap-1">
         <span className="font-medium">Rige desde</span>
-        <input type="date" name="desde" defaultValue={hoy} min={hoy} className="min-h-[52px] rounded-xl border border-borde bg-superficie px-4 text-lg" />
-        <span className="text-sm text-texto-suave">
+        <input type="date" name="desde" defaultValue={hoy} min={hoy} className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3.5 text-lg" />
+        <span className="text-[0.82rem] text-texto-suave">
           Desde hoy o una fecha futura. Las ventas anteriores siguen con el porcentaje que tenían.
         </span>
       </label>
