@@ -70,3 +70,9 @@ export function estadoCobro(d: { importe: Centavos; cobrado: Centavos }): "pagad
   if (d.cobrado >= d.importe) return "pagada";
   return d.cobrado > 0 ? "parcial" : "pendiente";
 }
+
+/** Día de la deuda más vieja que todavía tiene saldo (null si no debe nada). */
+export function diaDeudaMasVieja(cuenta: CuentaCorriente): Dia | null {
+  const pendientes = cuenta.deudas.filter((d) => d.saldo > 0).map((d) => d.dia).sort();
+  return pendientes[0] ?? null;
+}

@@ -24,8 +24,12 @@ export default async function PaginaProductos() {
         </div>
         <div className="flex flex-col">
           <span className="text-sm text-texto-suave">Capital en mercadería</span>
-          <span className="text-xl font-bold">{formatearDolares(capitalUsd)}</span>
-          <span className="text-base font-semibold">{formatearPesos(capitalArs)}</span>
+          <span className="text-xl font-bold" data-dato="capital-usd" data-centavos={capitalUsd}>
+            {formatearDolares(capitalUsd)}
+          </span>
+          <span className="text-base font-semibold" data-dato="capital-ars" data-centavos={capitalArs}>
+            {formatearPesos(capitalArs)}
+          </span>
         </div>
         <p className="col-span-2 text-xs text-texto-suave">
           Valuado al costo de cada compra (dólares y pesos al tipo de cambio de esa compra).

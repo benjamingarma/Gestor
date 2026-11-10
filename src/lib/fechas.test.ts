@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { diaEnTucuman, diasEntre, esDiaValido, formatearDia, formatearFechaHora, hoy, sumarDias } from "./fechas";
+import { diaEnTucuman, diasEntre, esDiaValido, formatearDia, formatearDiaLargo, formatearFechaHora, hoy, sumarDias } from "./fechas";
 
 describe("día en hora de Tucumán", () => {
   it("23:30 del 31/10 en Tucumán es octubre aunque en UTC ya sea noviembre", () => {
@@ -49,5 +49,12 @@ describe("aritmética de días", () => {
   });
   it("formato dd/mm/aaaa", () => {
     expect(formatearDia("2026-11-06")).toBe("06/11/2026");
+  });
+});
+
+describe("formatearDiaLargo", () => {
+  it("día de la semana, número y mes, en español", () => {
+    expect(formatearDiaLargo("2026-11-09")).toBe("lunes 9 de noviembre");
+    expect(formatearDiaLargo("2026-12-31")).toBe("jueves 31 de diciembre");
   });
 });

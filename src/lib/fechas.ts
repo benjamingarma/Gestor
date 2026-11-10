@@ -74,3 +74,11 @@ export function formatearDia(dia: Dia): string {
 export function formatearFechaHora(instante: Date): string {
   return `${formatearDia(diaEnTucuman(instante))} ${formatoHora.format(instante)}`;
 }
+
+const formatoDiaLargo = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+
+/** "2026-11-09" -> "lunes 9 de noviembre" (como en el Inicio). */
+export function formatearDiaLargo(dia: Dia): string {
+  asegurarDia(dia);
+  return formatoDiaLargo.format(new Date(`${dia}T12:00:00Z`)).replace(",", "");
+}

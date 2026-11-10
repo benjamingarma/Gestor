@@ -1,6 +1,8 @@
 import "server-only";
 import type { FilaPerdida } from "@/dominio/ajustes";
 import type { Socio, Vigencia } from "@/dominio/ganancia";
+import type { Capital, DatosTablero } from "@/dominio/tablero";
+import { listarSaldos } from "./cuentas";
 import { crearClienteSupabase } from "@/lib/supabase/servidor";
 
 function fallar(contexto: string, error: { message: string }): never {
@@ -24,12 +26,7 @@ async function leerTodo<T>(pagina: (desde: number, hasta: number) => PromiseLike
 
 export type GananciaDia = { dia: string; ventas: number; unidades: number; importe: number; costo_ars: number; costo_usd: number; ganancia: number };
 export type CobroDia = { dia: string; medio: "efectivo" | "transferencia" | "mercado_pago"; recibido_por: string; recibido_por_nombre: string; cobros: number; total: number };
-export type Capital = {
-  invertido_usd: number; invertido_ars: number;
-  vendido_usd: number; vendido_ars: number;
-  perdidas_usd: number; perdidas_ars: number;
-  stock_usd: number; stock_ars: number;
-};
+export type { Capital } from "@/dominio/tablero";
 
 export async function leerSociosYReparto(negocioId: string): Promise<{ socios: Socio[]; vigencias: Vigencia[] }> {
   const supabase = await crearClienteSupabase();
@@ -81,4 +78,15 @@ export async function leerCapital(negocioId: string): Promise<Capital> {
   const { data, error } = await supabase.from("v_capital").select("*").eq("negocio_id", negocioId).single();
   if (error) fallar("No se pudo leer el capital", error);
   return data as Capital;
+}
+
+/** Todo lo que necesita armarTablero, leído en paralelo. */
+export async function leerDatosTablero(negocioId: string): Promise<DatosTablero> {
+  const [{ socios, vigencias }, { ganancias, perdidas, cobros }, capital, saldos] = await Promise.all([
+    leerSociosYReparto(negocioId),
+    leerMovimientosDiarios(negocioId),
+    leerCapital(negocioId),
+    listarSaldos(negocioId),
+  ]);
+  return { socios, vigencias, ganancias, perdidas, cobros, capital, saldos };
 }
