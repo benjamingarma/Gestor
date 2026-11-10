@@ -53,6 +53,7 @@ const rutas = [
   "/productos", "/productos/nuevo", `/productos/${ids.producto}`, `/productos/${ids.producto}/ajuste`, "/ajustes", "/ajustes?mes=todo", "/compras", "/compras/nueva",
   "/ventas", "/ventas/nueva", `/ventas/nueva?cliente=${ids.cliente}`, `/ventas/${ids.venta}`, `/ventas/${ids.venta}/guardada`, "/cobros", "/resumen", "/resumen?mes=todo", "/resumen/reparto",
   "/mas", "/buscar?q=humo",
+  "/cobrar", `/cobrar/${ids.cliente}`, `/cobrar/${ids.cliente}?importe=5.000&venta=${ids.venta}`, `/cobros/${ids.pago}/guardado`,
 ];
 const navegador = await chromium.launch();
 const pagina = await (await navegador.newContext({ ...devices["Pixel 7"] })).newPage();
@@ -102,6 +103,7 @@ for (const ruta of rutas) {
 
 // 4. Los mismos totales en todas las pantallas, y coinciden con la base (plan del módulo 1.7).
 //    Cada pantalla marca sus totales con data-dato / data-centavos.
+//    Se comparan dos veces: con un cobro recién hecho por la pantalla de cobro y después de deshacerlo.
 async function totales(ruta) {
   await pagina.goto(`${BASE}${ruta}`);
   return pagina.$$eval("[data-dato]", (els) =>
@@ -110,29 +112,86 @@ async function totales(ruta) {
 }
 const enBase = (consulta) => Number(execFileSync("psql", [DB_URL, "-tAq", "-c", consulta]).toString().trim());
 const mes = `date_trunc('month', public.hoy_tucuman())`;
-const esperado = {
-  "nos-deben": enBase(`select coalesce(sum(saldo), 0) from public.v_cuentas_clientes where negocio_id = '${NEGOCIO}' and saldo > 0`),
-  "vendido-mes": enBase(`select coalesce(sum(importe), 0) from public.v_ventas where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', dia) = ${mes}`),
-  "cobrado-mes": enBase(`select coalesce(sum(importe), 0) from public.pagos where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', fecha) = ${mes}`),
-  "ganancia-neta-mes": enBase(`select (select coalesce(sum(ganancia), 0) from public.v_ventas where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', dia) = ${mes})
-    - (select coalesce(sum(costo_total_ars), 0) from public.ajustes_stock where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', fecha) = ${mes})`),
-  "capital-ars": enBase(`select stock_ars from public.v_capital where negocio_id = '${NEGOCIO}'`),
-  "capital-usd": enBase(`select stock_usd from public.v_capital where negocio_id = '${NEGOCIO}'`),
-};
-const pantallas = { Inicio: "/", Resumen: "/resumen", Cobros: "/cobros", Ventas: "/ventas", Stock: "/productos" };
-const vistos = {};
-for (const [nombre, ruta] of Object.entries(pantallas)) vistos[nombre] = await totales(ruta);
 let comparaciones = 0;
-for (const [dato, valor] of Object.entries(esperado)) {
-  const donde = Object.entries(vistos).filter(([, t]) => dato in t);
-  if (donde.length < 2) errores.push(`"${dato}" aparece en menos de dos pantallas (${donde.map(([n]) => n).join(", ") || "ninguna"})`);
-  for (const [nombre, t] of donde) {
-    comparaciones++;
-    if (t[dato] !== valor) errores.push(`${nombre} muestra ${dato} = ${t[dato]} y en la base es ${valor}`);
-  }
-  console.log(`${donde.every(([, t]) => t[dato] === valor) ? "OK   " : "FALLA"} ${dato} = ${valor} en ${donde.map(([n]) => n).join(", ")}`);
+async function compararTotales(etiqueta) {
+  const esperado = {
+    "nos-deben": enBase(`select coalesce(sum(saldo), 0) from public.v_cuentas_clientes where negocio_id = '${NEGOCIO}' and saldo > 0`),
+    "vendido-mes": enBase(`select coalesce(sum(importe), 0) from public.v_ventas where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', dia) = ${mes}`),
+    "cobrado-mes": enBase(`select coalesce(sum(importe), 0) from public.pagos where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', fecha) = ${mes}`),
+    "ganancia-neta-mes": enBase(`select (select coalesce(sum(ganancia), 0) from public.v_ventas where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', dia) = ${mes})
+      - (select coalesce(sum(costo_total_ars), 0) from public.ajustes_stock where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', fecha) = ${mes})`),
+    "capital-ars": enBase(`select stock_ars from public.v_capital where negocio_id = '${NEGOCIO}'`),
+    "capital-usd": enBase(`select stock_usd from public.v_capital where negocio_id = '${NEGOCIO}'`),
+  };
+  const pantallas = { Inicio: "/", Resumen: "/resumen", Cobros: "/cobros", Cobrar: "/cobrar", Ventas: "/ventas", Stock: "/productos" };
+  const vistos = {};
+  for (const [nombre, ruta] of Object.entries(pantallas)) vistos[nombre] = await totales(ruta);
+  console.log(`     totales ${etiqueta}:`);
+  for (const [dato, valor] of Object.entries(esperado)) {
+    const donde = Object.entries(vistos).filter(([, t]) => dato in t);
+    if (donde.length < 2) errores.push(`"${dato}" aparece en menos de dos pantallas (${donde.map(([n]) => n).join(", ") || "ninguna"})`);
+    for (const [nombre, t] of donde) {
+      comparaciones++;
+      if (t[dato] !== valor) errores.push(`${nombre} muestra ${dato} = ${t[dato]} y en la base es ${valor}`);
+    }
+    console.log(`${donde.every(([, t]) => t[dato] === valor) ? "OK   " : "FALLA"} ${dato} = ${valor} en ${donde.map(([n]) => n).join(", ")}`);
 }
 if (esperado["vendido-mes"] === 0) errores.push("la prueba de consistencia necesita al menos una venta este mes");
+return esperado;
+}
+
+// 5. Un cobro de punta a punta con la pantalla nueva (módulo 1.7, PR 3): lista de quién debe → cobro →
+//    confirmación → totales iguales en todas las pantallas → deshacer → totales de nuevo.
+{
+  const enBaseTexto = (consulta) => execFileSync("psql", [DB_URL, "-tAq", "-c", consulta]).toString().trim();
+  const saldoEnBase = () => enBase(`select saldo from public.v_cuentas_clientes where cliente_id = '${ids.cliente}'`);
+  const revisar = (ok, texto) => {
+    console.log(`${ok ? "OK   " : "FALLA"} ${texto}`);
+    if (!ok) errores.push(texto);
+  };
+  const saldoAntes = saldoEnBase(); // 2 u × $ 10.000 − $ 5.000 cobrados = $ 15.000
+  const faltaCobrarEnVentas = async () => {
+    await pagina.goto(`${BASE}/ventas`);
+    return Number(await pagina.getAttribute("[data-falta-cobrar]", "data-falta-cobrar"));
+  };
+  const faltaAntes = await faltaCobrarEnVentas();
+  await pagina.goto(`${BASE}/cobrar`);
+  const fila = pagina.locator(`a[href="/cobrar/${ids.cliente}"]`).first();
+  revisar((await fila.textContent())?.includes("$ 15.000") ?? false, `la lista de Cobrar muestra al cliente de humo con su deuda ($ ${saldoAntes / 100})`);
+  await fila.click();
+  await pagina.waitForURL(new RegExp(`/cobrar/${ids.cliente}$`), { timeout: 20_000 });
+  // Medio preseleccionado con el último cobro que registró este socio (el de la carga inicial: efectivo).
+  revisar((await pagina.getAttribute('button[aria-pressed]:has-text("Efectivo")', "aria-pressed")) === "true", "Efectivo viene preseleccionado (último usado)");
+  const queda = async () => Number(await pagina.getAttribute("[data-queda]", "data-queda"));
+  await pagina.click("text=Todo · $ 15.000");
+  revisar((await pagina.inputValue("#importe")) === "15.000" && (await queda()) === 0, "el botón Todo pone lo que debe y queda al día");
+  await pagina.fill("#importe", "20.000");
+  revisar((await queda()) === -500000 && (await pagina.getByText("Le quedan $ 5.000 a favor.").isVisible()), "si paga de más, avisa el saldo a favor en vivo ($ 5.000)");
+  await pagina.fill("#importe", "4.000");
+  revisar((await queda()) === saldoAntes - 400000, `Le queda debiendo en vivo: $ ${(saldoAntes - 400000) / 100}`);
+  await pagina.locator("button[type=submit]:visible", { hasText: "Guardar cobro · $ 4.000" }).click();
+  await pagina.waitForURL(/\/cobros\/[0-9a-f-]{36}\/guardado$/, { timeout: 20_000 });
+  const pagoId = pagina.url().split("/").at(-2);
+  const guardado = enBaseTexto(`select importe || '|' || medio || '|' || (anulado_en is null) from public.pagos where id = '${pagoId}'`);
+  revisar(guardado === "400000|efectivo|true", `cobro por la pantalla nueva guardado en la base: ${guardado}`);
+  const mostrado = Number(await pagina.getAttribute("[data-saldo-cliente]", "data-saldo-cliente"));
+  revisar(mostrado === saldoEnBase() && mostrado === saldoAntes - 400000 && (await pagina.getByRole("heading", { name: "Cobro guardado" }).isVisible()), `la confirmación dice que le queda debiendo $ ${mostrado / 100}, igual que la base`);
+  const conCobro = await compararTotales("con el cobro recién hecho");
+  const faltaCon = await faltaCobrarEnVentas();
+  revisar(faltaCon === faltaAntes - 400000, `Ventas: "De estas ventas falta cobrar" bajó $ 4.000 (${faltaAntes / 100} → ${faltaCon / 100})`);
+  await pagina.goto(`${BASE}/cobros/${pagoId}/guardado`);
+  await pagina.click("text=Deshacer (anular)");
+  await pagina.fill("input[name=motivo]", "Prueba de humo");
+  await pagina.click("text=Confirmar anulación");
+  await pagina.getByRole("heading", { name: "Cobro anulado" }).waitFor({ timeout: 20_000 });
+  const anulado = enBaseTexto(`select anulado_en is not null from public.pagos where id = '${pagoId}'`);
+  const despues = Number(await pagina.getAttribute("[data-saldo-cliente]", "data-saldo-cliente"));
+  revisar(anulado === "t" && despues === saldoAntes, `deshacer desde la confirmación anula el cobro y la deuda vuelve a $ ${despues / 100}`);
+  const sinCobro = await compararTotales("después de deshacer el cobro");
+  const faltaSin = await faltaCobrarEnVentas();
+  revisar(faltaSin === faltaAntes, `Ventas: "De estas ventas falta cobrar" volvió a $ ${faltaSin / 100} al deshacer`);
+  revisar(conCobro["nos-deben"] === sinCobro["nos-deben"] - 400000 && conCobro["cobrado-mes"] === sinCobro["cobrado-mes"] + 400000, "el cobro movió exactamente $ 4.000 en Nos deben y en Cobrado del mes");
+}
 await navegador.close();
 
 if (errores.length > 0) {

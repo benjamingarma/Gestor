@@ -49,7 +49,9 @@ export default async function PaginaVentas({ searchParams }: PageProps<"/ventas"
         </div>
         <div className="col-span-2 flex flex-col">
           <span className="text-sm text-texto-suave">De estas ventas falta cobrar</span>
-          <span className={`text-lg font-bold ${pendiente > 0 ? "text-peligro" : ""}`}>{formatearPesos(pendiente)}</span>
+          <span className={`text-lg font-bold ${pendiente > 0 ? "text-peligro" : ""}`} data-falta-cobrar={pendiente}>
+            {formatearPesos(pendiente)}
+          </span>
         </div>
         {anuladas > 0 && (
           <p className="col-span-2 text-xs text-texto-suave">

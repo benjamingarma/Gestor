@@ -154,3 +154,27 @@ export async function listarUltimosPagos(negocioId: string, limite = 30): Promis
   if (error) fallar("No se pudieron leer los cobros", error);
   return (data ?? []) as Pago[];
 }
+
+/** Un cobro con nombres (para la confirmación). */
+export async function obtenerPago(negocioId: string, pagoId: string): Promise<(Pago & { creado_en: string }) | null> {
+  const supabase = await crearClienteSupabase();
+  const { data, error } = await supabase.from("v_pagos").select("*").eq("negocio_id", negocioId).eq("pago_id", pagoId).maybeSingle();
+  if (error) fallar("No se pudo leer el cobro", error);
+  return (data as (Pago & { creado_en: string }) | null) ?? null;
+}
+
+/** Medio y quién recibió del último cobro (no anulado) que registró este socio: se preseleccionan en la pantalla de cobro. */
+export async function ultimoCobroDe(negocioId: string, socioId: string): Promise<{ medio: Pago["medio"]; recibido_por: string } | null> {
+  const supabase = await crearClienteSupabase();
+  const { data, error } = await supabase
+    .from("v_pagos")
+    .select("medio, recibido_por")
+    .eq("negocio_id", negocioId)
+    .eq("registrado_por", socioId)
+    .is("anulado_en", null)
+    .order("creado_en", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) fallar("No se pudo leer el último cobro", error);
+  return (data as { medio: Pago["medio"]; recibido_por: string } | null) ?? null;
+}

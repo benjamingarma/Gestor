@@ -41,7 +41,7 @@ export default async function PaginaInicio() {
         <span className={`num text-[2.1rem] font-extrabold tracking-[-0.02em] ${t.nosDeben.total > 0 ? "text-peligro" : ""}`} data-dato="nos-deben" data-centavos={t.nosDeben.total}>
           {formatearPesos(t.nosDeben.total)}
         </span>
-        <Link href="/cobros" className="flex min-h-[40px] items-center rounded-xl bg-acento px-3.5 text-[0.9rem] font-bold text-acento-texto">
+        <Link href="/cobrar" className="flex min-h-[40px] items-center rounded-xl bg-acento px-3.5 text-[0.9rem] font-bold text-acento-texto">
           Cobrar
         </Link>
       </div>

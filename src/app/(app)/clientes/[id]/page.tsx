@@ -118,7 +118,7 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <BotonEnlace href={`/clientes/${cliente.id}/cobrar`} variante={saldo > 0 ? "principal" : "secundario"}>
+          <BotonEnlace href={`/cobrar/${cliente.id}`} variante={saldo > 0 ? "principal" : "secundario"}>
             Cobrar
           </BotonEnlace>
           <BotonEnlace href={`/clientes/${cliente.id}/cuenta`} variante="secundario">

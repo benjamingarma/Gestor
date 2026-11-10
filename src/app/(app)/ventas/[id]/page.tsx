@@ -100,7 +100,7 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
       </section>
 
       {cobro && cobro.saldo > 0 && (
-        <BotonEnlace href={`/clientes/${venta.cliente_id}/cobrar?importe=${encodeURIComponent(formatearPesos(cobro.saldo).replace("$ ", ""))}&venta=${venta.venta_id}`}>
+        <BotonEnlace href={`/cobrar/${venta.cliente_id}?importe=${encodeURIComponent(formatearPesos(cobro.saldo).replace("$ ", ""))}&venta=${venta.venta_id}`}>
           Registrar cobro
         </BotonEnlace>
       )}
