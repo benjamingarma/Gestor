@@ -1,0 +1,80 @@
+:root {
+  --fondo: #f3f5f4;
+  --superficie: #ffffff;
+  --superficie-2: #eef2f0;
+  --texto: #131816;
+  --texto-suave: #5a6560;
+  --borde: #dde3e0;
+  --acento: #0f6d5c;
+  --acento-suave: #e2f1ed;
+  --acento-texto: #ffffff;
+  --peligro: #b42318;
+  --peligro-suave: #fdecea;
+  --aviso: #8a5a00;
+  --aviso-suave: #fff4dc;
+  --sombra: 0 1px 2px rgba(16, 24, 20, .06), 0 4px 16px rgba(16, 24, 20, .06);
+  --cabecera: #0f6d5c;
+  --cabecera-texto: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #0d1110;
+    --superficie: #171c1a;
+    --superficie-2: #1f2623;
+    --texto: #eef2f0;
+    --texto-suave: #a2ada8;
+    --borde: #2a322f;
+    --acento: #3fb59d;
+    --acento-suave: #143029;
+    --acento-texto: #08130f;
+    --peligro: #f97066;
+    --peligro-suave: #3a1714;
+    --aviso: #f5c451;
+    --aviso-suave: #33270c;
+    --sombra: none;
+    --cabecera: #10241f;
+    --cabecera-texto: #eef2f0;
+  }
+}
+* { box-sizing: border-box; margin: 0; }
+html { font-size: 17px; }
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: var(--fondo); color: var(--texto); }
+.suave { color: var(--texto-suave); }
+.peligro { color: var(--peligro); }
+.acento { color: var(--acento); }
+.chico { font-size: .82rem; }
+.mini { font-size: .72rem; }
+.fuerte { font-weight: 700; }
+.num { font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.tarjeta { background: var(--superficie); border: 1px solid var(--borde); border-radius: 20px; padding: 16px; box-shadow: var(--sombra); }
+.fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.col { display: flex; flex-direction: column; }
+.gap4 { gap: 4px; } .gap8 { gap: 8px; } .gap12 { gap: 12px; } .gap16 { gap: 16px; }
+.titulo { font-size: 1.05rem; font-weight: 700; }
+.grande { font-size: 2.1rem; font-weight: 800; letter-spacing: -.02em; }
+.medio { font-size: 1.35rem; font-weight: 750; }
+.chip { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--superficie-2); font-weight: 600; font-size: .85rem; }
+.chip.ac { background: var(--acento-suave); color: var(--acento); }
+.chip.pe { background: var(--peligro-suave); color: var(--peligro); }
+.chip.av { background: var(--aviso-suave); color: var(--aviso); }
+.boton { display: flex; align-items: center; justify-content: center; min-height: 56px; border-radius: 16px; background: var(--acento); color: var(--acento-texto); font-weight: 700; font-size: 1.1rem; }
+.boton.sec { background: var(--superficie); color: var(--texto); border: 1px solid var(--borde); }
+.boton.chicob { min-height: 40px; padding: 0 14px; font-size: .9rem; border-radius: 12px; }
+.enlace { color: var(--acento); font-weight: 600; }
+.aviso { display: flex; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--aviso-suave); color: var(--texto); font-size: .8rem; line-height: 1.35; }
+.aviso b { color: var(--aviso); }
+.sep { height: 1px; background: var(--borde); }
+.lista > * + * { border-top: 1px solid var(--borde); }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--acento-suave); color: var(--acento); display: grid; place-items: center; font-weight: 800; flex: none; }
+.buscador { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 14px; border-radius: 14px; background: var(--superficie-2); color: var(--texto-suave); }
+.stepper { display: flex; align-items: center; gap: 4px; background: var(--superficie-2); border-radius: 14px; padding: 4px; }
+.stepper b { min-width: 28px; text-align: center; font-size: 1.1rem; }
+.paso { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-size: 1.4rem; font-weight: 700; background: var(--superficie); color: var(--texto); border: 1px solid var(--borde); }
+.paso.mas { background: var(--acento); color: var(--acento-texto); border: none; }
+.segmento { display: grid; gap: 8px; }
+.opcion { min-height: 52px; border-radius: 14px; border: 1.5px solid var(--borde); background: var(--superficie); display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 650; font-size: .88rem; text-align: center; line-height: 1.15; }
+.opcion.sel { border: 2px solid var(--acento); background: var(--acento-suave); color: var(--acento); }
+.marca { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: -.01em; }
+.logo { width: 28px; height: 28px; border-radius: 9px; background: var(--acento); color: var(--acento-texto); display: grid; place-items: center; font-size: .8rem; font-weight: 900; }
+svg.i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.prueba { background: #f5c451; color: #1b1500; text-align: center; font-weight: 700; font-size: .7rem; padding: 4px 8px; }

@@ -1,26 +1,43 @@
 @import "tailwindcss";
 
 :root {
-  --fondo: #f6f7f9;
+  /* Colores de las maquetas aprobadas (docs/maquetas/base.css). */
+  --fondo: #f3f5f4;
   --superficie: #ffffff;
-  --texto: #14171a;
-  --texto-suave: #5b6470;
-  --borde: #d9dde3;
+  --superficie-2: #eef2f0;
+  --texto: #131816;
+  --texto-suave: #5a6560;
+  --borde: #dde3e0;
   --acento: #0f6d5c;
+  --acento-suave: #e2f1ed;
   --acento-texto: #ffffff;
   --peligro: #b42318;
+  --peligro-suave: #fdecea;
+  --aviso: #8a5a00;
+  --aviso-suave: #fff4dc;
+  --cabecera: #0f6d5c;
+  --cabecera-texto: #ffffff;
+  --sombra: 0 1px 2px rgba(16, 24, 20, 0.06), 0 4px 16px rgba(16, 24, 20, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fondo: #0f1215;
-    --superficie: #181c20;
-    --texto: #eef1f4;
-    --texto-suave: #a3acb7;
-    --borde: #2c333a;
+    --fondo: #0d1110;
+    --superficie: #171c1a;
+    --superficie-2: #1f2623;
+    --texto: #eef2f0;
+    --texto-suave: #a2ada8;
+    --borde: #2a322f;
     --acento: #3fb59d;
-    --acento-texto: #0b1412;
+    --acento-suave: #143029;
+    --acento-texto: #08130f;
     --peligro: #f97066;
+    --peligro-suave: #3a1714;
+    --aviso: #f5c451;
+    --aviso-suave: #33270c;
+    --cabecera: #10241f;
+    --cabecera-texto: #eef2f0;
+    --sombra: none;
   }
 }
 
@@ -33,6 +50,14 @@
   --color-acento: var(--acento);
   --color-acento-texto: var(--acento-texto);
   --color-peligro: var(--peligro);
+  --color-superficie-2: var(--superficie-2);
+  --color-acento-suave: var(--acento-suave);
+  --color-peligro-suave: var(--peligro-suave);
+  --color-aviso: var(--aviso);
+  --color-aviso-suave: var(--aviso-suave);
+  --color-cabecera: var(--cabecera);
+  --color-cabecera-texto: var(--cabecera-texto);
+  --shadow-tarjeta: var(--sombra);
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -46,4 +71,10 @@ body {
   background: var(--fondo);
   color: var(--texto);
   font-family: var(--font-sans);
+}
+
+/* Números de dinero: cifras del mismo ancho, para que no "bailen". */
+.num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }

@@ -628,8 +628,8 @@ de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 | 1.3 | Ventas con varios productos, FIFO, precios especiales, anulación | ✅ terminado | #5 |
 | 1.4 | Pagos y cuenta corriente + filtro por mes en el historial de ventas | ✅ terminado | #6 |
 | 1.5 | Resumen y ganancia 50/50 (reparto con vigencia) + prueba de humo en CI | ✅ terminado | #7 |
-| **1.6** | **Ajustes de stock** | **🔎 en revisión de los socios** | (PR abierto) |
-| 1.7 | Simplificación del diseño (nuevo) | pendiente | — |
+| 1.6 | Ajustes de stock | ✅ terminado | #9, #10 (arreglo del CI) |
+| **1.7** | **Simplificación del diseño** | **🚧 en curso** (maquetas aprobadas) | — |
 | 1.8 | Importación CSV | pendiente | — |
 | 1.9 | Backups y restauración | pendiente | — |
 | 1.10 | Pasaje a producción | pendiente | — |
@@ -667,7 +667,15 @@ Total estimado para lo que falta: 5 a 8 sesiones.
 No cambia reglas de negocio ni datos: solo pantallas. Las pruebas de lógica y de base siguen igual; la prueba de
 humo se actualiza con las rutas nuevas.
 
-**Todavía no se hizo nada de este módulo.**
+**Maquetas aprobadas el 10/11/2026:** ver `docs/maquetas/README.md` (estructura de navegación, pantallas y
+decisiones). La app pasa a llamarse **McStock**.
+
+**PRs del módulo** (cada uno con CI en verde, capturas reales al lado de la maqueta y prueba en el deploy preview):
+1. Maquetas en `docs/maquetas/`, navegación (barra inferior y lateral, pantalla Más) y nuevo Inicio.
+2. Pantalla de venta.
+3. Pantalla de cobro.
+4. Resto de pantallas adaptadas, animaciones y prueba de humo con las rutas nuevas.
+5. (Aparte, al final) "Repetir última venta" en la ficha del cliente.
 
 ### 12.4 Notas
 - El ping anti-pausa se adelantó al módulo 1.0.

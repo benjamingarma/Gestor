@@ -36,7 +36,9 @@ export default async function PaginaVentas({ searchParams }: PageProps<"/ventas"
       <section aria-label={`Resumen de ${nombreDelMes(mes)}`} className="grid grid-cols-2 gap-3 rounded-xl border border-borde bg-superficie p-4">
         <div className="flex flex-col">
           <span className="text-sm text-texto-suave">Vendido</span>
-          <span className="text-xl font-bold">{formatearPesos(total)}</span>
+          <span className="text-xl font-bold" data-dato="vendido-mes" data-centavos={total}>
+            {formatearPesos(total)}
+          </span>
           <span className="text-sm text-texto-suave">
             {validas.length} venta{validas.length === 1 ? "" : "s"} · {unidades} u
           </span>

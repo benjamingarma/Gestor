@@ -20,7 +20,9 @@ export default async function PaginaCobros() {
       <section className="grid grid-cols-2 gap-3 rounded-xl border border-borde bg-superficie p-4">
         <div className="flex flex-col">
           <span className="text-sm text-texto-suave">Nos deben</span>
-          <span className="text-2xl font-bold text-peligro">{formatearPesos(totalDeuda)}</span>
+          <span className="text-2xl font-bold text-peligro" data-dato="nos-deben" data-centavos={totalDeuda}>
+            {formatearPesos(totalDeuda)}
+          </span>
           <span className="text-sm text-texto-suave">{deudores.length} cliente{deudores.length === 1 ? "" : "s"}</span>
         </div>
         <div className="flex flex-col">

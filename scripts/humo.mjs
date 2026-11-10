@@ -52,6 +52,7 @@ const rutas = [
   "/", "/clientes", "/clientes/nuevo", `/clientes/${ids.cliente}`, `/clientes/${ids.cliente}/cuenta`, `/clientes/${ids.cliente}/cobrar`,
   "/productos", "/productos/nuevo", `/productos/${ids.producto}`, `/productos/${ids.producto}/ajuste`, "/ajustes", "/ajustes?mes=todo", "/compras", "/compras/nueva",
   "/ventas", "/ventas/nueva", `/ventas/${ids.venta}`, "/cobros", "/resumen", "/resumen?mes=todo", "/resumen/reparto",
+  "/mas", "/buscar?q=humo",
 ];
 const navegador = await chromium.launch();
 const pagina = await (await navegador.newContext({ ...devices["Pixel 7"] })).newPage();
@@ -72,10 +73,43 @@ for (const ruta of rutas) {
   console.log(`${ok ? "OK   " : "FALLA"} ${estado} ${ruta}`);
   if (!ok) errores.push(`${ruta} respondió ${estado}`);
 }
+// 3. Los mismos totales en todas las pantallas, y coinciden con la base (plan del módulo 1.7).
+//    Cada pantalla marca sus totales con data-dato / data-centavos.
+async function totales(ruta) {
+  await pagina.goto(`${BASE}${ruta}`);
+  return pagina.$$eval("[data-dato]", (els) =>
+    Object.fromEntries(els.reverse().map((e) => [e.getAttribute("data-dato"), Number(e.getAttribute("data-centavos"))])),
+  );
+}
+const enBase = (consulta) => Number(execFileSync("psql", [DB_URL, "-tAq", "-c", consulta]).toString().trim());
+const mes = `date_trunc('month', public.hoy_tucuman())`;
+const esperado = {
+  "nos-deben": enBase(`select coalesce(sum(saldo), 0) from public.v_cuentas_clientes where negocio_id = '${NEGOCIO}' and saldo > 0`),
+  "vendido-mes": enBase(`select coalesce(sum(importe), 0) from public.v_ventas where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', dia) = ${mes}`),
+  "cobrado-mes": enBase(`select coalesce(sum(importe), 0) from public.pagos where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', fecha) = ${mes}`),
+  "ganancia-neta-mes": enBase(`select (select coalesce(sum(ganancia), 0) from public.v_ventas where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', dia) = ${mes})
+    - (select coalesce(sum(costo_total_ars), 0) from public.ajustes_stock where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', fecha) = ${mes})`),
+  "capital-ars": enBase(`select stock_ars from public.v_capital where negocio_id = '${NEGOCIO}'`),
+  "capital-usd": enBase(`select stock_usd from public.v_capital where negocio_id = '${NEGOCIO}'`),
+};
+const pantallas = { Inicio: "/", Resumen: "/resumen", Cobros: "/cobros", Ventas: "/ventas", Stock: "/productos" };
+const vistos = {};
+for (const [nombre, ruta] of Object.entries(pantallas)) vistos[nombre] = await totales(ruta);
+let comparaciones = 0;
+for (const [dato, valor] of Object.entries(esperado)) {
+  const donde = Object.entries(vistos).filter(([, t]) => dato in t);
+  if (donde.length < 2) errores.push(`"${dato}" aparece en menos de dos pantallas (${donde.map(([n]) => n).join(", ") || "ninguna"})`);
+  for (const [nombre, t] of donde) {
+    comparaciones++;
+    if (t[dato] !== valor) errores.push(`${nombre} muestra ${dato} = ${t[dato]} y en la base es ${valor}`);
+  }
+  console.log(`${donde.every(([, t]) => t[dato] === valor) ? "OK   " : "FALLA"} ${dato} = ${valor} en ${donde.map(([n]) => n).join(", ")}`);
+}
+if (esperado["vendido-mes"] === 0) errores.push("la prueba de consistencia necesita al menos una venta este mes");
 await navegador.close();
 
 if (errores.length > 0) {
   console.error(`\nPrueba de humo con errores:\n- ${errores.join("\n- ")}`);
   process.exit(1);
 }
-console.log(`\nPrueba de humo OK: ${rutas.length} pantallas.`);
+console.log(`\nPrueba de humo OK: ${rutas.length} pantallas y ${comparaciones} totales iguales a la base.`);

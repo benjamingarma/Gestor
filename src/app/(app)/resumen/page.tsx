@@ -2,11 +2,9 @@ import Link from "next/link";
 import { Encabezado } from "@/componentes/Encabezado";
 import { SelectorMes } from "@/componentes/SelectorMes";
 import { listarClientes } from "@/datos/clientes";
-import { listarSaldos } from "@/datos/cuentas";
-import { leerCapital, leerMovimientosDiarios, leerSociosYReparto } from "@/datos/resumen";
-import { perdidasParaGanancia, totalesPerdidas } from "@/dominio/ajustes";
-import { calcularGanancia, vigenteEn } from "@/dominio/ganancia";
-import { enPeriodo, totalesCobros, totalesVentas } from "@/dominio/resumen";
+import { leerDatosTablero } from "@/datos/resumen";
+import { vigenteEn } from "@/dominio/ganancia";
+import { armarTablero } from "@/dominio/tablero";
 import { compararParaVisitar } from "@/dominio/visitas";
 import { formatearDolares, formatearPesos } from "@/lib/dinero";
 import { hoy } from "@/lib/fechas";
@@ -40,11 +38,13 @@ function Doble({ usd, ars }: { usd: number; ars: number }) {
   );
 }
 
-function Fila({ etiqueta, valor, fuerte, rojo }: { etiqueta: React.ReactNode; valor: React.ReactNode; fuerte?: boolean; rojo?: boolean }) {
+function Fila({ etiqueta, valor, fuerte, rojo, dato }: { etiqueta: React.ReactNode; valor: React.ReactNode; fuerte?: boolean; rojo?: boolean; dato?: [string, number] }) {
   return (
     <div className={`flex items-baseline justify-between gap-3 ${fuerte ? "text-lg font-bold" : ""}`}>
       <span className={fuerte ? "" : "text-texto-suave"}>{etiqueta}</span>
-      <span className={`shrink-0 whitespace-nowrap text-right ${rojo ? "text-peligro" : ""} ${fuerte ? "" : "font-semibold"}`}>{valor}</span>
+      <span className={`shrink-0 whitespace-nowrap text-right ${rojo ? "text-peligro" : ""} ${fuerte ? "" : "font-semibold"}`} data-dato={dato?.[0]} data-centavos={dato?.[1]}>
+        {valor}
+      </span>
     </div>
   );
 }
@@ -56,35 +56,25 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
   const mesActual = mesDe(dia);
   const periodo = pedido === "todo" ? "todo" : typeof pedido === "string" && esMesValido(pedido) && pedido <= mesActual ? pedido : mesActual;
 
-  const [{ socios, vigencias }, { ganancias, perdidas, cobros }, capital, saldos, clientes] = await Promise.all([
-    leerSociosYReparto(socio.negocioId),
-    leerMovimientosDiarios(socio.negocioId),
-    leerCapital(socio.negocioId),
-    listarSaldos(socio.negocioId),
-    listarClientes(socio.negocioId, dia),
-  ]);
+  const [datos, clientes] = await Promise.all([leerDatosTablero(socio.negocioId), listarClientes(socio.negocioId, dia)]);
+  const { socios, vigencias, ganancias, perdidas, cobros, capital } = datos;
+  const saldos = datos.saldos;
 
   const primerMes = [ganancias[0]?.dia, perdidas[0]?.dia, cobros[0]?.dia].filter(Boolean).sort()[0];
   const meses = mesesEntre(primerMes && mesDe(primerMes) < mesActual ? mesDe(primerMes) : mesActual, mesActual);
   const nombrePeriodo = periodo === "todo" ? "todo el historial" : nombreDelMes(periodo).toLowerCase();
 
-  // Ganancia del período y acumulada: ventas menos pérdidas por ajustes de stock (regalo, pérdida, rotura).
-  const delPeriodo = ganancias.filter((g) => enPeriodo(g.dia, periodo));
-  const perdidasDelPeriodo = perdidas.filter((p) => enPeriodo(p.dia, periodo));
-  const ventas = totalesVentas(delPeriodo);
-  const ajustes = totalesPerdidas(perdidasDelPeriodo);
-  const ganancia = calcularGanancia(delPeriodo.map((g) => ({ dia: g.dia, ganancia: g.ganancia })), perdidasParaGanancia(perdidasDelPeriodo), socios, vigencias);
-  const acumulada = calcularGanancia(ganancias.map((g) => ({ dia: g.dia, ganancia: g.ganancia })), perdidasParaGanancia(perdidas), socios, vigencias);
-  const cobrado = totalesCobros(cobros.filter((c) => enPeriodo(c.dia, periodo)));
+  // Mismos totales que Inicio y Cobrar (src/dominio/tablero.ts).
+  const t = armarTablero(datos, periodo);
+  const { ventas, ganancia, acumulada, cobrado } = t;
+  const ajustes = t.perdidas;
   const porcentajesHoy = vigenteEn(vigencias, dia, socios);
 
   const nosDeben = saldos.filter((s) => s.saldo > 0);
-  const totalNosDeben = nosDeben.reduce((t, s) => t + s.saldo, 0);
-  const totalAFavor = saldos.filter((s) => s.saldo < 0).reduce((t, s) => t - s.saldo, 0);
+  const totalNosDeben = t.nosDeben.total;
+  const totalAFavor = t.aFavor.total;
   const aVisitar = clientes.filter((c) => c.estado.tipo === "atrasado" || c.estado.tipo === "hoy").sort((a, b) => compararParaVisitar(a.estado, b.estado));
-  const cierra =
-    capital.invertido_usd === capital.vendido_usd + capital.perdidas_usd + capital.stock_usd &&
-    capital.invertido_ars === capital.vendido_ars + capital.perdidas_ars + capital.stock_ars;
+  const cierra = t.capitalCierra;
   const pct = (socioId: string) => (porcentajesHoy.find((p) => p.socioId === socioId)?.centesimos ?? 0) / 100;
 
   return (
@@ -103,7 +93,7 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
           valor={formatearPesos(ganancia.perdidas)}
           rojo={ganancia.perdidas > 0}
         />
-        <Fila etiqueta="Ganancia neta" valor={formatearPesos(ganancia.neta)} fuerte rojo={ganancia.neta < 0} />
+        <Fila etiqueta="Ganancia neta" valor={formatearPesos(ganancia.neta)} fuerte rojo={ganancia.neta < 0} dato={["ganancia-neta-mes", ganancia.neta]} />
         <div className="mt-1 flex flex-col gap-1 border-t border-borde pt-2">
           {ganancia.partes.map((p) => (
             <Fila key={p.socioId} etiqueta={`Le corresponde a ${p.nombre}`} valor={formatearPesos(p.importe)} />
@@ -117,13 +107,13 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
       </Tarjeta>
 
       <Tarjeta titulo={`Ventas · ${nombrePeriodo}`} enlace={periodo === "todo" ? undefined : { href: `/ventas?mes=${periodo}`, texto: "Ver las ventas" }}>
-        <Fila etiqueta="Vendido" valor={formatearPesos(ventas.importe)} />
+        <Fila etiqueta="Vendido" valor={formatearPesos(ventas.importe)} dato={["vendido-mes", ventas.importe]} />
         <Fila etiqueta="Costo de la mercadería vendida" valor={<Doble usd={ventas.costoUsd} ars={ventas.costoArs} />} />
         <Fila etiqueta="Ventas · unidades" valor={`${ventas.ventas} · ${ventas.unidades} u`} />
       </Tarjeta>
 
       <Tarjeta titulo={`Dinero cobrado · ${nombrePeriodo}`} enlace={{ href: "/cobros", texto: "Ver cobros" }}>
-        <Fila etiqueta="Total cobrado" valor={formatearPesos(cobrado.total)} fuerte />
+        <Fila etiqueta="Total cobrado" valor={formatearPesos(cobrado.total)} fuerte dato={["cobrado-mes", cobrado.total]} />
         {[...cobrado.porMedio].map(([m, t]) => (
           <Fila key={m} etiqueta={NOMBRE_MEDIO[m] ?? m} valor={formatearPesos(t)} />
         ))}
@@ -138,11 +128,12 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
       </Tarjeta>
 
       <Tarjeta titulo="Hoy">
-        <Fila etiqueta={<Link href="/cobros" className="text-acento">Nos deben</Link>} valor={formatearPesos(totalNosDeben)} rojo={totalNosDeben > 0} />
+        <Fila etiqueta={<Link href="/cobros" className="text-acento">Nos deben</Link>} valor={formatearPesos(totalNosDeben)} rojo={totalNosDeben > 0} dato={["nos-deben", totalNosDeben]} />
         <Fila etiqueta="Saldos a favor de clientes" valor={formatearPesos(totalAFavor)} />
         <Fila
           etiqueta={<Link href="/productos" className="text-acento">Capital en mercadería</Link>}
           valor={<Doble usd={capital.stock_usd} ars={capital.stock_ars} />}
+          dato={["capital-ars", capital.stock_ars]}
         />
         <div className="mt-1 flex flex-col gap-1 border-t border-borde pt-2">
           <Fila etiqueta="Ganancia acumulada (todo el historial)" valor={formatearPesos(acumulada.neta)} />

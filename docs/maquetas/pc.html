@@ -1,0 +1,14 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+.pc{display:grid;grid-template-columns:260px 1fr;height:100vh}
+.lateral{background:var(--superficie);border-right:1px solid var(--borde);padding:20px 14px;display:flex;flex-direction:column;gap:2px}
+.lat-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;font-weight:600;color:var(--texto-suave);font-size:.95rem}
+.lat-item.act{background:var(--acento-suave);color:var(--acento)}
+.lat-vender{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:14px;background:var(--acento);color:var(--acento-texto);font-weight:800;margin-bottom:12px}
+.pc-main{padding:28px 36px;display:flex;flex-direction:column;gap:20px;overflow:hidden}
+.pc-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+.tres{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.cursor{display:inline-block;width:3px;height:2.1rem;background:var(--acento);margin-left:4px;vertical-align:-4px;border-radius:2px}
+</style></head><body><div id="r"></div>
+<script src="pantallas.js"></script>
+<script>document.getElementById("r").innerHTML=PC[new URLSearchParams(location.search).get("p")]();</script></body></html>

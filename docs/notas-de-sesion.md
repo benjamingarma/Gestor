@@ -2,13 +2,13 @@
 
 > Para leer al empezar una sesión nueva, junto con `CLAUDE.md` (reglas), `docs/plan.md` (plan y estado,
 > sección 12) y `docs/decisiones/modulo-*.md` (decisiones de cada módulo).
-> Última actualización: al abrir el PR del módulo 1.6 (pendiente de prueba de los socios y merge).
+> Última actualización: 10/11/2026, al empezar el módulo 1.7 (1.6 cerrado y aprobado).
 
 ## 1. Dónde estamos
 
-- Terminados y mergeados en `main`: módulos 1.0 a 1.5 (PR #1 a #8 de `benjamingarma/Gestor`).
-- **En revisión: 1.6 Ajustes de stock** (PR abierto, falta la prueba de los socios en el celular). Después: 1.7 Simplificación del diseño (nuevo, ver `docs/plan.md` 12.3),
-  1.8 Importación CSV, 1.9 Backups y restauración, 1.10 Pasaje a producción.
+- Terminados y mergeados en `main`: módulos 1.0 a 1.6 (PR #1 a #10 de `benjamingarma/Gestor`).
+- **En curso: 1.7 Simplificación del diseño.** Maquetas aprobadas en `docs/maquetas/` (leer su README antes de tocar
+  pantallas). Plan de PRs en `docs/plan.md` 12.3. Después: 1.8 Importación CSV, 1.9 Backups y restauración, 1.10 Pasaje a producción.
 - Repositorio privado, rama por defecto `main` (verificado el 13/11). Se trabaja con una rama `claude/...` por
   módulo y un PR; los socios prueban en el deploy preview de Netlify y mergean ellos.
 - Al mergear, las migraciones se aplican solas a Supabase (`.github/workflows/migraciones.yml`, secreto
@@ -29,7 +29,7 @@ tamaño celular (Pixel 7, `es-AR`, hora de Tucumán) y prueba de los socios desd
 | 1.3 | Venta que consume dos compras a distinto TC, multi-producto, precios especiales, anulación | 196 pgTAP + concurrencia, 126 Vitest |
 | 1.4 | Saldo del papel, cobros parciales, saldo a favor, anular cobro, filtro por mes | 233 pgTAP, 145 Vitest |
 | 1.5 | Resumen del mes, capital ✓, reparto 60/40 sin alterar el pasado | 254 pgTAP, 163 Vitest, humo (18 pantallas) |
-| 1.6 | (pendiente de los socios) | 307 pgTAP, 176 Vitest, concurrencia venta contra ajuste, humo (21 pantallas) |
+| 1.6 | Rotura/regalo/pérdida desde la ficha, resumen descuenta, anulación (aprobado 10/11) | 307 pgTAP, 176 Vitest, concurrencia venta contra ajuste, humo (21 pantallas) |
 
 Todos los números del ejemplo del plan (sección 6) están verificados en pgTAP y en Vitest: V1 $74.000 / USD 60,
 ventas $199.000, ganancia $74.000, capital USD 195 = 96 + 99 y $267.500 = $125.000 + $142.500 (con A1 del 1.6:
@@ -68,6 +68,11 @@ $99.000 → $49.000 → $1.000 a favor.
    prueba de humo, `@humo.test`; los usuarios de desarrollo, `@ejemplo.test`.
 8. **Conexión de GitHub Actions a Supabase:** la conexión directa del plan gratis es solo IPv6 y GitHub no tiene IPv6.
    Se usa el "Session pooler" (`SUPABASE_DB_URL`, contraseña sin símbolos para no tener que codificarla en la URL).
+9. **CI roto por un YAML inválido (1.6).** El nombre de un paso de `ci.yml` tenía `: ` sin comillas; GitHub rechazó el
+   archivo entero y **no corrió ninguna prueba** en el PR #9 ni en `main` (se arregló en el PR #10). Reglas:
+   - antes de subir un cambio en `.github/workflows/`, validarlo con un parser YAML y con `actionlint`;
+   - un PR no está listo hasta ver su CI en verde **en GitHub** y comprobar en el log que las pruebas corrieron
+     (no alcanza con que pasen en el entorno local).
 
 ## 4. Decisiones técnicas que no están en otros documentos
 

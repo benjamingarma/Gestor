@@ -1,5 +1,5 @@
 import "server-only";
-import { aplicarCreditos, type CuentaCorriente, type Deuda } from "@/dominio/cuentaCorriente";
+import { aplicarCreditos, diaDeudaMasVieja, type CuentaCorriente, type Deuda } from "@/dominio/cuentaCorriente";
 import { crearClienteSupabase } from "@/lib/supabase/servidor";
 
 function fallar(contexto: string, error: { message: string }): never {
@@ -93,6 +93,17 @@ export async function cuentaDeCliente(negocioId: string, clienteId: string) {
   const d = await leerCrudos(negocioId, [clienteId]);
   const cuenta = armarCuentas(d).get(clienteId) ?? aplicarCreditos([], []);
   return { cuenta, pagos: d.pagos, saldosIniciales: d.saldos };
+}
+
+/** Día de la deuda más vieja con saldo pendiente de cada cliente indicado (los que no deben, no aparecen). */
+export async function deudasMasViejas(negocioId: string, clienteIds: string[]): Promise<Map<string, string>> {
+  const resultado = new Map<string, string>();
+  if (clienteIds.length === 0) return resultado;
+  for (const [cliente, cuenta] of armarCuentas(await leerCrudos(negocioId, [...new Set(clienteIds)]))) {
+    const dia = diaDeudaMasVieja(cuenta);
+    if (dia) resultado.set(cliente, dia);
+  }
+  return resultado;
 }
 
 /** Cobrado y saldo de cada venta (no anulada) de los clientes indicados. */
