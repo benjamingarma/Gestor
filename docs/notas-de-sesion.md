@@ -2,14 +2,14 @@
 
 > Para leer al empezar una sesión nueva, junto con `CLAUDE.md` (reglas), `docs/plan.md` (plan y estado,
 > sección 12) y `docs/decisiones/modulo-*.md` (decisiones de cada módulo).
-> Última actualización: 10/11/2026, con los PR 1 a 4 del módulo 1.7 mergeados y el PR A de "venta a cliente nuevo" (migración) abierto.
+> Última actualización: 10/11/2026, con los PR 1 a 4 del módulo 1.7 mergeados y el PR B de "venta a cliente nuevo" (pantalla) abierto.
 
 ## 1. Dónde estamos
 
 - Terminados y mergeados en `main`: módulos 1.0 a 1.6 (PR #1 a #10 de `benjamingarma/Gestor`).
 - **En curso: 1.7 Simplificación del diseño** — PR 1 a 4 mergeados (#11, #12, #14, #15). Pedido nuevo de los socios:
-  **venta a un cliente nuevo** desde "Nueva venta", en dos PR: **A (migración `registrar_venta_cliente_nuevo` y sus
-  pruebas, abierto)** y B (pantalla, después de mergear A y ver la migración aplicada). Decisiones en
+  **venta a un cliente nuevo** desde "Nueva venta", en dos PR: A (migración `registrar_venta_cliente_nuevo` y sus
+  pruebas, #16, mergeado y aplicado a Supabase el 10/11) y **B (pantalla, abierto)**. Decisiones en
   `docs/decisiones/modulo-1.7-venta-cliente-nuevo.md`. Después queda el PR 5 ("Repetir última venta"). Estado detallado en la sección 6. Maquetas aprobadas en
   `docs/maquetas/` (leer su README antes de tocar pantallas). Después: 1.8 Importación CSV, 1.9 Backups y restauración, 1.10 Pasaje a producción.
 - Repositorio privado, rama por defecto `main` (verificado el 13/11). Se trabaja con una rama `claude/...` por

@@ -36,3 +36,15 @@ venta falla, e idempotente ante el doble toque de "Guardar".
   negocio en modo real (`es_prueba = false`), anónimo, y que la función es SECURITY INVOKER.
 - `supabase/tests/concurrencia.sh`, tercera parte: dos "Guardar" simultáneos → un cliente y una venta.
 - Se verificó que las pruebas fallan con una versión "en dos pasos" de la función y sin el `on conflict`.
+
+## Pantalla (PR B)
+- `src/dominio/clienteNuevo.ts` (con Vitest): opción `Crear "…" como cliente nuevo` siempre que haya algo escrito
+  en el buscador (también con coincidencias parciales); duplicados con la misma regla que la base, incluidos los
+  archivados (a esos no se les puede vender: se ofrece ir a su ficha para desarchivarlos).
+- En "Nueva venta" se pide nombre y teléfono opcional; el cliente queda elegido como "Cliente nuevo", los precios
+  se proponen con su id (sin especiales ni último precio: salen los generales) y no se pierde lo ya cargado.
+- Al guardar, `registrarVenta` llama a `registrar_venta_cliente_nuevo`; si otro socio creó ese nombre mientras
+  tanto, la base devuelve el existente (`hint = cliente_duplicado`) y la pantalla ofrece "Usar a …".
+- "Nueva venta" ya no exige tener clientes cargados (solo productos con stock).
+- Prueba de humo: venta a cliente nuevo con doble toque, nombre repetido en mayúsculas y venta que falla porque el
+  stock se agotó mientras se cargaba (no queda el cliente). Capturas en `docs/maquetas/comparaciones/venta-cliente-nuevo/`.

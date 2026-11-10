@@ -12,21 +12,13 @@ export default async function PaginaNuevaVenta({ searchParams }: PageProps<"/ven
   const clienteInicial = typeof cliente === "string" && datos.clientes.some((c) => c.id === cliente) ? cliente : "";
   const volverA = clienteInicial ? `/clientes/${clienteInicial}` : "/";
 
-  if (datos.clientes.length === 0 || datos.productos.length === 0) {
+  // Sin clientes cargados igual se puede vender: el cliente nuevo se crea desde esta pantalla.
+  if (datos.productos.length === 0) {
     return (
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6">
         <Encabezado titulo="Nueva venta" volverA={volverA} />
-        {datos.clientes.length === 0 ? (
-          <>
-            <p>Primero cargá un cliente.</p>
-            <BotonEnlace href="/clientes/nuevo">+ Nuevo cliente</BotonEnlace>
-          </>
-        ) : (
-          <>
-            <p>No hay productos con stock. Cargá una compra primero.</p>
-            <BotonEnlace href="/compras/nueva">+ Cargar compra</BotonEnlace>
-          </>
-        )}
+        <p>No hay productos con stock. Cargá una compra primero.</p>
+        <BotonEnlace href="/compras/nueva">+ Cargar compra</BotonEnlace>
       </main>
     );
   }

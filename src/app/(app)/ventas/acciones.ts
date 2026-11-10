@@ -10,11 +10,22 @@ import { obtenerSocioActual } from "@/lib/sesion";
 import { crearClienteSupabase } from "@/lib/supabase/servidor";
 import { esUuid } from "@/lib/uuid";
 
-export type EstadoVenta = { error?: string };
+export type EstadoVenta = {
+  error?: string;
+  /** Al guardar un cliente nuevo, otro ya tenía ese nombre (lo creó otro socio mientras tanto): se ofrece usarlo. */
+  duplicado?: { id: string; nombre: string; archivado: boolean };
+};
 
 const esquemaVenta = z.object({
   id: z.string().refine(esUuid),
   clienteId: z.string().refine(esUuid, "Elegí el cliente."),
+  // Venta a un cliente nuevo: se crea junto con la venta, en la misma transacción (clienteId es su UUID nuevo).
+  clienteNuevo: z
+    .object({
+      nombre: z.string().trim().min(1, "Escribí el nombre del cliente.").max(80, "El nombre puede tener hasta 80 caracteres."),
+      telefono: z.string().trim().max(40, "El teléfono puede tener hasta 40 caracteres."),
+    })
+    .nullish(),
   vendidoPor: z.string().refine(esUuid),
   fecha: z.string(),
   nota: z.string().max(500),
@@ -54,15 +65,30 @@ export async function registrarVenta(_p: EstadoVenta, formulario: FormData): Pro
   }
 
   const supabase = await crearClienteSupabase();
-  const { error } = await supabase.rpc("registrar_venta", {
-    p_id: v.id,
+  const comunes = {
     p_negocio_id: socio.negocioId,
     p_cliente_id: v.clienteId,
     p_items: items,
     p_fecha: v.fecha,
     p_vendido_por: v.vendidoPor,
     p_nota: v.nota.trim() || null,
-  });
+  };
+  // Cliente nuevo: cliente y venta en una sola transacción (si la venta falla, el cliente no queda).
+  const { error } = v.clienteNuevo
+    ? await supabase.rpc("registrar_venta_cliente_nuevo", {
+        p_venta_id: v.id,
+        p_nombre: v.clienteNuevo.nombre,
+        p_telefono: v.clienteNuevo.telefono || null,
+        ...comunes,
+      })
+    : await supabase.rpc("registrar_venta", { p_id: v.id, ...comunes });
+  if (error?.hint === "cliente_duplicado" && esUuid(error.details ?? "")) {
+    const { data } = await supabase.from("clientes").select("id, nombre, archivado_en").eq("id", error.details).maybeSingle();
+    return {
+      error: error.message,
+      duplicado: data ? { id: data.id, nombre: data.nombre, archivado: data.archivado_en !== null } : undefined,
+    };
+  }
   if (error) return { error: mensajeDeError(error, "No se pudo guardar la venta.") };
 
   revalidatePath("/", "layout");
