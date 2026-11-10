@@ -2,13 +2,15 @@
 
 > Para leer al empezar una sesión nueva, junto con `CLAUDE.md` (reglas), `docs/plan.md` (plan y estado,
 > sección 12) y `docs/decisiones/modulo-*.md` (decisiones de cada módulo).
-> Última actualización: 10/11/2026, con el PR 3 del módulo 1.7 mergeado (#14) y el PR 4 (resto de pantallas) abierto.
+> Última actualización: 10/11/2026, con los PR 1 a 4 del módulo 1.7 mergeados y el PR A de "venta a cliente nuevo" (migración) abierto.
 
 ## 1. Dónde estamos
 
 - Terminados y mergeados en `main`: módulos 1.0 a 1.6 (PR #1 a #10 de `benjamingarma/Gestor`).
-- **En curso: 1.7 Simplificación del diseño** — PR 1, 2 y 3 mergeados (#11, #12, #14); **PR 4 (resto de pantallas)
-  abierto**, esperando la prueba de los socios. Después queda el PR 5 ("Repetir última venta"). Estado detallado en la sección 6. Maquetas aprobadas en
+- **En curso: 1.7 Simplificación del diseño** — PR 1 a 4 mergeados (#11, #12, #14, #15). Pedido nuevo de los socios:
+  **venta a un cliente nuevo** desde "Nueva venta", en dos PR: **A (migración `registrar_venta_cliente_nuevo` y sus
+  pruebas, abierto)** y B (pantalla, después de mergear A y ver la migración aplicada). Decisiones en
+  `docs/decisiones/modulo-1.7-venta-cliente-nuevo.md`. Después queda el PR 5 ("Repetir última venta"). Estado detallado en la sección 6. Maquetas aprobadas en
   `docs/maquetas/` (leer su README antes de tocar pantallas). Después: 1.8 Importación CSV, 1.9 Backups y restauración, 1.10 Pasaje a producción.
 - Repositorio privado, rama por defecto `main` (verificado el 13/11). Se trabaja con una rama `claude/...` por
   módulo y un PR; los socios prueban en el deploy preview de Netlify y mergean ellos.
@@ -170,7 +172,7 @@ Especificación visual: `docs/maquetas/` (README, HTML, imágenes en claro/oscur
 | 1 (#11) | Maquetas en `docs/maquetas/`; nombre **McStock**; barra inferior (Inicio · Clientes · **Vender** · Cobrar · Más) y barra lateral en PC; pantalla Más; nuevo Inicio; `/buscar`; `dominio/tablero.ts` (mismos totales en Inicio y Resumen); humo compara totales de Inicio/Resumen/Cobros/Ventas/Stock contra la base | ✅ mergeado |
 | 2 (#12) | Venta en una sola pantalla (`dominio/carrito.ts`), caja de precio siempre visible, confirmación con ✓ (`componentes/Confirmacion.tsx`) y Deshacer; humo hace una venta por la pantalla y la deshace | ✅ mergeado |
 | 3 (#14) | **Cobro**: `/cobrar` (lista de quién debe con buscador), `/cobrar/[cliente]` (cobro en una pantalla; en PC con la lista a la izquierda), `/cobros/[id]/guardado` (confirmación con Deshacer). Lógica de pantalla en `dominio/cobro.ts`. `/clientes/[id]/cobrar` quedó como redirección. "Cobrar" de la barra y del Inicio lleva a `/cobrar` | ✅ mergeado |
-| 4 | Resto de pantallas con el estilo de las maquetas **sin agregar ni sacar elementos** (no tienen maqueta): componentes comunes (`Encabezado`, `Boton`/`BotonEnlace` con `estiloBoton`, `Campo`, `Aviso`, `SelectorMes`, `ListaVentas`, etiquetas de visita y cobro) y clases de cada pantalla; animaciones CSS (`boton-toque`, `aviso-aparecer`, `pantalla-entrar`, details); "Toca visitar hoy" → "Le toca hoy"; "1 unidades" → "1 unidad"; humo controla que nada se salga del ancho del celular. Capturas antes → después en `comparaciones/pr4-pantallas/` | 🔍 PR abierto |
+| 4 | Resto de pantallas con el estilo de las maquetas **sin agregar ni sacar elementos** (no tienen maqueta): componentes comunes (`Encabezado`, `Boton`/`BotonEnlace` con `estiloBoton`, `Campo`, `Aviso`, `SelectorMes`, `ListaVentas`, etiquetas de visita y cobro) y clases de cada pantalla; animaciones CSS (`boton-toque`, `aviso-aparecer`, `pantalla-entrar`, details); "Toca visitar hoy" → "Le toca hoy"; "1 unidades" → "1 unidad"; humo controla que nada se salga del ancho del celular. Capturas antes → después en `comparaciones/pr4-pantallas/` | ✅ mergeado (#15) |
 | 5 | "Repetir última venta" en la ficha del cliente (PR aparte, al final) | pendiente |
 
 ### Decisiones tomadas (socios, 10/11/2026)
