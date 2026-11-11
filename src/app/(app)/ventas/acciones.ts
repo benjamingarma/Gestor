@@ -80,8 +80,7 @@ export async function registrarVenta(_p: EstadoVenta, formulario: FormData): Pro
         p_venta_id: v.id,
         p_nombre: v.clienteNuevo.nombre,
         p_telefono: v.clienteNuevo.telefono || null,
-        // Solo si se escribió: así funciona también con la función anterior a la migración de dirección.
-        ...(v.clienteNuevo.direccion ? { p_direccion: v.clienteNuevo.direccion } : {}),
+        p_direccion: v.clienteNuevo.direccion || null,
         ...comunes,
       })
     : await supabase.rpc("registrar_venta", { p_id: v.id, ...comunes });

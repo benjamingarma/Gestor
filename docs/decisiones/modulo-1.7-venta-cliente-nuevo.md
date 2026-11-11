@@ -55,5 +55,7 @@ venta falla, e idempotente ante el doble toque de "Guardar".
 - Al guardar, `registrarVenta` llama a `registrar_venta_cliente_nuevo`; si otro socio creó ese nombre mientras
   tanto, la base devuelve el existente (`hint = cliente_duplicado`) y la pantalla ofrece "Usar a …".
 - "Nueva venta" ya no exige tener clientes cargados (solo productos con stock).
+- "Crear cliente nuevo" es siempre la primera opción de la lista, sin tener que escribir (pedido del 11/11/2026).
+- Dirección (opcional) al crear el cliente desde la venta, en "Nuevo cliente", en "Editar cliente" y en la ficha.
 - Prueba de humo: venta a cliente nuevo con doble toque, nombre repetido en mayúsculas y venta que falla porque el
   stock se agotó mientras se cargaba (no queda el cliente). Capturas en `docs/maquetas/comparaciones/venta-cliente-nuevo/`.
