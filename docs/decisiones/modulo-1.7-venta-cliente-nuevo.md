@@ -36,3 +36,13 @@ venta falla, e idempotente ante el doble toque de "Guardar".
   negocio en modo real (`es_prueba = false`), anónimo, y que la función es SECURITY INVOKER.
 - `supabase/tests/concurrencia.sh`, tercera parte: dos "Guardar" simultáneos → un cliente y una venta.
 - Se verificó que las pruebas fallan con una versión "en dos pasos" de la función y sin el `on conflict`.
+
+## Dirección del cliente (pedido del 11/11/2026, migración `20261116120000_clientes_direccion.sql`)
+- Los socios eligieron un **campo propio** (en vez de guardarla en Notas): columna `clientes.direccion`, opcional,
+  hasta 200 caracteres, normalizada por `clientes_al_modificar` (sin espacios de más; vacía = sin dirección).
+- Permisos por columna `insert/update (direccion)` para `authenticated`; RLS de siempre.
+- `v_clientes` suma `direccion` al final (create or replace view exige el mismo orden de columnas).
+- `registrar_venta_cliente_nuevo` se reemplaza por una versión con `p_direccion text default null` al final
+  (la anterior no la usaba ninguna pantalla todavía). Mismo comportamiento y permisos.
+- Pruebas pgTAP en `07_venta_cliente_nuevo.test.sql` (dirección limpia, en blanco, de más de 200, edición por un
+  socio y que un socio de otro negocio no pueda cambiarla).
