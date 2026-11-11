@@ -6,6 +6,7 @@ import { Aviso } from "@/componentes/Aviso";
 import { Icono } from "@/componentes/Iconos";
 import { Avatar } from "@/componentes/UI";
 import { cambiarCantidad, proponerPrecio, reproponerPrecios, resumirCarrito, TEXTO_ORIGEN, type ItemCarrito } from "@/dominio/carrito";
+import { limpiarNombre, MAXIMO_DIRECCION, MAXIMO_NOMBRE, MAXIMO_TELEFONO, problemaClienteNuevo, textoParaCrear } from "@/dominio/clienteNuevo";
 import type { DatosNuevaVenta } from "@/datos/ventas";
 import { formatearDolares, formatearPesos } from "@/lib/dinero";
 import { formatearDia } from "@/lib/fechas";
@@ -37,29 +38,162 @@ export function FormularioVenta({
   const [fecha, setFecha] = useState(hoy);
   const [vendidoPor, setVendidoPor] = useState(socioActual);
   const [nota, setNota] = useState("");
+  // Cliente nuevo (se crea recién al guardar, junto con la venta). Su UUID se genera al confirmarlo.
+  const [clienteNuevo, setClienteNuevo] = useState<{ id: string; nombre: string; telefono: string; direccion: string } | null>(null);
+  const [creando, setCreando] = useState<{ nombre: string; telefono: string; direccion: string } | null>(null);
+  // Cliente existente que no estaba en la lista al abrir la pantalla (lo creó otro socio mientras tanto).
+  const [extra, setExtra] = useState<{ id: string; nombre: string } | null>(null);
 
   const productos = useMemo(() => new Map(datos.productos.map((p) => [p.id, p])), [datos.productos]);
   const precios = useMemo(() => ({ especiales: datos.especiales, ultimos: datos.ultimos }), [datos.especiales, datos.ultimos]);
-  const cliente = datos.clientes.find((c) => c.id === clienteId);
-  const resumen = useMemo(() => resumirCarrito(items, productos, Boolean(cliente)), [items, productos, cliente]);
+  const cliente = datos.clientes.find((c) => c.id === clienteId) ?? (extra?.id === clienteId ? extra : undefined);
+  // El cliente al que se le vende: uno existente o el nuevo (los precios se proponen con su id: el nuevo no tiene
+  // precios especiales ni último precio, así que salen los generales).
+  const idElegido = clienteNuevo?.id ?? clienteId;
+  const hayCliente = Boolean(cliente || clienteNuevo);
+  const resumen = useMemo(() => resumirCarrito(items, productos, hayCliente), [items, productos, hayCliente]);
+  const conocidos = useMemo(() => [...datos.clientes, ...datos.archivados.map((c) => ({ ...c, archivado: true }))], [datos.clientes, datos.archivados]);
+  const problemaNuevo = creando ? problemaClienteNuevo(creando, conocidos) : null;
   const enCarrito = new Map(items.map((i) => [i.productoId, i]));
 
   const elegirCliente = (cId: string) => {
     setClienteId(cId);
+    setClienteNuevo(null);
+    setCreando(null);
     setBusquedaCliente("");
     setItems((l) => reproponerPrecios(l, cId, productos, precios));
   };
-  const sumar = (productoId: string, delta: number) => setItems((l) => cambiarCantidad(l, productoId, delta, { clienteId, productos, precios }));
+  const confirmarClienteNuevo = () => {
+    if (!creando || problemaNuevo) return;
+    const nuevo = { id: nuevoUuid(), nombre: limpiarNombre(creando.nombre), telefono: creando.telefono.trim(), direccion: limpiarNombre(creando.direccion) };
+    setClienteNuevo(nuevo);
+    setClienteId("");
+    setCreando(null);
+    setBusquedaCliente("");
+    setItems((l) => reproponerPrecios(l, nuevo.id, productos, precios));
+  };
+  const usarExistente = (c: { id: string; nombre: string }) => {
+    if (!datos.clientes.some((x) => x.id === c.id)) setExtra({ id: c.id, nombre: c.nombre });
+    elegirCliente(c.id);
+  };
+  const cambiarCliente = () => {
+    setClienteId("");
+    setClienteNuevo(null);
+  };
+  const sumar = (productoId: string, delta: number) =>
+    setItems((l) => cambiarCantidad(l, productoId, delta, { clienteId: idElegido, productos, precios }));
   const cambiarPrecio = (productoId: string, precio: string) => setItems((l) => l.map((i) => (i.productoId === productoId ? { ...i, precio } : i)));
 
   const clientesFiltrados = datos.clientes.filter((c) => coincide(c.nombre, busquedaCliente)).slice(0, 8);
+  const paraCrear = textoParaCrear(busquedaCliente);
   const productosFiltrados = datos.productos.filter((p) => coincide(p.nombre, busquedaProducto));
   const nombreSocio = datos.socios.find((s) => s.id === vendidoPor)?.nombre ?? "";
   const textoOpciones = `${fecha === hoy ? "Hoy" : formatearDia(fecha)} · vendió ${nombreSocio} · ${nota.trim() ? `nota: “${nota.trim()}”` : "sin nota"}`;
-  const datosJson = JSON.stringify({ id, clienteId, vendidoPor, fecha, nota, items: items.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad, precio: i.precio })) });
+  const datosJson = JSON.stringify({
+    id,
+    clienteId: idElegido,
+    clienteNuevo: clienteNuevo ? { nombre: clienteNuevo.nombre, telefono: clienteNuevo.telefono, direccion: clienteNuevo.direccion } : null,
+    vendidoPor,
+    fecha,
+    nota,
+    items: items.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad, precio: i.precio })),
+  });
 
   const saldo = cliente ? (datos.saldos[cliente.id] ?? 0) : 0;
-  const tarjetaCliente = cliente ? (
+  const campo = "min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3 text-texto";
+  const avisoDuplicado = (existente: { id: string; nombre: string; archivado?: boolean }, mensaje: string) => (
+    <div role="alert" className="aviso-aparecer flex flex-col gap-2 rounded-[14px] bg-aviso-suave px-3 py-2.5 text-[0.85rem] leading-snug">
+      <span>
+        <b className="text-aviso">{mensaje}</b>
+        {existente.archivado && <> “{existente.nombre}” está archivado: desarchivalo desde su ficha para venderle.</>}
+      </span>
+      {existente.archivado ? (
+        <Link href={`/clientes/${existente.id}`} className="font-semibold text-acento">
+          Ver la ficha de {existente.nombre} ›
+        </Link>
+      ) : (
+        <button type="button" onClick={() => usarExistente(existente)} className="boton-toque min-h-[44px] w-full rounded-[12px] bg-acento font-bold text-acento-texto">
+          Usar a {existente.nombre}
+        </button>
+      )}
+    </div>
+  );
+
+  const tarjetaCliente = clienteNuevo ? (
+    <div className="flex items-center justify-between gap-3 rounded-[20px] border border-borde bg-superficie px-3.5 py-3 shadow-tarjeta">
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar nombre={clienteNuevo.nombre} />
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate font-bold">{clienteNuevo.nombre}</span>
+          <span className="truncate text-[0.82rem] text-acento">
+            Cliente nuevo
+            {[clienteNuevo.telefono, clienteNuevo.direccion].filter(Boolean).map((d) => (
+              <span key={d} className="text-texto-suave">
+                {" "}
+                · {d}
+              </span>
+            ))}
+          </span>
+        </div>
+      </div>
+      <button type="button" onClick={cambiarCliente} className="min-h-[44px] px-1 text-[0.82rem] font-semibold text-acento">
+        Cambiar
+      </button>
+    </div>
+  ) : creando ? (
+    <div className="flex flex-col gap-3 rounded-[20px] border border-borde bg-superficie p-4 shadow-tarjeta" aria-label="Cliente nuevo">
+      <span className="text-[1.05rem] font-bold">Cliente nuevo</span>
+      <label className="flex flex-col gap-1">
+        <span className="text-[0.85rem] font-semibold">Nombre</span>
+        <input
+          value={creando.nombre}
+          onChange={(e) => setCreando({ ...creando, nombre: e.target.value })}
+          maxLength={MAXIMO_NOMBRE + 10}
+          autoComplete="off"
+          autoFocus
+          aria-label="Nombre del cliente nuevo"
+          className={campo}
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[0.85rem] font-semibold">Teléfono (opcional)</span>
+        <input
+          value={creando.telefono}
+          onChange={(e) => setCreando({ ...creando, telefono: e.target.value })}
+          inputMode="tel"
+          autoComplete="off"
+          maxLength={MAXIMO_TELEFONO + 5}
+          placeholder="Ej: 381 15 555-1234"
+          aria-label="Teléfono del cliente nuevo"
+          className={campo}
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[0.85rem] font-semibold">Dirección (opcional)</span>
+        <input
+          value={creando.direccion}
+          onChange={(e) => setCreando({ ...creando, direccion: e.target.value })}
+          autoComplete="off"
+          maxLength={MAXIMO_DIRECCION + 10}
+          placeholder="Ej: San Martín 450, Yerba Buena"
+          aria-label="Dirección del cliente nuevo"
+          className={campo}
+        />
+      </label>
+      <p className="text-[0.72rem] text-texto-suave">Se guarda junto con la venta. Visitas, notas y lo demás se completan después desde su ficha.</p>
+      {problemaNuevo?.tipo === "duplicado"
+        ? avisoDuplicado(problemaNuevo.existente, problemaNuevo.mensaje)
+        : problemaNuevo && creando.nombre.trim() !== "" && <p className="text-[0.82rem] text-peligro">{problemaNuevo.mensaje}</p>}
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={() => setCreando(null)} className="boton-toque min-h-[48px] rounded-[14px] border border-borde bg-superficie font-bold">
+          Cancelar
+        </button>
+        <button type="button" onClick={confirmarClienteNuevo} disabled={problemaNuevo !== null} className="boton-toque min-h-[48px] rounded-[14px] bg-acento font-bold text-acento-texto disabled:opacity-50">
+          Listo
+        </button>
+      </div>
+    </div>
+  ) : cliente ? (
     <div className="flex items-center justify-between gap-3 rounded-[20px] border border-borde bg-superficie px-3.5 py-3 shadow-tarjeta">
       <div className="flex min-w-0 items-center gap-3">
         <Avatar nombre={cliente.nombre} />
@@ -70,7 +204,7 @@ export function FormularioVenta({
           </span>
         </div>
       </div>
-      <button type="button" onClick={() => setClienteId("")} className="min-h-[44px] px-1 text-[0.82rem] font-semibold text-acento">
+      <button type="button" onClick={cambiarCliente} className="min-h-[44px] px-1 text-[0.82rem] font-semibold text-acento">
         Cambiar
       </button>
     </div>
@@ -88,6 +222,19 @@ export function FormularioVenta({
         />
       </label>
       <ul className="flex flex-col divide-y divide-borde">
+        {/* Siempre primero, sin tener que escribir nada (pedido de los socios). Si hay algo escrito, lo usa de nombre. */}
+        <li>
+          <button
+            type="button"
+            onClick={() => setCreando({ nombre: paraCrear ?? "", telefono: "", direccion: "" })}
+            className="flex w-full items-center gap-3 py-2.5 text-left font-bold text-acento"
+          >
+            <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-acento text-[1.3rem] leading-none">
+              +
+            </span>
+            <span className="min-w-0 break-words">{paraCrear ? <>Crear “{paraCrear}” como cliente nuevo</> : "Crear cliente nuevo"}</span>
+          </button>
+        </li>
         {clientesFiltrados.map((c) => {
           const s = datos.saldos[c.id] ?? 0;
           return (
@@ -158,8 +305,10 @@ export function FormularioVenta({
 
   const guardar = (
     <>
-      {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
-      {resumen.problema && (items.length > 0 || cliente) && <p className="text-center text-[0.82rem] text-peligro">{resumen.problema}</p>}
+      {estado.duplicado && clienteNuevo
+        ? avisoDuplicado(estado.duplicado, estado.error ?? "")
+        : estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
+      {resumen.problema && (items.length > 0 || hayCliente) && <p className="text-center text-[0.82rem] text-peligro">{resumen.problema}</p>}
       <button
         type="submit"
         disabled={resumen.problema !== null || enviando}
@@ -200,7 +349,7 @@ export function FormularioVenta({
             {productosFiltrados.map((p) => {
               const item = enCarrito.get(p.id);
               const fila = resumen.filas.find((f) => f.productoId === p.id);
-              const propuesto = proponerPrecio(p.id, clienteId, productos, precios);
+              const propuesto = proponerPrecio(p.id, idElegido, productos, precios);
               const origen = item ? item.origen : propuesto.origen;
               return (
                 <li key={p.id} className="flex items-center justify-between gap-3 py-3">

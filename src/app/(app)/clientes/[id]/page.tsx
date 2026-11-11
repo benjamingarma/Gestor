@@ -91,6 +91,10 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
             <dt className="text-[0.82rem] text-texto-suave">Teléfono</dt>
             <dd className="font-semibold break-words">{cliente.telefono ?? "—"}</dd>
           </div>
+          <div className="col-span-2">
+            <dt className="text-[0.82rem] text-texto-suave">Dirección</dt>
+            <dd className="font-semibold break-words">{cliente.direccion ?? "—"}</dd>
+          </div>
         </dl>
         {cliente.notas && <p className="whitespace-pre-line text-base">{cliente.notas}</p>}
       </section>
@@ -165,6 +169,7 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
               id: cliente.id,
               nombre: cliente.nombre,
               telefono: cliente.telefono ?? "",
+              direccion: cliente.direccion ?? "",
               notas: cliente.notas ?? "",
               intervalo: String(cliente.intervaloDias),
             }}

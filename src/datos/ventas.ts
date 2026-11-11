@@ -36,6 +36,8 @@ export type ProductoVendible = {
 
 export type DatosNuevaVenta = {
   clientes: { id: string; nombre: string }[];
+  /** Clientes archivados: no se les vende, pero sus nombres cuentan para no repetir un cliente nuevo. */
+  archivados: { id: string; nombre: string }[];
   productos: ProductoVendible[];
   socios: { id: string; nombre: string }[];
   /** clienteId -> productoId -> precio */
@@ -47,7 +49,7 @@ export type DatosNuevaVenta = {
 
 export async function datosParaNuevaVenta(negocioId: string): Promise<DatosNuevaVenta> {
   const supabase = await crearClienteSupabase();
-  const [clientes, productos, compras, socios, especiales, ultimos, saldos] = await Promise.all([
+  const [clientes, productos, compras, socios, especiales, ultimos, saldos, archivados] = await Promise.all([
     supabase.from("clientes").select("id, nombre").eq("negocio_id", negocioId).is("archivado_en", null).order("nombre"),
     supabase
       .from("v_stock_productos")
@@ -67,8 +69,9 @@ export async function datosParaNuevaVenta(negocioId: string): Promise<DatosNueva
     supabase.from("precios_especiales").select("cliente_id, producto_id, precio").eq("negocio_id", negocioId),
     supabase.from("v_ultimo_precio_cliente").select("cliente_id, producto_id, precio_unitario").eq("negocio_id", negocioId),
     listarSaldos(negocioId),
+    supabase.from("clientes").select("id, nombre").eq("negocio_id", negocioId).not("archivado_en", "is", null),
   ]);
-  for (const r of [clientes, productos, compras, socios, especiales, ultimos]) {
+  for (const r of [clientes, productos, compras, socios, especiales, ultimos, archivados]) {
     if (r.error) fallar("No se pudieron leer los datos para vender", r.error);
   }
 
@@ -93,6 +96,7 @@ export async function datosParaNuevaVenta(negocioId: string): Promise<DatosNueva
 
   return {
     clientes: clientes.data ?? [],
+    archivados: archivados.data ?? [],
     socios: socios.data ?? [],
     productos: (productos.data ?? []).map((p) => ({
       id: p.producto_id,

@@ -35,6 +35,15 @@ export function FormularioCliente({ accion, inicial, textoBoton }: Props) {
         ayuda="Si no ponés característica, se asume 381 para WhatsApp."
       />
       <Campo
+        etiqueta="Dirección (opcional)"
+        name="direccion"
+        autoComplete="off"
+        maxLength={210}
+        defaultValue={v?.direccion}
+        error={e.direccion}
+        placeholder="Ej: San Martín 450, Yerba Buena"
+      />
+      <Campo
         etiqueta="Visitar cada (días)"
         name="intervalo"
         inputMode="numeric"
@@ -50,7 +59,7 @@ export function FormularioCliente({ accion, inicial, textoBoton }: Props) {
           rows={3}
           maxLength={1000}
           className="rounded-[20px] border border-borde bg-superficie shadow-tarjeta px-4 py-3 text-lg"
-          placeholder="Ej: dirección, horario, preferencias"
+          placeholder="Ej: horario, preferencias"
         />
         {e.notas && <span className="text-[0.82rem] text-peligro">{e.notas}</span>}
       </label>

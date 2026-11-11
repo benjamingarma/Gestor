@@ -195,6 +195,72 @@ return esperado;
   revisar(faltaSin === faltaAntes, `Ventas: "De estas ventas falta cobrar" volvió a $ ${faltaSin / 100} al deshacer`);
   revisar(conCobro["nos-deben"] === sinCobro["nos-deben"] - 400000 && conCobro["cobrado-mes"] === sinCobro["cobrado-mes"] + 400000, "el cobro movió exactamente $ 4.000 en Nos deben y en Cobrado del mes");
 }
+// 6. Venta a un cliente nuevo desde "Nueva venta" (registrar_venta_cliente_nuevo).
+{
+  const enBaseTexto = (consulta) => execFileSync("psql", [DB_URL, "-tAq", "-c", consulta]).toString().trim();
+  const revisar = (ok, texto) => {
+    console.log(`${ok ? "OK   " : "FALLA"} ${texto}`);
+    if (!ok) errores.push(texto);
+  };
+  const visible = (sel) => pagina.locator(sel).filter({ visible: true }).first();
+  const producto = (await pagina.goto(`${BASE}/ventas/nueva`), await pagina.locator("li", { has: pagina.locator('button[aria-label^="Agregar Humo"]') }).first().locator("span.font-bold").textContent())?.trim();
+  const crearCliente = async (nombre, telefono = "", direccion = "") => {
+    await visible('input[aria-label="Buscar cliente"]').fill(nombre);
+    await visible(`button:has-text("como cliente nuevo")`).click();
+    if (telefono) await visible('input[aria-label="Teléfono del cliente nuevo"]').fill(telefono);
+    if (direccion) await visible('input[aria-label="Dirección del cliente nuevo"]').fill(direccion);
+  };
+
+  // La opción "Crear cliente nuevo" está arriba de la lista sin escribir nada (pedido de los socios).
+  const primera = (await pagina.locator('ul:has(button:has-text("Crear cliente nuevo"))').filter({ visible: true }).first().locator("li").first().textContent())?.trim();
+  revisar(primera === "+Crear cliente nuevo", `sin escribir nada, la primera opción de la lista de clientes es "Crear cliente nuevo" (${primera})`);
+
+  // 6a. Cliente nuevo + venta, con un producto cargado ANTES de crear el cliente (no se pierde). Doble toque al guardar.
+  const nombreNuevo = `Humo nuevo ${Date.now()}`;
+  await pagina.click(`button[aria-label="Agregar ${producto}"]`);
+  await crearCliente(nombreNuevo, "381 555-0000", "  San Martín   450 ");
+  await visible('button:has-text("Listo")').click();
+  revisar(await visible("text=Cliente nuevo").isVisible(), "la tarjeta muestra el cliente elegido como \"Cliente nuevo\"");
+  const precio = await pagina.inputValue(`input[aria-label="Precio de ${producto}"]`);
+  revisar(precio === "10.000", `el producto cargado antes sigue en la venta, con el precio general ($ ${precio})`);
+  await pagina.locator("button[type=submit]:visible", { hasText: "Guardar venta" }).dblclick();
+  await pagina.waitForURL(/\/ventas\/[0-9a-f-]{36}\/guardada$/, { timeout: 20_000 });
+  const ventaId = pagina.url().split("/").at(-2);
+  const creado = enBaseTexto(`select count(*) || '|' || coalesce(max(c.telefono), '') || '|' || coalesce(max(c.direccion), '') || '|' || bool_and(c.es_prueba)
+    || '|' || (select count(*) from public.ventas v where v.cliente_id = max(c.id::text)::uuid) from public.clientes c where c.nombre = '${nombreNuevo}'`);
+  revisar(creado === "1|381 555-0000|San Martín 450|true|1", `doble toque en Guardar: un solo cliente nuevo (con teléfono, dirección limpia, dato de prueba) y una sola venta (${creado})`);
+  const clienteNuevoId = enBaseTexto(`select id from public.clientes where nombre = '${nombreNuevo}'`);
+  await pagina.goto(`${BASE}/clientes/${clienteNuevoId}`);
+  revisar(await pagina.getByText("San Martín 450").first().isVisible(), "la ficha del cliente nuevo muestra su dirección");
+  await pagina.goto(`${BASE}/ventas/${ventaId}/guardada`);
+  const deLaVenta = enBaseTexto(`select c.nombre from public.ventas v join public.clientes c on c.id = v.cliente_id where v.id = '${ventaId}'`);
+  revisar(deLaVenta === nombreNuevo, "la venta quedó a nombre del cliente nuevo");
+
+  // 6b. Nombre repetido escrito distinto: avisa y ofrece usar el existente.
+  await pagina.goto(`${BASE}/ventas/nueva`);
+  await crearCliente(nombreNuevo.toUpperCase());
+  const aviso = await visible("text=Ya existe un cliente con ese nombre").isVisible();
+  const listo = await visible('button:has-text("Listo")').isDisabled();
+  await visible(`button:has-text("Usar a ${nombreNuevo}")`).click();
+  const elegido = await visible("span.truncate.font-bold").textContent();
+  revisar(aviso && listo && elegido?.trim() === nombreNuevo, "nombre repetido (en mayúsculas): avisa, no deja crearlo y \"Usar a …\" elige el existente");
+
+  // 6c. La venta falla (el stock se agotó mientras se cargaba): no queda el cliente nuevo.
+  await pagina.goto(`${BASE}/ventas/nueva`);
+  const huerfano = `Humo huérfano ${Date.now()}`;
+  await pagina.click(`button[aria-label="Agregar ${producto}"]`);
+  await crearCliente(huerfano);
+  await visible('button:has-text("Listo")').click();
+  const quedan = Number(enBaseTexto(`select unidades from public.v_stock_productos where producto_id = '${ids.producto}'`));
+  execFileSync("psql", [DB_URL, "-q", "-v", "ON_ERROR_STOP=1", "-c", `begin; set local role authenticated;
+    select set_config('request.jwt.claims', '{"sub":"${userId}","role":"authenticated"}', true);
+    select public.registrar_ajuste('${randomUUID()}', '${NEGOCIO}', '${ids.producto}', ${quedan}, 'regalo'); commit;`]);
+  await pagina.locator("button[type=submit]:visible", { hasText: "Guardar venta" }).click();
+  const error = await pagina.getByRole("alert").filter({ hasText: /stock/i }).first().waitFor({ timeout: 20_000 }).then(() => true, () => false);
+  const quedoCliente = enBaseTexto(`select count(*) from public.clientes where nombre = '${huerfano}'`);
+  revisar(error && quedoCliente === "0", `venta que falla por falta de stock: muestra el error y no deja el cliente nuevo (clientes: ${quedoCliente})`);
+}
+
 await navegador.close();
 
 if (errores.length > 0) {

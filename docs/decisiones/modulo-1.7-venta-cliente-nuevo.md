@@ -46,3 +46,16 @@ venta falla, e idempotente ante el doble toque de "Guardar".
   (la anterior no la usaba ninguna pantalla todavía). Mismo comportamiento y permisos.
 - Pruebas pgTAP en `07_venta_cliente_nuevo.test.sql` (dirección limpia, en blanco, de más de 200, edición por un
   socio y que un socio de otro negocio no pueda cambiarla).
+## Pantalla (PR B)
+- `src/dominio/clienteNuevo.ts` (con Vitest): opción `Crear "…" como cliente nuevo` siempre que haya algo escrito
+  en el buscador (también con coincidencias parciales); duplicados con la misma regla que la base, incluidos los
+  archivados (a esos no se les puede vender: se ofrece ir a su ficha para desarchivarlos).
+- En "Nueva venta" se pide nombre y teléfono opcional; el cliente queda elegido como "Cliente nuevo", los precios
+  se proponen con su id (sin especiales ni último precio: salen los generales) y no se pierde lo ya cargado.
+- Al guardar, `registrarVenta` llama a `registrar_venta_cliente_nuevo`; si otro socio creó ese nombre mientras
+  tanto, la base devuelve el existente (`hint = cliente_duplicado`) y la pantalla ofrece "Usar a …".
+- "Nueva venta" ya no exige tener clientes cargados (solo productos con stock).
+- "Crear cliente nuevo" es siempre la primera opción de la lista, sin tener que escribir (pedido del 11/11/2026).
+- Dirección (opcional) al crear el cliente desde la venta, en "Nuevo cliente", en "Editar cliente" y en la ficha.
+- Prueba de humo: venta a cliente nuevo con doble toque, nombre repetido en mayúsculas y venta que falla porque el
+  stock se agotó mientras se cargaba (no queda el cliente). Capturas en `docs/maquetas/comparaciones/venta-cliente-nuevo/`.
