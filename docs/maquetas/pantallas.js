@@ -47,9 +47,32 @@ function barraLateral(activo) {
 }
 
 // ------------------------------------------------------------------ Inicio
-const inicioResumen = (pc) => `
-  <div class="tarjeta col gap12">
-    <div class="fila"><span class="titulo">Noviembre</span><span class="enlace chico">Ver resumen completo ›</span></div>
+// Torta "de lo vendido, cuánto es costo y cuánto ganancia" (pedido del 11/11/2026).
+// Dos porciones: ganancia de las ventas (vendido − costo) y costo de la mercadería. Números siempre escritos.
+function torta(ganancia, costo, tam) {
+  const total = ganancia + costo;
+  const pg = (ganancia / total) * 100;
+  const hueco = 0.8; // separación de 2px (aprox.) entre porciones, color de la tarjeta
+  const arco = (desde, largo, clase) =>
+    `<circle class="${clase}" cx="50" cy="50" r="40" pathLength="100" stroke-dasharray="${Math.max(largo - hueco, 0)} ${100 - Math.max(largo - hueco, 0)}" stroke-dashoffset="${-desde - hueco / 2}" transform="rotate(-90 50 50)"/>`;
+  return `<svg class="torta" viewBox="0 0 100 100" width="${tam}" height="${tam}" role="img" aria-label="De $ 199.000 vendidos, $ 74.000 son ganancia de las ventas (37 %) y $ 125.000 costo de la mercadería (63 %)">
+    ${arco(0, pg, "porcion-ganancia")}${arco(pg, 100 - pg, "porcion-costo")}
+    <text x="50" y="46" text-anchor="middle" class="torta-chico">Vendido</text>
+    <text x="50" y="59" text-anchor="middle" class="torta-num">$ 199.000</text>
+  </svg>`;
+}
+
+const leyendaTorta = `
+  <div class="col gap12" style="min-width:0">
+    <div class="col gap4"><span class="fila" style="justify-content:flex-start;gap:8px"><span class="muestra muestra-ganancia"></span><span class="chico fuerte">Ganancia</span></span>
+      <span class="medio num" style="padding-left:20px;white-space:nowrap">$ 74.000</span><span class="mini suave" style="padding-left:20px">37 % de lo vendido</span></div>
+    <div class="col gap4"><span class="fila" style="justify-content:flex-start;gap:8px"><span class="muestra muestra-costo"></span><span class="chico fuerte">Costo de la mercadería</span></span>
+      <span class="medio num" style="padding-left:20px;white-space:nowrap">$ 125.000</span><span class="mini suave" style="padding-left:20px">63 % · es capital para reponer</span></div>
+  </div>`;
+
+const cuentaTorta = `<span class="mini suave num">$ 199.000 vendido − $ 125.000 de costo = <b style="color:var(--texto)">$ 74.000 de ganancia</b>, se haya cobrado o no.</span>`;
+
+const numerosMes = (pc) => `
     <div class="${pc ? "tres" : "col gap12"}">
       <div class="col gap4"><span class="suave chico">Vendido</span><span class="medio num">$ 199.000</span><span class="mini suave">12 ventas · 31 u</span></div>
       ${pc ? "" : '<div class="sep"></div>'}
@@ -57,7 +80,48 @@ const inicioResumen = (pc) => `
       ${pc ? "" : '<div class="sep"></div>'}
       <div class="col gap4"><span class="suave chico">Ganancia neta</span><span class="medio num acento">$ 67.000</span><span class="mini suave">$ 74.000 de ventas − $ 7.000 de pérdidas</span></div>
     </div>
+    <div class="aviso"><span>ⓘ</span><span><b>La ganancia no es plata disponible.</b> Parte todavía nos la deben y el costo de la mercadería es capital para reponer.</span></div>`;
+
+const inicioResumen = (pc) => pc ? `
+  <div class="tarjeta col gap16">
+    <div class="col gap4"><span class="titulo">Noviembre</span><span class="chico suave">De lo que se vendió, cuánto es costo y cuánto es ganancia</span></div>
+    <div style="display:grid;grid-template-columns:auto 1fr 1.6fr;gap:28px;align-items:center">
+      ${torta(74000, 125000, 168)}
+      ${leyendaTorta}
+      <div class="col gap12">${numerosMes(true)}</div>
+    </div>
+    ${cuentaTorta}
+    <span class="enlace chico">Ver resumen completo ›</span>
+  </div>` : `
+  <div class="tarjeta col gap12">
+    <div class="col gap4"><span class="titulo">Noviembre</span><span class="chico suave">De lo que se vendió, cuánto es costo y cuánto es ganancia</span></div>
+    <div class="fila" style="justify-content:flex-start;gap:16px">${torta(74000, 125000, 136)}${leyendaTorta}</div>
+    ${cuentaTorta}
+    <div class="sep"></div>
+    ${numerosMes(false)}
+    <span class="enlace chico">Ver resumen completo ›</span>
+  </div>`;
+
+// Estados especiales de la sección (sin ventas, o ventas por debajo del costo): mensaje en vez de torta.
+const resumenSinVentas = `
+  <div class="tarjeta col gap12">
+    <div class="col gap4"><span class="titulo">Noviembre</span><span class="chico suave">De lo que se vendió, cuánto es costo y cuánto es ganancia</span></div>
+    <div class="vacio"><span class="fuerte">Todavía no hay ventas en noviembre.</span><span class="chico suave">El gráfico aparece con la primera venta del mes.</span></div>
+    <div class="sep"></div>
+    <div class="col gap12">
+      <div class="col gap4"><span class="suave chico">Vendido</span><span class="medio num">$ 0</span><span class="mini suave">0 ventas · 0 u</span></div><div class="sep"></div>
+      <div class="col gap4"><span class="suave chico">Cobrado</span><span class="medio num">$ 15.000</span><span class="mini suave">Papá $ 15.000</span></div><div class="sep"></div>
+      <div class="col gap4"><span class="suave chico">Ganancia neta</span><span class="medio num acento">$ 0</span><span class="mini suave">$ 0 de ventas − $ 0 de pérdidas</span></div>
+    </div>
     <div class="aviso"><span>ⓘ</span><span><b>La ganancia no es plata disponible.</b> Parte todavía nos la deben y el costo de la mercadería es capital para reponer.</span></div>
+    <span class="enlace chico">Ver resumen completo ›</span>
+  </div>`;
+const resumenBajoCosto = `
+  <div class="tarjeta col gap12">
+    <div class="col gap4"><span class="titulo">Noviembre</span><span class="chico suave">De lo que se vendió, cuánto es costo y cuánto es ganancia</span></div>
+    <div class="vacio"><span class="fuerte">Este mes se vendió por debajo del costo.</span><span class="chico suave num">Se vendió $ 12.000 y la mercadería costó $ 14.500: las ventas dieron $ 2.500 de pérdida.</span></div>
+    <span class="mini suave" style="border:1px dashed var(--borde);border-radius:10px;padding:8px;text-align:center">(maqueta: debajo siguen Vendido, Cobrado, Ganancia neta y el aviso, igual que en el caso normal)</span>
+    <span class="enlace chico">Ver resumen completo ›</span>
   </div>`;
 
 const aVisitar = `
@@ -86,8 +150,9 @@ function inicioMovil() {
       <span style="font-size:1.4rem;font-weight:750">Hola, Benjamín</span>
     </div>
     <div class="cuerpo col gap12" style="margin-top:-28px">
-      ${nosDeben}${aVisitar}${inicioResumen(false)}
+      ${nosDeben}${aVisitar}
       <div class="tarjeta fila"><span class="fuerte">Capital en mercadería</span><span class="col" style="align-items:flex-end"><span class="fuerte num">USD 94,00</span><span class="chico suave num">$ 135.500</span></span></div>
+      ${inicioResumen(false)}
     </div>
     ${barraInferior("inicio")}
   </div>`;
@@ -98,7 +163,7 @@ function inicioPc() {
     <div class="fila"><div class="col"><span class="suave chico">lunes 9 de noviembre</span><span style="font-size:1.6rem;font-weight:800">Hola, Benjamín</span></div>
       <div class="buscador" style="width:320px;background:var(--superficie);border:1px solid var(--borde)">${I.buscar}<span>Buscar cliente o producto</span></div></div>
     <div class="pc-grid">
-      <div class="col gap16">${nosDeben}${inicioResumen(true)}
+      <div class="col gap16">${nosDeben}
         <div class="tarjeta fila"><span class="fuerte">Capital en mercadería</span><span class="fila"><span class="fuerte num">USD 94,00</span><span class="suave num">$ 135.500</span></span></div>
       </div>
       <div class="col gap16">${aVisitar}
@@ -107,7 +172,15 @@ function inicioPc() {
         </div>
       </div>
     </div>
+    ${inicioResumen(true)}
   </main></div>`;
+}
+
+function estadosResumenMovil() {
+  return `<div class="pantalla" style="background:var(--fondo)"><div class="cuerpo col gap16" style="padding-top:16px">
+    <span class="chico suave fuerte">Sin ventas en el mes</span>${resumenSinVentas}
+    <span class="chico suave fuerte">Vendido por debajo del costo</span>${resumenBajoCosto}
+  </div></div>`;
 }
 
 // ------------------------------------------------------------------ Venta
@@ -245,5 +318,5 @@ function masMovil() {
   </div>`;
 }
 
-const MOVIL = { inicio: inicioMovil, venta: ventaMovil, "cobro-lista": cobroListaMovil, cobro: cobroMovil, guardado: guardadoMovil, mas: masMovil };
+const MOVIL = { inicio: inicioMovil, "inicio-estados": estadosResumenMovil, venta: ventaMovil, "cobro-lista": cobroListaMovil, cobro: cobroMovil, guardado: guardadoMovil, mas: masMovil };
 const PC = { inicio: inicioPc, venta: ventaPc, cobro: cobroPc };

@@ -32,6 +32,14 @@ Los números son **inventados** y no coinciden entre sí. En la app todo sale de
    medio de pago y quién recibió preseleccionados con el último usado, "Le queda debiendo" en vivo, Guardar.
 4. **Confirmación al guardar:** ✓ animado, monto y resumen, "Listo" y "Deshacer (anular)".
 5. **Más:** ver arriba.
+6. **Gráfico del mes en Inicio** (propuesta del 11/11/2026, **pendiente de aprobación**): el resumen del mes pasa a ser
+   la **última sección** del Inicio (en PC, a todo el ancho debajo de las dos columnas). Arriba, una **torta** con lo
+   vendido en el mes partido en **Ganancia** (vendido − costo de la mercadería) y **Costo de la mercadería**, con los
+   montos y porcentajes escritos al lado y la cuenta "$ vendido − $ costo = $ ganancia, se haya cobrado o no".
+   Debajo, como antes: Vendido, Cobrado, Ganancia neta, el aviso "La ganancia no es plata disponible" y
+   "Ver resumen completo ›". Sin ventas en el mes, o con ventas por debajo del costo, la torta se reemplaza por un
+   mensaje (pantalla `1b`). Colores de la torta (`--graf-ganancia`, `--graf-costo`) validados para daltonismo y
+   contraste en los dos temas.
 
 ## Decisiones de los socios (10/11/2026)
 1. La app pasa a llamarse **McStock**.

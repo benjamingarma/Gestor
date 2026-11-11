@@ -78,3 +78,18 @@ body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-se
 .logo { width: 28px; height: 28px; border-radius: 9px; background: var(--acento); color: var(--acento-texto); display: grid; place-items: center; font-size: .8rem; font-weight: 900; }
 svg.i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .prueba { background: #f5c451; color: #1b1500; text-align: center; font-weight: 700; font-size: .7rem; padding: 4px 8px; }
+
+/* Gráfico de torta del Inicio (ganancia de las ventas / costo de la mercadería). Colores validados para
+   daltonismo y contraste ≥ 3:1 contra la tarjeta, cada tema con sus propios tonos. */
+:root { --graf-ganancia: #13866d; --graf-costo: #5d6ed8; }
+@media (prefers-color-scheme: dark) { :root { --graf-ganancia: #2f9e85; --graf-costo: #8b84ec; } }
+.torta { flex: none; }
+.torta circle { fill: none; stroke-width: 18; }
+.porcion-ganancia { stroke: var(--graf-ganancia); }
+.porcion-costo { stroke: var(--graf-costo); }
+.torta-chico { font-size: 8px; fill: var(--texto-suave); }
+.torta-num { font-size: 11px; font-weight: 800; fill: var(--texto); font-variant-numeric: tabular-nums; }
+.muestra { width: 12px; height: 12px; border-radius: 4px; flex: none; }
+.muestra-ganancia { background: var(--graf-ganancia); }
+.muestra-costo { background: var(--graf-costo); }
+.vacio { display: flex; flex-direction: column; gap: 4px; padding: 16px; border-radius: 14px; background: var(--superficie-2); text-align: center; }

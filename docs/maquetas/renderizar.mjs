@@ -12,11 +12,11 @@ const img = join(dir, "imagenes");
 const b = await chromium.launch();
 for (const tema of ["light", "dark"]) {
   const n = tema === "light" ? "claro" : "oscuro";
-  const m = await (await b.newContext({ viewport: { width: 2600, height: 1340 }, colorScheme: tema })).newPage();
+  const m = await (await b.newContext({ viewport: { width: 3060, height: 1760 }, colorScheme: tema })).newPage();
   await m.goto(`file://${dir}/movil.html`);
   await m.screenshot({ path: join(img, `celular-${n}.png`), fullPage: true });
   for (const p of ["inicio", "venta", "cobro"]) {
-    const pc = await (await b.newContext({ viewport: { width: 1366, height: 768 }, colorScheme: tema })).newPage();
+    const pc = await (await b.newContext({ viewport: { width: 1366, height: p === "inicio" ? 1100 : 768 }, colorScheme: tema })).newPage();
     await pc.goto(`file://${dir}/pc.html?p=${p}`);
     await pc.screenshot({ path: join(img, `pc-${p}-${n}.png`) });
   }
