@@ -1,4 +1,4 @@
-# Plan del sistema de gestión — Versión 3.2
+# Plan del sistema de gestión — Versión 3.3
 
 > Estado: **aprobado** por los socios (versión 2) con las correcciones de la versión 3:
 > producto sin sabor, costo de compra en dólares (blue) con tipo de cambio por compra,
@@ -8,6 +8,9 @@
 > Versión 3.2 (13/11/2026): estado real de avance (módulos 1.0 a 1.5 terminados) y módulo nuevo
 > **1.7 Simplificación del diseño**, entre los ajustes de stock y la importación CSV. Por eso la
 > importación pasa a ser el 1.8, los backups el 1.9 y el pasaje a producción el 1.10.
+> Versión 3.3 (11/11/2026): estado del 1.7 (PR 1 a 4 y venta a cliente nuevo mergeados), pendientes acordados
+> del 1.7 y **cambio de decisión: el producto puede tener sabor opcional** (revierte "producto sin sabor",
+> decisión 11 y T1; ver 12.3).
 > Notas para retomar el trabajo en una sesión nueva: `docs/notas-de-sesion.md`.
 > Donde las versiones anteriores digan otra cosa, manda esta.
 
@@ -46,7 +49,8 @@ retiros por socio.
 
 ### Fuera de alcance
 Modo offline y sincronización, mapas, proveedores, gastos, finanzas avanzadas, productos que no
-sean vapers (la estructura queda preparada, nada más), sabores.
+sean vapers (la estructura queda preparada, nada más). ~~Sabores~~: **revertido el 11/11/2026**, el producto
+tendrá sabor opcional (ver 12.3).
 
 ### Reglas de implementación
 UUID generados en el cliente · operaciones idempotentes · inventario solo por movimientos ·
@@ -74,6 +78,7 @@ ramas, un módulo por vez, pruebas obligatorias de dinero e inventario.
 | 9 | Pagos | Efectivo, transferencia, Mercado Pago. Cada pago: cliente, importe, fecha, medio, usuario que lo registró y socio que recibió el dinero. |
 | 10 | Visitas | Última visita = la más reciente entre ventas y "marcar como visitado". Intervalo 14 días por defecto. Atrasado desde el día siguiente a la fecha prevista. Clientes archivables. |
 | 11 | Productos | Producto = **marca + modelo** (el modelo incluye los puffs, ej. "Elfbar 5000"). **Sin sabor.** Catálogo: marca, modelo, stock, costo y precio general. Estructura preparada para otras categorías. |
+|  | *Cambio 11/11/2026* | **Sabor opcional**: columna aditiva `sabor` en productos, sin tocar los productos existentes. Unicidad, stock y precio por sabor se definen con los socios antes de programar (ver 12.3). |
 | 12 | Responsables | Quién hizo cada venta, quién registró cada pago, quién recibió el dinero, quién cargó cada compra o ajuste. |
 | 13 | Carga inicial | ~100 clientes, ~700 unidades (+400 en camino, como compra nueva). Deudas, saldos a favor, precios generales y especiales. CSV con verificación de totales antes de confirmar. No se inventan datos. |
 | 14 | Login | Email y contraseña, sesión persistente y segura, un acceso por socio. |
@@ -478,7 +483,8 @@ en USD: si repartieran toda la ganancia en pesos, el capital en USD disponible p
 ## 8. Contradicciones y tensiones detectadas
 
 ### 8.1 Cerradas por las decisiones de esta versión
-- **T1 (sabor)**: cerrada. El producto es marca + modelo.
+- **T1 (sabor)**: cerrada. El producto es marca + modelo. **Reabierta el 11/11/2026:** los socios piden sabor
+  opcional (columna aditiva; ver 12.3 y los puntos a definir antes de programar).
 - **T9 (backups)**: cerrada con la sección 10, sin pagar Supabase Pro.
 
 ### 8.2 Siguen vigentes (con solución ya definida)
@@ -617,7 +623,7 @@ Orden aprobado el 09/11/2026 (primero todo lo necesario para registrar ventas) y
 módulo de simplificación del diseño. Cada módulo: rama propia, PR, pruebas en verde, deploy preview y aprobación
 de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 
-### 12.1 Estado al 13/11/2026
+### 12.1 Estado al 11/11/2026
 
 | # | Módulo | Estado | PR |
 |---|---|---|---|
@@ -629,25 +635,25 @@ de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 | 1.4 | Pagos y cuenta corriente + filtro por mes en el historial de ventas | ✅ terminado | #6 |
 | 1.5 | Resumen y ganancia 50/50 (reparto con vigencia) + prueba de humo en CI | ✅ terminado | #7 |
 | 1.6 | Ajustes de stock | ✅ terminado | #9, #10 (arreglo del CI) |
-| **1.7** | **Simplificación del diseño** | **🚧 en curso**: PR 1 a 4 mergeados; venta a cliente nuevo en curso | #11, #12, #14, #15 |
+| **1.7** | **Simplificación del diseño** | **🚧 en curso**: PR 1 a 4 y venta a cliente nuevo (con dirección) mergeados; faltan los pendientes de 12.3 | #11 a #18 |
 | 1.8 | Importación CSV | pendiente | — |
 | 1.9 | Backups y restauración | pendiente | — |
 | 1.10 | Pasaje a producción | pendiente | — |
 
-Todos los PR son de `benjamingarma/Gestor`. Pruebas al cerrar el 1.5: 254 pgTAP, 163 Vitest + fast-check, prueba
-de concurrencia y prueba de humo (18 pantallas), todas en verde.
+Todos los PR son de `benjamingarma/Gestor`. Pruebas en `main` al 11/11/2026 (verificado en el log de GitHub): 356 pgTAP,
+225 Vitest + fast-check, prueba de concurrencia (3 casos) y prueba de humo (29 pantallas, 32 totales contra la base,
+venta, cobro y venta a cliente nuevo de punta a punta), todas en verde. No hay PRs abiertos.
 
 ### 12.2 Lo que falta
 
 | # | Módulo | Contenido | Sesiones |
 |---|---|---|---|
-| 1.6 | Ajustes de stock | Regalo, pérdida, rotura con motivo; sale por FIFO con su costo en USD y pesos; ese costo resta de la ganancia (el resumen ya lo muestra en "Pérdidas por ajustes"). Anulación. Sumar la tabla al borrado de datos de prueba. | 1 |
-| 1.7 | **Simplificación del diseño** | Ver 12.3. | 1 a 2 |
-| 1.8 | Importación CSV | Plantillas (productos, clientes, compras/stock inicial con USD y tipo de cambio por tanda, precios especiales, saldos del papel), vista previa con totales, confirmación atómica e idempotente. | 1 a 2 |
+| 1.7 | **Simplificación del diseño** (lo que falta) | Ver 12.3: (a) sabor opcional, (b) gráficos del mes en Inicio, (c) repetir última venta, (d) prueba del papá. | 2 a 3 |
+| 1.8 | Importación CSV | Plantillas (productos **con columna "sabor" opcional**, clientes **con dirección opcional**, compras/stock inicial con USD y tipo de cambio por tanda, precios especiales, saldos del papel), vista previa con totales, confirmación atómica e idempotente. | 1 a 2 |
 | 1.9 | Backups y restauración | Backup diario cifrado (`age`) fuera de Supabase con GitHub Actions y el secreto `SUPABASE_DB_URL`; exportar todo a CSV desde la app; `docs/restauracion.md`; **prueba real de restauración**; **ensayo del borrado de datos de prueba** (A20). | 1 a 2 |
 | 1.10 | Pasaje a producción | Con los socios: borrar datos de prueba, desactivar modo prueba, cuentas reales (vincular la cuenta del papá), importación de datos reales. Solo con 1.9 aprobado. | 1 |
 
-Total estimado para lo que falta: 5 a 8 sesiones.
+Total estimado para lo que falta: 6 a 9 sesiones.
 
 ### 12.3 Módulo 1.7 — Simplificación del diseño (pedido de los socios, 13/11/2026)
 
@@ -664,7 +670,8 @@ Total estimado para lo que falta: 5 a 8 sesiones.
 - Dónde quedan las funciones avanzadas.
 - Prueba con el papá antes de mergear.
 
-No cambia reglas de negocio ni datos: solo pantallas. Las pruebas de lógica y de base siguen igual; la prueba de
+No cambia reglas de negocio ni datos: solo pantallas (excepciones pedidas por los socios: venta a cliente nuevo y
+dirección del cliente, con sus migraciones; y el sabor opcional pendiente). Las pruebas de lógica y de base siguen igual; la prueba de
 humo se actualiza con las rutas nuevas.
 
 **Maquetas aprobadas el 10/11/2026:** ver `docs/maquetas/README.md` (estructura de navegación, pantallas y
@@ -675,8 +682,20 @@ decisiones). La app pasa a llamarse **McStock**.
 2. Pantalla de venta. ✅ #12
 3. Pantalla de cobro. ✅ #14
 4. Resto de pantallas adaptadas, animaciones y prueba de humo con las rutas nuevas. ✅ #15
-   - Extra (pedido del 10/11): venta a un cliente nuevo desde "Nueva venta". PR A: migración; PR B: pantalla.
-5. (Aparte, al final) "Repetir última venta" en la ficha del cliente.
+5. Venta a un cliente nuevo desde "Nueva venta" (pedido del 10/11): ✅ #16 (migración `registrar_venta_cliente_nuevo`),
+   ✅ #18 (migración: dirección del cliente), ✅ #17 (pantalla; "Crear cliente nuevo" siempre arriba; dirección también
+   en Nuevo cliente, Editar y ficha). Decisiones en `docs/decisiones/modulo-1.7-venta-cliente-nuevo.md`.
+
+**Pendientes acordados (11/11/2026), en este orden:**
+- (a) **Sabor opcional en productos.** Revierte "solo marca y modelo". Migración aditiva (columna `sabor` opcional) y
+  columna "sabor" opcional en la plantilla CSV del 1.8. Antes de programar, definir con los socios si marca + modelo +
+  sabor es lo que no se repite y si cada sabor tiene su stock y precio.
+- (b) **Resumen del mes con gráficos** como última sección del Inicio, manteniendo ganancia separada de cobrado y de
+  plata disponible.
+- (c) **"Repetir última venta"** en la ficha del cliente: precios de hoy, todo editable y aviso si falta stock.
+- (d) **Cierre del 1.7** con la prueba del papá cuando vuelva de viaje.
+
+Después del 1.7: 1.8 Importación CSV → 1.9 Backups y restauración → 1.10 Pasaje a producción.
 
 ### 12.4 Notas
 - El ping anti-pausa se adelantó al módulo 1.0.
