@@ -6,6 +6,7 @@ type FilaVistaCliente = {
   cliente_id: string;
   nombre: string;
   telefono: string | null;
+  direccion: string | null;
   notas: string | null;
   intervalo_visita_dias: number;
   ultima_visita_inicial: string | null;
@@ -20,6 +21,7 @@ export type Cliente = {
   id: string;
   nombre: string;
   telefono: string | null;
+  direccion: string | null;
   notas: string | null;
   intervaloDias: number;
   archivado: boolean;
@@ -44,6 +46,7 @@ function aCliente(f: FilaVistaCliente, hoy: string): Cliente {
     id: f.cliente_id,
     nombre: f.nombre,
     telefono: f.telefono,
+    direccion: f.direccion ?? null,
     notas: f.notas,
     intervaloDias: f.intervalo_visita_dias,
     archivado: datos.archivado,

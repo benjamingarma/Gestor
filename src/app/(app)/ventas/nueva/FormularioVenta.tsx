@@ -6,7 +6,7 @@ import { Aviso } from "@/componentes/Aviso";
 import { Icono } from "@/componentes/Iconos";
 import { Avatar } from "@/componentes/UI";
 import { cambiarCantidad, proponerPrecio, reproponerPrecios, resumirCarrito, TEXTO_ORIGEN, type ItemCarrito } from "@/dominio/carrito";
-import { limpiarNombre, MAXIMO_NOMBRE, MAXIMO_TELEFONO, problemaClienteNuevo, textoParaCrear } from "@/dominio/clienteNuevo";
+import { limpiarNombre, MAXIMO_DIRECCION, MAXIMO_NOMBRE, MAXIMO_TELEFONO, problemaClienteNuevo, textoParaCrear } from "@/dominio/clienteNuevo";
 import type { DatosNuevaVenta } from "@/datos/ventas";
 import { formatearDolares, formatearPesos } from "@/lib/dinero";
 import { formatearDia } from "@/lib/fechas";
@@ -39,8 +39,8 @@ export function FormularioVenta({
   const [vendidoPor, setVendidoPor] = useState(socioActual);
   const [nota, setNota] = useState("");
   // Cliente nuevo (se crea recién al guardar, junto con la venta). Su UUID se genera al confirmarlo.
-  const [clienteNuevo, setClienteNuevo] = useState<{ id: string; nombre: string; telefono: string } | null>(null);
-  const [creando, setCreando] = useState<{ nombre: string; telefono: string } | null>(null);
+  const [clienteNuevo, setClienteNuevo] = useState<{ id: string; nombre: string; telefono: string; direccion: string } | null>(null);
+  const [creando, setCreando] = useState<{ nombre: string; telefono: string; direccion: string } | null>(null);
   // Cliente existente que no estaba en la lista al abrir la pantalla (lo creó otro socio mientras tanto).
   const [extra, setExtra] = useState<{ id: string; nombre: string } | null>(null);
 
@@ -65,7 +65,7 @@ export function FormularioVenta({
   };
   const confirmarClienteNuevo = () => {
     if (!creando || problemaNuevo) return;
-    const nuevo = { id: nuevoUuid(), nombre: limpiarNombre(creando.nombre), telefono: creando.telefono.trim() };
+    const nuevo = { id: nuevoUuid(), nombre: limpiarNombre(creando.nombre), telefono: creando.telefono.trim(), direccion: limpiarNombre(creando.direccion) };
     setClienteNuevo(nuevo);
     setClienteId("");
     setCreando(null);
@@ -92,7 +92,7 @@ export function FormularioVenta({
   const datosJson = JSON.stringify({
     id,
     clienteId: idElegido,
-    clienteNuevo: clienteNuevo ? { nombre: clienteNuevo.nombre, telefono: clienteNuevo.telefono } : null,
+    clienteNuevo: clienteNuevo ? { nombre: clienteNuevo.nombre, telefono: clienteNuevo.telefono, direccion: clienteNuevo.direccion } : null,
     vendidoPor,
     fecha,
     nota,
@@ -126,7 +126,13 @@ export function FormularioVenta({
         <div className="flex min-w-0 flex-col">
           <span className="truncate font-bold">{clienteNuevo.nombre}</span>
           <span className="truncate text-[0.82rem] text-acento">
-            Cliente nuevo{clienteNuevo.telefono ? <span className="text-texto-suave"> · {clienteNuevo.telefono}</span> : null}
+            Cliente nuevo
+            {[clienteNuevo.telefono, clienteNuevo.direccion].filter(Boolean).map((d) => (
+              <span key={d} className="text-texto-suave">
+                {" "}
+                · {d}
+              </span>
+            ))}
           </span>
         </div>
       </div>
@@ -159,6 +165,18 @@ export function FormularioVenta({
           maxLength={MAXIMO_TELEFONO + 5}
           placeholder="Ej: 381 15 555-1234"
           aria-label="Teléfono del cliente nuevo"
+          className={campo}
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[0.85rem] font-semibold">Dirección (opcional)</span>
+        <input
+          value={creando.direccion}
+          onChange={(e) => setCreando({ ...creando, direccion: e.target.value })}
+          autoComplete="off"
+          maxLength={MAXIMO_DIRECCION + 10}
+          placeholder="Ej: San Martín 450, Yerba Buena"
+          aria-label="Dirección del cliente nuevo"
           className={campo}
         />
       </label>
@@ -208,7 +226,7 @@ export function FormularioVenta({
         <li>
           <button
             type="button"
-            onClick={() => setCreando({ nombre: paraCrear ?? "", telefono: "" })}
+            onClick={() => setCreando({ nombre: paraCrear ?? "", telefono: "", direccion: "" })}
             className="flex w-full items-center gap-3 py-2.5 text-left font-bold text-acento"
           >
             <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-acento text-[1.3rem] leading-none">

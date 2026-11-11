@@ -9,7 +9,7 @@ import { obtenerSocioActual } from "@/lib/sesion";
 import { crearClienteSupabase } from "@/lib/supabase/servidor";
 import { esUuid } from "@/lib/uuid";
 
-export type CamposCliente = { nombre: string; telefono: string; notas: string; intervalo: string };
+export type CamposCliente = { nombre: string; telefono: string; direccion: string; notas: string; intervalo: string };
 export type EstadoCliente = {
   error?: string;
   errores?: Partial<Record<keyof CamposCliente, string>>;
@@ -19,6 +19,7 @@ export type EstadoCliente = {
 const esquema = z.object({
   nombre: z.string().trim().min(1, "Escribí el nombre.").max(80, "Máximo 80 caracteres."),
   telefono: z.string().trim().max(40, "Máximo 40 caracteres."),
+  direccion: z.string().trim().max(200, "Máximo 200 caracteres."),
   notas: z.string().trim().max(1000, "Máximo 1000 caracteres."),
   intervalo: z.coerce
     .number({ error: "Escribí un número de días." })
@@ -31,6 +32,7 @@ function leer(formulario: FormData) {
   const valores: CamposCliente = {
     nombre: String(formulario.get("nombre") ?? ""),
     telefono: String(formulario.get("telefono") ?? ""),
+    direccion: String(formulario.get("direccion") ?? ""),
     notas: String(formulario.get("notas") ?? ""),
     intervalo: String(formulario.get("intervalo") ?? "14"),
   };
@@ -64,6 +66,7 @@ export async function crearCliente(_p: EstadoCliente, formulario: FormData): Pro
     negocio_id: socio.negocioId,
     nombre: datos.nombre,
     telefono: datos.telefono || null,
+    direccion: datos.direccion || null,
     notas: datos.notas || null,
     intervalo_visita_dias: datos.intervalo,
   });
@@ -87,6 +90,7 @@ export async function editarCliente(_p: EstadoCliente, formulario: FormData): Pr
     .update({
       nombre: datos.nombre,
       telefono: datos.telefono || null,
+      direccion: datos.direccion || null,
       notas: datos.notas || null,
       intervalo_visita_dias: datos.intervalo,
     })

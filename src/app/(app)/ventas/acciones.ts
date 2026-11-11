@@ -24,6 +24,7 @@ const esquemaVenta = z.object({
     .object({
       nombre: z.string().trim().min(1, "Escribí el nombre del cliente.").max(80, "El nombre puede tener hasta 80 caracteres."),
       telefono: z.string().trim().max(40, "El teléfono puede tener hasta 40 caracteres."),
+      direccion: z.string().trim().max(200, "La dirección puede tener hasta 200 caracteres.").default(""),
     })
     .nullish(),
   vendidoPor: z.string().refine(esUuid),
@@ -79,6 +80,7 @@ export async function registrarVenta(_p: EstadoVenta, formulario: FormData): Pro
         p_venta_id: v.id,
         p_nombre: v.clienteNuevo.nombre,
         p_telefono: v.clienteNuevo.telefono || null,
+        p_direccion: v.clienteNuevo.direccion || null,
         ...comunes,
       })
     : await supabase.rpc("registrar_venta", { p_id: v.id, ...comunes });

@@ -7,6 +7,7 @@ import { normalizar } from "@/lib/texto";
 
 export const MAXIMO_NOMBRE = 80;
 export const MAXIMO_TELEFONO = 40;
+export const MAXIMO_DIRECCION = 200;
 export const MENSAJE_DUPLICADO = "Ya existe un cliente con ese nombre. Agregale algo para distinguirlo (ej: barrio o apellido).";
 
 export type ClienteConocido = { id: string; nombre: string; archivado?: boolean };
@@ -40,14 +41,20 @@ export function textoParaCrear(busqueda: string): string | null {
 export type ProblemaClienteNuevo =
   | { tipo: "nombre"; mensaje: string }
   | { tipo: "telefono"; mensaje: string }
+  | { tipo: "direccion"; mensaje: string }
   | { tipo: "duplicado"; mensaje: string; existente: ClienteConocido };
 
 /** Lo que impide confirmar el cliente nuevo (null si está todo bien). */
-export function problemaClienteNuevo(datos: { nombre: string; telefono: string }, clientes: ClienteConocido[]): ProblemaClienteNuevo | null {
+export function problemaClienteNuevo(
+  datos: { nombre: string; telefono: string; direccion?: string },
+  clientes: ClienteConocido[],
+): ProblemaClienteNuevo | null {
   const nombre = limpiarNombre(datos.nombre);
   if (!nombre) return { tipo: "nombre", mensaje: "Escribí el nombre." };
   if (nombre.length > MAXIMO_NOMBRE) return { tipo: "nombre", mensaje: `Máximo ${MAXIMO_NOMBRE} caracteres.` };
   if (datos.telefono.trim().length > MAXIMO_TELEFONO) return { tipo: "telefono", mensaje: `Máximo ${MAXIMO_TELEFONO} caracteres.` };
+  if (limpiarNombre(datos.direccion ?? "").length > MAXIMO_DIRECCION)
+    return { tipo: "direccion", mensaje: `La dirección puede tener hasta ${MAXIMO_DIRECCION} caracteres.` };
   const existente = buscarDuplicado(nombre, clientes);
   if (existente) return { tipo: "duplicado", mensaje: MENSAJE_DUPLICADO, existente };
   return null;

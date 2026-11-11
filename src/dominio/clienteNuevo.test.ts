@@ -60,6 +60,11 @@ describe("validar el cliente nuevo antes de confirmarlo", () => {
     expect(problemaClienteNuevo({ nombre: "  ", telefono: "" }, clientes)?.tipo).toBe("nombre");
     expect(problemaClienteNuevo({ nombre: "x".repeat(81), telefono: "" }, clientes)?.tipo).toBe("nombre");
   });
+  it("dirección opcional, de hasta 200", () => {
+    expect(problemaClienteNuevo({ nombre: "Hernán", telefono: "", direccion: "San Martín 450" }, clientes)).toBeNull();
+    expect(problemaClienteNuevo({ nombre: "Hernán", telefono: "", direccion: "" }, clientes)).toBeNull();
+    expect(problemaClienteNuevo({ nombre: "Hernán", telefono: "", direccion: "x".repeat(201) }, clientes)?.tipo).toBe("direccion");
+  });
   it("teléfono de hasta 40", () => {
     expect(problemaClienteNuevo({ nombre: "Hernán", telefono: "1".repeat(41) }, clientes)?.tipo).toBe("telefono");
   });

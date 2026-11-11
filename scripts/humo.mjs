@@ -204,10 +204,11 @@ return esperado;
   };
   const visible = (sel) => pagina.locator(sel).filter({ visible: true }).first();
   const producto = (await pagina.goto(`${BASE}/ventas/nueva`), await pagina.locator("li", { has: pagina.locator('button[aria-label^="Agregar Humo"]') }).first().locator("span.font-bold").textContent())?.trim();
-  const crearCliente = async (nombre, telefono = "") => {
+  const crearCliente = async (nombre, telefono = "", direccion = "") => {
     await visible('input[aria-label="Buscar cliente"]').fill(nombre);
     await visible(`button:has-text("como cliente nuevo")`).click();
     if (telefono) await visible('input[aria-label="Teléfono del cliente nuevo"]').fill(telefono);
+    if (direccion) await visible('input[aria-label="Dirección del cliente nuevo"]').fill(direccion);
   };
 
   // La opción "Crear cliente nuevo" está arriba de la lista sin escribir nada (pedido de los socios).
@@ -217,7 +218,7 @@ return esperado;
   // 6a. Cliente nuevo + venta, con un producto cargado ANTES de crear el cliente (no se pierde). Doble toque al guardar.
   const nombreNuevo = `Humo nuevo ${Date.now()}`;
   await pagina.click(`button[aria-label="Agregar ${producto}"]`);
-  await crearCliente(nombreNuevo, "381 555-0000");
+  await crearCliente(nombreNuevo, "381 555-0000", "  San Martín   450 ");
   await visible('button:has-text("Listo")').click();
   revisar(await visible("text=Cliente nuevo").isVisible(), "la tarjeta muestra el cliente elegido como \"Cliente nuevo\"");
   const precio = await pagina.inputValue(`input[aria-label="Precio de ${producto}"]`);
@@ -225,9 +226,13 @@ return esperado;
   await pagina.locator("button[type=submit]:visible", { hasText: "Guardar venta" }).dblclick();
   await pagina.waitForURL(/\/ventas\/[0-9a-f-]{36}\/guardada$/, { timeout: 20_000 });
   const ventaId = pagina.url().split("/").at(-2);
-  const creado = enBaseTexto(`select count(*) || '|' || coalesce(max(c.telefono), '') || '|' || bool_and(c.es_prueba)
+  const creado = enBaseTexto(`select count(*) || '|' || coalesce(max(c.telefono), '') || '|' || coalesce(max(c.direccion), '') || '|' || bool_and(c.es_prueba)
     || '|' || (select count(*) from public.ventas v where v.cliente_id = max(c.id::text)::uuid) from public.clientes c where c.nombre = '${nombreNuevo}'`);
-  revisar(creado === "1|381 555-0000|true|1", `doble toque en Guardar: un solo cliente nuevo (con teléfono, dato de prueba) y una sola venta (${creado})`);
+  revisar(creado === "1|381 555-0000|San Martín 450|true|1", `doble toque en Guardar: un solo cliente nuevo (con teléfono, dirección limpia, dato de prueba) y una sola venta (${creado})`);
+  const clienteNuevoId = enBaseTexto(`select id from public.clientes where nombre = '${nombreNuevo}'`);
+  await pagina.goto(`${BASE}/clientes/${clienteNuevoId}`);
+  revisar(await pagina.getByText("San Martín 450").first().isVisible(), "la ficha del cliente nuevo muestra su dirección");
+  await pagina.goto(`${BASE}/ventas/${ventaId}/guardada`);
   const deLaVenta = enBaseTexto(`select c.nombre from public.ventas v join public.clientes c on c.id = v.cliente_id where v.id = '${ventaId}'`);
   revisar(deLaVenta === nombreNuevo, "la venta quedó a nombre del cliente nuevo");
 
