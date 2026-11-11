@@ -1,4 +1,4 @@
-# Plan del sistema de gestión — Versión 3.3
+# Plan del sistema de gestión — Versión 3.4
 
 > Estado: **aprobado** por los socios (versión 2) con las correcciones de la versión 3:
 > producto sin sabor, costo de compra en dólares (blue) con tipo de cambio por compra,
@@ -11,6 +11,8 @@
 > Versión 3.3 (11/11/2026): estado del 1.7 (PR 1 a 4 y venta a cliente nuevo mergeados), pendientes acordados
 > del 1.7 y **cambio de decisión: el producto puede tener sabor opcional** (revierte "producto sin sabor",
 > decisión 11 y T1; ver 12.3).
+> Versión 3.4 (11/11/2026): **el sabor queda descartado** (vuelve a valer "producto sin sabor") y **el gráfico del mes
+> en Inicio se posterga** hasta tener datos reales (después del 1.10). Ver 12.3 y 12.5.
 > Notas para retomar el trabajo en una sesión nueva: `docs/notas-de-sesion.md`.
 > Donde las versiones anteriores digan otra cosa, manda esta.
 
@@ -49,8 +51,8 @@ retiros por socio.
 
 ### Fuera de alcance
 Modo offline y sincronización, mapas, proveedores, gastos, finanzas avanzadas, productos que no
-sean vapers (la estructura queda preparada, nada más). ~~Sabores~~: **revertido el 11/11/2026**, el producto
-tendrá sabor opcional (ver 12.3).
+sean vapers (la estructura queda preparada, nada más). Sabores (se pidieron el 11/11/2026 y los socios los
+descartaron el mismo día: el producto sigue sin sabor).
 
 ### Reglas de implementación
 UUID generados en el cliente · operaciones idempotentes · inventario solo por movimientos ·
@@ -78,7 +80,7 @@ ramas, un módulo por vez, pruebas obligatorias de dinero e inventario.
 | 9 | Pagos | Efectivo, transferencia, Mercado Pago. Cada pago: cliente, importe, fecha, medio, usuario que lo registró y socio que recibió el dinero. |
 | 10 | Visitas | Última visita = la más reciente entre ventas y "marcar como visitado". Intervalo 14 días por defecto. Atrasado desde el día siguiente a la fecha prevista. Clientes archivables. |
 | 11 | Productos | Producto = **marca + modelo** (el modelo incluye los puffs, ej. "Elfbar 5000"). **Sin sabor.** Catálogo: marca, modelo, stock, costo y precio general. Estructura preparada para otras categorías. |
-|  | *Cambio 11/11/2026* | **Sabor opcional**: columna aditiva `sabor` en productos, sin tocar los productos existentes. Unicidad, stock y precio por sabor se definen con los socios antes de programar (ver 12.3). |
+|  | *11/11/2026* | Se pidió sabor opcional y los socios lo **descartaron** el mismo día: sigue valiendo "sin sabor". |
 | 12 | Responsables | Quién hizo cada venta, quién registró cada pago, quién recibió el dinero, quién cargó cada compra o ajuste. |
 | 13 | Carga inicial | ~100 clientes, ~700 unidades (+400 en camino, como compra nueva). Deudas, saldos a favor, precios generales y especiales. CSV con verificación de totales antes de confirmar. No se inventan datos. |
 | 14 | Login | Email y contraseña, sesión persistente y segura, un acceso por socio. |
@@ -483,8 +485,8 @@ en USD: si repartieran toda la ganancia en pesos, el capital en USD disponible p
 ## 8. Contradicciones y tensiones detectadas
 
 ### 8.1 Cerradas por las decisiones de esta versión
-- **T1 (sabor)**: cerrada. El producto es marca + modelo. **Reabierta el 11/11/2026:** los socios piden sabor
-  opcional (columna aditiva; ver 12.3 y los puntos a definir antes de programar).
+- **T1 (sabor)**: cerrada. El producto es marca + modelo. Se reabrió el 11/11/2026 y se volvió a cerrar el mismo
+  día: los socios descartaron el sabor.
 - **T9 (backups)**: cerrada con la sección 10, sin pagar Supabase Pro.
 
 ### 8.2 Siguen vigentes (con solución ya definida)
@@ -635,7 +637,7 @@ de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 | 1.4 | Pagos y cuenta corriente + filtro por mes en el historial de ventas | ✅ terminado | #6 |
 | 1.5 | Resumen y ganancia 50/50 (reparto con vigencia) + prueba de humo en CI | ✅ terminado | #7 |
 | 1.6 | Ajustes de stock | ✅ terminado | #9, #10 (arreglo del CI) |
-| **1.7** | **Simplificación del diseño** | **🚧 en curso**: PR 1 a 4 y venta a cliente nuevo (con dirección) mergeados; faltan los pendientes de 12.3 | #11 a #18 |
+| **1.7** | **Simplificación del diseño** | **🚧 en curso**: PR 1 a 4 y venta a cliente nuevo (con dirección) mergeados; faltan "Repetir última venta" y la prueba del papá (12.3) | #11 a #18 |
 | 1.8 | Importación CSV | pendiente | — |
 | 1.9 | Backups y restauración | pendiente | — |
 | 1.10 | Pasaje a producción | pendiente | — |
@@ -648,12 +650,12 @@ venta, cobro y venta a cliente nuevo de punta a punta), todas en verde. No hay P
 
 | # | Módulo | Contenido | Sesiones |
 |---|---|---|---|
-| 1.7 | **Simplificación del diseño** (lo que falta) | Ver 12.3: (a) sabor opcional, (b) gráficos del mes en Inicio, (c) repetir última venta, (d) prueba del papá. | 2 a 3 |
-| 1.8 | Importación CSV | Plantillas (productos **con columna "sabor" opcional**, clientes **con dirección opcional**, compras/stock inicial con USD y tipo de cambio por tanda, precios especiales, saldos del papel), vista previa con totales, confirmación atómica e idempotente. | 1 a 2 |
+| 1.7 | **Simplificación del diseño** (lo que falta) | Ver 12.3: "Repetir última venta" y prueba del papá. (Sabor descartado; gráfico del mes postergado a 12.5.) | 1 a 2 |
+| 1.8 | Importación CSV | Plantillas (productos, clientes **con dirección opcional**, compras/stock inicial con USD y tipo de cambio por tanda, precios especiales, saldos del papel), vista previa con totales, confirmación atómica e idempotente. | 1 a 2 |
 | 1.9 | Backups y restauración | Backup diario cifrado (`age`) fuera de Supabase con GitHub Actions y el secreto `SUPABASE_DB_URL`; exportar todo a CSV desde la app; `docs/restauracion.md`; **prueba real de restauración**; **ensayo del borrado de datos de prueba** (A20). | 1 a 2 |
 | 1.10 | Pasaje a producción | Con los socios: borrar datos de prueba, desactivar modo prueba, cuentas reales (vincular la cuenta del papá), importación de datos reales. Solo con 1.9 aprobado. | 1 |
 
-Total estimado para lo que falta: 6 a 9 sesiones.
+Total estimado para lo que falta: 5 a 8 sesiones, más el gráfico del margen (12.5) después del 1.10.
 
 ### 12.3 Módulo 1.7 — Simplificación del diseño (pedido de los socios, 13/11/2026)
 
@@ -671,7 +673,7 @@ Total estimado para lo que falta: 6 a 9 sesiones.
 - Prueba con el papá antes de mergear.
 
 No cambia reglas de negocio ni datos: solo pantallas (excepciones pedidas por los socios: venta a cliente nuevo y
-dirección del cliente, con sus migraciones; y el sabor opcional pendiente). Las pruebas de lógica y de base siguen igual; la prueba de
+dirección del cliente, con sus migraciones). Las pruebas de lógica y de base siguen igual; la prueba de
 humo se actualiza con las rutas nuevas.
 
 **Maquetas aprobadas el 10/11/2026:** ver `docs/maquetas/README.md` (estructura de navegación, pantallas y
@@ -686,16 +688,38 @@ decisiones). La app pasa a llamarse **McStock**.
    ✅ #18 (migración: dirección del cliente), ✅ #17 (pantalla; "Crear cliente nuevo" siempre arriba; dirección también
    en Nuevo cliente, Editar y ficha). Decisiones en `docs/decisiones/modulo-1.7-venta-cliente-nuevo.md`.
 
-**Pendientes acordados (11/11/2026), en este orden:**
-- (a) **Sabor opcional en productos.** Revierte "solo marca y modelo". Migración aditiva (columna `sabor` opcional) y
-  columna "sabor" opcional en la plantilla CSV del 1.8. Antes de programar, definir con los socios si marca + modelo +
-  sabor es lo que no se repite y si cada sabor tiene su stock y precio.
-- (b) **Resumen del mes con gráficos** como última sección del Inicio, manteniendo ganancia separada de cobrado y de
-  plata disponible.
-- (c) **"Repetir última venta"** en la ficha del cliente: precios de hoy, todo editable y aviso si falta stock.
-- (d) **Cierre del 1.7** con la prueba del papá cuando vuelva de viaje.
+**Pendientes (actualizado el 11/11/2026), en este orden:**
+- **"Repetir última venta"** en la ficha del cliente: precios de hoy, todo editable y aviso si falta stock.
+- **Cierre del 1.7** con la prueba del papá cuando vuelva de viaje.
 
-Después del 1.7: 1.8 Importación CSV → 1.9 Backups y restauración → 1.10 Pasaje a producción.
+**Descartado y postergado (11/11/2026):**
+- ~~Sabor opcional en productos~~: **descartado** por los socios. No hay migración ni columna en la plantilla CSV.
+- **Gráfico del mes en Inicio: postergado** hasta trabajar con datos reales (ver 12.5). Se propuso una torta
+  "vendido = costo + ganancia" y se descartó: no contesta la pregunta que se hacen los socios.
+
+Después del 1.7: 1.8 Importación CSV → 1.9 Backups y restauración → 1.10 Pasaje a producción → (12.5) gráfico del margen.
+
+### 12.5 Después del 1.10: gráfico del margen real (idea acordada el 11/11/2026, sin programar)
+
+**Cómo se manejan hoy los socios:** de lo que entra por ventas, separan **la mitad** para reponer mercadería (capital)
+y el resto lo toman como ganancia. Sospechan que el costo real es más de la mitad y que el margen es menor.
+
+**Qué tiene que contestar el gráfico** (uno solo, simple, en Inicio): el **margen real** del mes, comparado con la
+regla de "la mitad para reponer". Por ejemplo: "Margen real de noviembre: 37 %. De cada $100 que venden, $63 es costo
+de la mercadería y $37 es ganancia. Ustedes apartan $50: faltan $13 por cada $100". Debajo siguen Vendido, Cobrado,
+Ganancia neta y el aviso "La ganancia no es plata disponible". Sale de lo que ya guarda la base (costo FIFO de cada
+venta, con el tipo de cambio de la compra); sin migraciones.
+
+**Por qué se posterga:** con datos de prueba el porcentaje no significa nada, y con uno o dos meses de datos reales
+se va a ver qué pregunta sirve de verdad. Primero van 1.8, 1.9 y 1.10.
+
+**Preguntas abiertas para cuando se retome:**
+- ¿La regla es siempre "la mitad"? (si es fija, se marca el 50 % en el gráfico; si no, solo el margen real).
+- ¿Separan la mitad al vender o al cobrar? (cambia el texto: "de cada $100 que venden" o "que cobran").
+- ¿Quieren ver la evolución mes a mes (por ejemplo "octubre 41 % → noviembre 37 %")?
+
+**Ideas relacionadas, para más adelante** (no pedidas): costo de reposición con el dólar de hoy (plan T4; reponer
+cuesta más que el costo FIFO si el dólar subió) y margen por producto en el Resumen (para ajustar precios).
 
 ### 12.4 Notas
 - El ping anti-pausa se adelantó al módulo 1.0.

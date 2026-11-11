@@ -3,8 +3,8 @@
 > Para leer al empezar una sesión nueva, junto con `CLAUDE.md` (reglas), `docs/plan.md` (plan y estado,
 > sección 12) y `docs/decisiones/modulo-*.md` (decisiones de cada módulo).
 > Última actualización: 11/11/2026. Módulo 1.7: PR 1 a 4 y "venta a cliente nuevo" (PR A, A2 y B) mergeados; no hay
-> PRs abiertos. Siguen los pendientes acordados de la sección 6 (sabor, gráficos en Inicio, repetir última venta,
-> prueba del papá).
+> PRs abiertos. Siguen "Repetir última venta" y la prueba del papá (sección 6). El sabor quedó descartado y el
+> gráfico del mes en Inicio se posterga hasta tener datos reales (plan 12.5).
 
 ## 1. Dónde estamos
 
@@ -13,9 +13,9 @@
   **venta a un cliente nuevo** (#16 migración, #18 migración de dirección, #17 pantalla). **No hay PRs abiertos.**
   Verificado el 11/11/2026 en GitHub: CI de `main` en verde en `fddcb15` (log: 225 Vitest, 356 pgTAP, concurrencia 3/3,
   humo 29 pantallas y 32 totales) y las dos migraciones nuevas aplicadas a Supabase (log de "Aplicar migraciones").
-- **Siguen, en este orden** (detalle en la sección 6): (a) sabor opcional en productos, (b) resumen del mes con gráficos
-  al final del Inicio, (c) "Repetir última venta", (d) cierre del 1.7 con la prueba del papá cuando vuelva de viaje.
-  Después: 1.8 Importación CSV, 1.9 Backups y restauración, 1.10 Pasaje a producción.
+- **Siguen, en este orden** (detalle en la sección 6): (a) "Repetir última venta", (b) cierre del 1.7 con la prueba
+  del papá cuando vuelva de viaje. Después: 1.8 Importación CSV, 1.9 Backups y restauración, 1.10 Pasaje a producción
+  y, con datos reales, el gráfico del margen real en Inicio (plan 12.5). **Sabor: descartado (11/11).**
 - Maquetas aprobadas en `docs/maquetas/` (leer su README antes de tocar pantallas). Decisiones de la venta a cliente
   nuevo en `docs/decisiones/modulo-1.7-venta-cliente-nuevo.md`.
 - Repositorio privado, rama por defecto `main`. Se trabaja con una rama `claude/...` y un PR por tarea; los socios
@@ -183,7 +183,9 @@ $99.000 → $49.000 → $1.000 a favor.
 - Avisos de GitHub Actions: `actions/checkout@v4` y `actions/setup-node@v4` usan Node 20 (obsoleto; hoy solo avisa).
 - Supabase CLI 3.0.0 → hay 3.1.0 (aviso en el CI).
 - Historial de ventas "ver más" sin filtro de mes (hoy: por mes, o las últimas 5 en la ficha del cliente).
-- Costo de reposición frente a la suba del dólar (plan T4): no se muestra; solo el capital en USD.
+- Costo de reposición frente a la suba del dólar (plan T4): no se muestra; solo el capital en USD. Relacionado con el
+  gráfico del margen (plan 12.5).
+- Margen por producto en el Resumen, para saber cuáles dejan poco y ajustar precios (idea del 11/11, no pedida).
 - Etapa 2: historial de visitas y recordatorios, devoluciones y reposiciones de fallados, retiros por socio.
 - Si alguna vez hay más de un negocio o más de dos socios, revisar pantallas que asumen dos (el reparto ya soporta N).
 
@@ -219,30 +221,33 @@ Especificación visual: `docs/maquetas/` (README, HTML, imágenes en claro/oscur
 | A2 (#18) | Dirección del cliente, migración `20261116120000_clientes_direccion.sql`: columna `clientes.direccion` (opcional, ≤ 200), `v_clientes` con dirección al final, `registrar_venta_cliente_nuevo` con `p_direccion` | ✅ mergeado y aplicado a Supabase |
 | B (#17) | Pantalla: "Crear cliente nuevo" siempre primera opción del buscador de cliente en "Nueva venta"; nombre, teléfono y dirección opcionales; aviso de duplicado con "Usar a X"; "Cliente nuevo" con precios generales sin perder lo cargado; dirección también en "Nuevo cliente", "Editar cliente" y la ficha; `dominio/clienteNuevo.ts`; humo sección 6. Capturas en `comparaciones/venta-cliente-nuevo/` | ✅ mergeado |
 
-### Pendientes acordados (en este orden)
-**(a) Sabor opcional en productos.** Revierte la decisión de "solo marca y modelo" (plan, decisión 11 y T1).
-- Migración **aditiva**: columna `sabor` opcional en `productos` (los productos existentes quedan sin sabor). Avisar y
-  explicar antes de escribirla, como siempre; pruebas pgTAP de la columna y de permisos.
-- En la importación CSV del 1.8, columna "sabor" opcional en la plantilla de productos.
-- **A definir con los socios antes de programar** (no inventar): si "marca + modelo + sabor" es lo que no se puede
-  repetir (hoy el índice único es marca + modelo), si cada sabor tiene su propio stock y precio (es decir, si es otro
-  producto) y cómo se muestra en la venta y en el buscador.
+### Descartado y postergado (11/11/2026)
+- **Sabor opcional en productos: descartado** por los socios. El producto sigue siendo marca + modelo; no hay migración
+  ni columna "sabor" en la plantilla CSV del 1.8.
+- **Gráfico del mes en Inicio: postergado** hasta trabajar con datos reales (después del 1.10). Qué se habló, en
+  `docs/plan.md` 12.5:
+  - Se propusieron gráficos de vendido vs. cobrado, compras del mes y una torta "vendido = costo + ganancia" (llegó a
+    haber maqueta, revertida en la rama `claude/dreamy-thompson-vvav70`). Los socios los descartaron: "se van por las
+    ramas". **Las compras quedan como están; no profundizar resúmenes de compras.**
+  - Lo que de verdad quieren saber: ellos apartan **la mitad** de lo que entra para reponer y sospechan que el costo
+    real es más. El gráfico tiene que mostrar el **margen real** contra esa regla ("de cada $100, $63 es costo: faltan
+    $13 para reponer"). Preguntas abiertas en el plan 12.5.
+  - Si se retoma, decisiones técnicas ya pensadas: SVG propio dibujado en el servidor (sin librería, sin JS en el
+    celular), números siempre escritos, animación CSS con "reducir movimiento", mismos datos de
+    `v_ganancia_diaria`/`armarTablero` y marcas `data-dato` para la prueba de humo. Colores validados para daltonismo
+    y contraste: ganancia `#13866d` (claro) / `#2f9e85` (oscuro), costo `#5d6ed8` / `#8b84ec`.
 
-**(b) Resumen del mes con gráficos, como última sección del Inicio.**
-- Manteniendo **ganancia separada de cobrado y de plata disponible** (con el aviso "La ganancia no es plata
-  disponible"). Mismos totales que `dominio/tablero.ts`, marcados con `data-dato` para que la prueba de humo los compare.
-- Sin librerías pesadas; claro y oscuro; celular y PC. Proponer la maqueta del gráfico antes de programar.
-
-**(c) "Repetir última venta" en la ficha del cliente** (era el PR 5 del plan).
+### Pendientes (en este orden)
+**(a) "Repetir última venta" en la ficha del cliente** (era el PR 5 del plan).
 - Arma una venta nueva con los mismos productos y cantidades de la última venta no anulada, **con los precios de hoy**
   (la regla de siempre: especial → último que pagó → general), **todo editable** antes de guardar, y **aviso si falta
   stock** de algún producto (sin pasar del stock disponible). Se guarda por la pantalla de venta normal.
 
-**(d) Cierre del módulo 1.7 con la prueba del papá** cuando vuelva de viaje: recorrido de venta, cobro y cliente nuevo
+**(b) Cierre del módulo 1.7 con la prueba del papá** cuando vuelva de viaje: recorrido de venta, cobro y cliente nuevo
 desde su celular. Recién ahí se da el 1.7 por terminado.
 
 ### Después del 1.7
-1.8 Importación CSV (incluye la columna "sabor" opcional) → 1.9 Backups y restauración → 1.10 Pasaje a producción.
+1.8 Importación CSV → 1.9 Backups y restauración → 1.10 Pasaje a producción → gráfico del margen real (plan 12.5).
 
 ### Decisiones tomadas (socios, 10 y 11/11/2026)
 - La app se llama **McStock**.
