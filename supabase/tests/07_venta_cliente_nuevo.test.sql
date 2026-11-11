@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(39);
+select plan(49);
 
 -- Devuelve 'ok' o "sqlstate|hint|detail" del error (para mirar qué cliente se ofrece usar).
 create function public._prueba_error(p_sql text) returns text language plpgsql as $$
@@ -22,11 +22,11 @@ grant execute on function public._prueba_error(text) to authenticated, anon;
 -- ---------------------------------------------------------------------------------
 -- La función no usa privilegios elevados
 -- ---------------------------------------------------------------------------------
-select is((select prosecdef from pg_proc where oid = 'public.registrar_venta_cliente_nuevo(uuid,uuid,uuid,text,text,jsonb,date,uuid,text)'::regprocedure),
+select is((select prosecdef from pg_proc where oid = 'public.registrar_venta_cliente_nuevo(uuid,uuid,uuid,text,text,jsonb,date,uuid,text,text)'::regprocedure),
   false, 'registrar_venta_cliente_nuevo es SECURITY INVOKER (corre con los permisos de quien la llama)');
-select ok(not has_function_privilege('anon', 'public.registrar_venta_cliente_nuevo(uuid,uuid,uuid,text,text,jsonb,date,uuid,text)', 'execute'),
+select ok(not has_function_privilege('anon', 'public.registrar_venta_cliente_nuevo(uuid,uuid,uuid,text,text,jsonb,date,uuid,text,text)', 'execute'),
   'el anónimo no puede ejecutarla');
-select ok(has_function_privilege('authenticated', 'public.registrar_venta_cliente_nuevo(uuid,uuid,uuid,text,text,jsonb,date,uuid,text)', 'execute'),
+select ok(has_function_privilege('authenticated', 'public.registrar_venta_cliente_nuevo(uuid,uuid,uuid,text,text,jsonb,date,uuid,text,text)', 'execute'),
   'un usuario logueado sí');
 
 -- ---------------------------------------------------------------------------------
@@ -77,6 +77,34 @@ select is((select count(*)::int from movimientos_stock where producto_id = '3000
 select is((select costo_ars from v_ventas where venta_id = '60000000-0000-0000-0000-000000000001'), 1400000::bigint,
   'costo FIFO igual que una venta común (2 × USD 5 × $1.400)');
 
+-- Dirección (opcional): se guarda limpia; vacía queda sin dirección; más de 200 caracteres se rechaza.
+select lives_ok($$ select registrar_venta_cliente_nuevo('60000000-0000-0000-0000-000000000070', '10000000-0000-0000-0000-000000000001',
+  '50000000-0000-0000-0000-000000000070', 'Julia', null,
+  '[{"producto_id":"30000000-0000-0000-0000-000000000001","cantidad":1,"precio_unitario":1000000}]',
+  p_direccion => '  San Martín   450,  Yerba Buena ') $$,
+  'venta a un cliente nuevo con dirección');
+select is((select direccion from clientes where id = '50000000-0000-0000-0000-000000000070'), 'San Martín 450, Yerba Buena',
+  'la dirección queda sin espacios de más');
+select is((select direccion from v_clientes where cliente_id = '50000000-0000-0000-0000-000000000070'), 'San Martín 450, Yerba Buena',
+  'y se ve en la vista de clientes');
+select lives_ok($$ select registrar_venta_cliente_nuevo('60000000-0000-0000-0000-000000000071', '10000000-0000-0000-0000-000000000001',
+  '50000000-0000-0000-0000-000000000071', 'Karina', null,
+  '[{"producto_id":"30000000-0000-0000-0000-000000000001","cantidad":1,"precio_unitario":1000000}]', p_direccion => '   ') $$,
+  'dirección en blanco');
+select is((select direccion from clientes where id = '50000000-0000-0000-0000-000000000071'), null, 'dirección en blanco queda sin dirección');
+select throws_ok($$ select registrar_venta_cliente_nuevo('60000000-0000-0000-0000-000000000072', '10000000-0000-0000-0000-000000000001',
+  '50000000-0000-0000-0000-000000000072', 'Lucas', null,
+  '[{"producto_id":"30000000-0000-0000-0000-000000000001","cantidad":1,"precio_unitario":1000000}]', p_direccion => repeat('x', 201)) $$,
+  '22023', 'La dirección puede tener hasta 200 caracteres', 'dirección de más de 200 caracteres');
+select is((select count(*)::int from clientes where id = '50000000-0000-0000-0000-000000000072'), 0, 'y ese cliente no queda creado');
+-- Desde la ficha: el socio carga o cambia la dirección de un cliente existente.
+update clientes set direccion = ' Av. Mate de Luna  1200 ' where id = '50000000-0000-0000-0000-00000000000f';
+select is((select direccion from clientes where id = '50000000-0000-0000-0000-00000000000f'), 'Av. Mate de Luna 1200',
+  'un socio puede cargar la dirección de un cliente existente (normalizada)');
+select throws_ok($$ insert into clientes (id, negocio_id, nombre, direccion)
+  values ('50000000-0000-0000-0000-000000000073', '10000000-0000-0000-0000-000000000001', 'Mario', repeat('x', 201)) $$,
+  '23514', null, 'la tabla tampoco acepta direcciones de más de 200 caracteres');
+
 -- Sin teléfono: queda vacío.
 select lives_ok($$ select registrar_venta_cliente_nuevo('60000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001',
   '50000000-0000-0000-0000-000000000002', 'Diego', '   ',
@@ -93,8 +121,8 @@ select is((select (registrar_venta_cliente_nuevo('60000000-0000-0000-0000-000000
   '60000000-0000-0000-0000-000000000001'::uuid, 'el reintento devuelve la misma venta');
 select is((select count(*)::int from clientes where nombre_para_comparar(nombre) = 'carla gomez'), 1, 'después del reintento hay un solo cliente');
 select is((select count(*)::int from ventas where cliente_id = '50000000-0000-0000-0000-000000000001'), 1, 'y una sola venta');
-select is((select count(*)::int from movimientos_stock where producto_id = '30000000-0000-0000-0000-000000000001' and tipo = 'venta'), 2,
-  'el reintento no descuenta stock otra vez (2 ventas: Carla y Diego)');
+select is((select count(*)::int from movimientos_stock where producto_id = '30000000-0000-0000-0000-000000000001' and tipo = 'venta'), 4,
+  'el reintento no descuenta stock otra vez (4 ventas: Carla, Julia, Karina y Diego)');
 select throws_ok($$ select registrar_venta_cliente_nuevo('60000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001',
   '50000000-0000-0000-0000-000000000001', 'Carla Gómez', null,
   '[{"producto_id":"30000000-0000-0000-0000-000000000001","cantidad":3,"precio_unitario":1050000}]') $$,
@@ -184,6 +212,11 @@ select is(_prueba_error($$ select registrar_venta_cliente_nuevo('60000000-0000-0
   true, 'en su negocio no ve mis clientes (no hay duplicado) ni puede vender mis productos');
 select is((select count(*)::int from clientes where id in ('50000000-0000-0000-0000-000000000040', '50000000-0000-0000-0000-000000000041')), 0,
   'ninguno de los dos intentos dejó cliente');
+update clientes set direccion = 'Hackeada' where id = '50000000-0000-0000-0000-00000000000f';
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true);
+select is((select direccion from clientes where id = '50000000-0000-0000-0000-00000000000f'), 'Av. Mate de Luna 1200',
+  'un socio de otro negocio no puede cambiar la dirección de mis clientes');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true);
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c1","role":"authenticated"}', true);
 insert into productos (id, negocio_id, marca, modelo, precio_general) values
