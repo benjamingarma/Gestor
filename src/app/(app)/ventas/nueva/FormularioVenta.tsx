@@ -144,6 +144,7 @@ export function FormularioVenta({
           onChange={(e) => setCreando({ ...creando, nombre: e.target.value })}
           maxLength={MAXIMO_NOMBRE + 10}
           autoComplete="off"
+          autoFocus
           aria-label="Nombre del cliente nuevo"
           className={campo}
         />
@@ -203,6 +204,19 @@ export function FormularioVenta({
         />
       </label>
       <ul className="flex flex-col divide-y divide-borde">
+        {/* Siempre primero, sin tener que escribir nada (pedido de los socios). Si hay algo escrito, lo usa de nombre. */}
+        <li>
+          <button
+            type="button"
+            onClick={() => setCreando({ nombre: paraCrear ?? "", telefono: "" })}
+            className="flex w-full items-center gap-3 py-2.5 text-left font-bold text-acento"
+          >
+            <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-acento text-[1.3rem] leading-none">
+              +
+            </span>
+            <span className="min-w-0 break-words">{paraCrear ? <>Crear “{paraCrear}” como cliente nuevo</> : "Crear cliente nuevo"}</span>
+          </button>
+        </li>
         {clientesFiltrados.map((c) => {
           const s = datos.saldos[c.id] ?? 0;
           return (
@@ -218,20 +232,6 @@ export function FormularioVenta({
           );
         })}
         {clientesFiltrados.length === 0 && <li className="py-2 text-texto-suave">No hay clientes que coincidan.</li>}
-        {paraCrear && (
-          <li>
-            <button
-              type="button"
-              onClick={() => setCreando({ nombre: paraCrear, telefono: "" })}
-              className="flex w-full items-center gap-3 py-2.5 text-left font-bold text-acento"
-            >
-              <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-acento text-[1.3rem] leading-none">
-                +
-              </span>
-              <span className="min-w-0 break-words">Crear “{paraCrear}” como cliente nuevo</span>
-            </button>
-          </li>
-        )}
       </ul>
     </div>
   );

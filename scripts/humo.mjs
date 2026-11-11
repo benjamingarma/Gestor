@@ -210,6 +210,10 @@ return esperado;
     if (telefono) await visible('input[aria-label="Teléfono del cliente nuevo"]').fill(telefono);
   };
 
+  // La opción "Crear cliente nuevo" está arriba de la lista sin escribir nada (pedido de los socios).
+  const primera = (await pagina.locator('ul:has(button:has-text("Crear cliente nuevo"))').filter({ visible: true }).first().locator("li").first().textContent())?.trim();
+  revisar(primera === "+Crear cliente nuevo", `sin escribir nada, la primera opción de la lista de clientes es "Crear cliente nuevo" (${primera})`);
+
   // 6a. Cliente nuevo + venta, con un producto cargado ANTES de crear el cliente (no se pierde). Doble toque al guardar.
   const nombreNuevo = `Humo nuevo ${Date.now()}`;
   await pagina.click(`button[aria-label="Agregar ${producto}"]`);
