@@ -32,7 +32,7 @@ Los números son **inventados** y no coinciden entre sí. En la app todo sale de
    medio de pago y quién recibió preseleccionados con el último usado, "Le queda debiendo" en vivo, Guardar.
 4. **Confirmación al guardar:** ✓ animado, monto y resumen, "Listo" y "Deshacer (anular)".
 5. **Más:** ver arriba.
-6. **Repetir última venta** (propuesta del 17/11/2026, **pendiente de aprobación**; pantallas `6a`, `6b`, `6c` y
+6. **Repetir última venta** (**aprobada el 17/11/2026**; pantallas `6a`, `6b`, `6c` y
    `pc.html?p=venta-repetida`):
    - **Ficha del cliente:** debajo de "+ Nueva venta", botón secundario "Repetir última venta" con la fecha y los
      productos de la última venta no anulada. Solo si tiene alguna y no está archivado.

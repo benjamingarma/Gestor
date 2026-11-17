@@ -692,6 +692,8 @@ decisiones). La app pasa a llamarse **McStock**.
 
 **Pendientes (actualizado el 11/11/2026), en este orden:**
 - **"Repetir última venta"** en la ficha del cliente: precios de hoy, todo editable y aviso si falta stock.
+  Maqueta aprobada el 17/11/2026 (`docs/maquetas/`, pantallas 6a–6c): además, tarjeta **"Última venta"** en toda venta
+  (para mirar el precio que se le hizo) y "La última vez: $ X" cuando el precio de hoy es otro. PR en curso.
 - **Cierre del 1.7** con la prueba del papá cuando vuelva de viaje.
 
 **Descartado y postergado (11/11/2026):**

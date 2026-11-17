@@ -195,6 +195,46 @@ return esperado;
   revisar(faltaSin === faltaAntes, `Ventas: "De estas ventas falta cobrar" volvió a $ ${faltaSin / 100} al deshacer`);
   revisar(conCobro["nos-deben"] === sinCobro["nos-deben"] - 400000 && conCobro["cobrado-mes"] === sinCobro["cobrado-mes"] + 400000, "el cobro movió exactamente $ 4.000 en Nos deben y en Cobrado del mes");
 }
+// 7. Repetir la última venta (maqueta 6): ficha → "Repetir última venta" → venta cargada con precios de hoy;
+//    tarjeta "Última venta", "La última vez: $ X" cuando el precio de hoy es otro, y aviso si falta stock.
+//    (Va antes de la sección 6, que deja el producto sin stock.)
+{
+  const revisar = (ok, texto) => {
+    console.log(`${ok ? "OK   " : "FALLA"} ${texto}`);
+    if (!ok) errores.push(texto);
+  };
+  const comoSocio = (sentencias) =>
+    execFileSync("psql", [DB_URL, "-q", "-v", "ON_ERROR_STOP=1", "-c", `begin; set local role authenticated;
+      select set_config('request.jwt.claims', '{"sub":"${userId}","role":"authenticated"}', true); ${sentencias} commit;`]);
+  const visible = (sel) => pagina.locator(sel).filter({ visible: true }).first();
+  // La última venta no anulada del cliente es la del paso 1 (2 u a $ 10.000); la del paso 3 se anuló.
+  await pagina.goto(`${BASE}/clientes/${ids.cliente}`);
+  await pagina.getByRole("link", { name: "Repetir última venta" }).click();
+  await pagina.waitForURL(/\/ventas\/nueva\?cliente=.*repetir=1/, { timeout: 20_000 });
+  const nombre = (await pagina.locator('button[aria-label^="Uno más de Humo"]').first().getAttribute("aria-label"))?.replace("Uno más de ", "");
+  const cantidad = (await visible(`[aria-label="Cantidad de ${nombre}"]`).textContent())?.trim();
+  const precio = await pagina.inputValue(`input[aria-label="Precio de ${nombre}"]`);
+  const tarjeta = await visible(`[data-ultima-venta="${ids.venta}"]`).isVisible();
+  const cargada = await visible("text=Cargada en la venta").isVisible();
+  revisar(cantidad === "2" && precio === "10.000" && tarjeta && cargada, `desde la ficha: la venta viene cargada con la última (2 u, $ ${precio}, último que pagó) y la tarjeta "Última venta" (cantidad ${cantidad})`);
+
+  // Precio especial nuevo ($ 9.000) y una unidad menos de stock: avisa "La última vez" y carga solo lo que hay.
+  const ajuste = randomUUID();
+  comoSocio(`select public.fijar_precio_especial('${ids.cliente}', '${ids.producto}', 900000);
+    select public.registrar_ajuste('${ajuste}', '${NEGOCIO}', '${ids.producto}', 1, 'rotura');`);
+  await pagina.goto(`${BASE}/ventas/nueva?cliente=${ids.cliente}`);
+  const ultimaVez = await visible("[data-ultima-vez]").getAttribute("data-ultima-vez");
+  revisar(ultimaVez === "1000000", `con precio especial distinto, el producto muestra "La última vez: $ 10.000" (${ultimaVez})`);
+  await visible('button:has-text("Repetir esta venta")').click();
+  const cant2 = (await visible(`[aria-label="Cantidad de ${nombre}"]`).textContent())?.trim();
+  const precio2 = await pagina.inputValue(`input[aria-label="Precio de ${nombre}"]`);
+  const falta = await visible("[data-faltantes]").textContent();
+  revisar(cant2 === "1" && precio2 === "9.000" && /llevó 2, quedan 1/.test(falta ?? ""), `"Repetir esta venta" sin stock suficiente: carga 1 a $ ${precio2} (precio especial de hoy) y avisa (${falta?.trim()})`);
+  // Se deja todo como estaba para la sección 6.
+  comoSocio(`select public.anular_ajuste('${ajuste}', 'Prueba de humo');
+    select public.fijar_precio_especial('${ids.cliente}', '${ids.producto}', null);`);
+}
+
 // 6. Venta a un cliente nuevo desde "Nueva venta" (registrar_venta_cliente_nuevo).
 {
   const enBaseTexto = (consulta) => execFileSync("psql", [DB_URL, "-tAq", "-c", consulta]).toString().trim();

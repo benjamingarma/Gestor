@@ -5,14 +5,26 @@ import { useActionState, useMemo, useState } from "react";
 import { Aviso } from "@/componentes/Aviso";
 import { Icono } from "@/componentes/Iconos";
 import { Avatar } from "@/componentes/UI";
-import { cambiarCantidad, proponerPrecio, reproponerPrecios, resumirCarrito, TEXTO_ORIGEN, type ItemCarrito } from "@/dominio/carrito";
+import { TarjetaUltimaVenta } from "@/componentes/UltimaVenta";
+import {
+  armarRepeticion,
+  cambiarCantidad,
+  proponerPrecio,
+  reproponerPrecios,
+  resumirCarrito,
+  TEXTO_ORIGEN,
+  textoFaltante,
+  ultimoPrecioDistinto,
+  type FaltanteRepeticion,
+  type ItemCarrito,
+} from "@/dominio/carrito";
 import { limpiarNombre, MAXIMO_DIRECCION, MAXIMO_NOMBRE, MAXIMO_TELEFONO, problemaClienteNuevo, textoParaCrear } from "@/dominio/clienteNuevo";
-import type { DatosNuevaVenta } from "@/datos/ventas";
+import type { DatosNuevaVenta, UltimaVenta } from "@/datos/ventas";
 import { formatearDolares, formatearPesos } from "@/lib/dinero";
 import { formatearDia } from "@/lib/fechas";
 import { coincide } from "@/lib/texto";
 import { nuevoUuid } from "@/lib/uuid";
-import { registrarVenta } from "../acciones";
+import { leerUltimaVenta, registrarVenta } from "../acciones";
 
 /** Pantalla de venta (maqueta docs/maquetas, pantalla 2): todo en una sola pantalla y un solo botón. */
 export function FormularioVenta({
@@ -21,19 +33,38 @@ export function FormularioVenta({
   socioActual,
   hoy,
   volverA,
+  ultimaInicial,
+  repetir,
 }: {
   datos: DatosNuevaVenta;
   clienteInicial: string;
   socioActual: string;
   hoy: string;
   volverA: string;
+  /** Última venta del cliente con el que se abre la pantalla (null si no tiene o si no vino cliente). */
+  ultimaInicial: UltimaVenta | null;
+  /** Vino de "Repetir última venta" (ficha del cliente): el carrito arranca con esa venta. */
+  repetir: boolean;
 }) {
   const [estado, enviar, enviando] = useActionState(registrarVenta, {});
   const [id] = useState(() => nuevoUuid()); // una venta = un identificador: reenviar no duplica
   const [clienteId, setClienteId] = useState(clienteInicial);
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [busquedaProducto, setBusquedaProducto] = useState("");
-  const [items, setItems] = useState<ItemCarrito[]>([]);
+  const productos = useMemo(() => new Map(datos.productos.map((p) => [p.id, p])), [datos.productos]);
+  const precios = useMemo(() => ({ especiales: datos.especiales, ultimos: datos.ultimos }), [datos.especiales, datos.ultimos]);
+  // Repetir desde la ficha: el carrito arranca armado (precios de hoy, sin pasar del stock).
+  const [inicio] = useState(() =>
+    repetir && clienteInicial && ultimaInicial ? { ...armarRepeticion(ultimaInicial.renglones, { clienteId: clienteInicial, productos, precios }), ventaId: ultimaInicial.ventaId } : null,
+  );
+  const [items, setItems] = useState<ItemCarrito[]>(inicio?.items ?? []);
+  // Tarjeta "Última venta": la del cliente elegido (se lee de la base al elegir otro cliente; undefined = leyendo).
+  const [ultima, setUltima] = useState<{ clienteId: string; venta: UltimaVenta | null | undefined } | null>(
+    clienteInicial ? { clienteId: clienteInicial, venta: ultimaInicial } : null,
+  );
+  // Venta repetida (id) y productos que no alcanzaron.
+  const [repetida, setRepetida] = useState<string | null>(inicio?.ventaId ?? null);
+  const [faltantes, setFaltantes] = useState<FaltanteRepeticion[]>(inicio?.faltantes ?? []);
   const [opciones, setOpciones] = useState(false);
   const [fecha, setFecha] = useState(hoy);
   const [vendidoPor, setVendidoPor] = useState(socioActual);
@@ -44,8 +75,6 @@ export function FormularioVenta({
   // Cliente existente que no estaba en la lista al abrir la pantalla (lo creó otro socio mientras tanto).
   const [extra, setExtra] = useState<{ id: string; nombre: string } | null>(null);
 
-  const productos = useMemo(() => new Map(datos.productos.map((p) => [p.id, p])), [datos.productos]);
-  const precios = useMemo(() => ({ especiales: datos.especiales, ultimos: datos.ultimos }), [datos.especiales, datos.ultimos]);
   const cliente = datos.clientes.find((c) => c.id === clienteId) ?? (extra?.id === clienteId ? extra : undefined);
   // El cliente al que se le vende: uno existente o el nuevo (los precios se proponen con su id: el nuevo no tiene
   // precios especiales ni último precio, así que salen los generales).
@@ -55,13 +84,33 @@ export function FormularioVenta({
   const conocidos = useMemo(() => [...datos.clientes, ...datos.archivados.map((c) => ({ ...c, archivado: true }))], [datos.clientes, datos.archivados]);
   const problemaNuevo = creando ? problemaClienteNuevo(creando, conocidos) : null;
   const enCarrito = new Map(items.map((i) => [i.productoId, i]));
+  // Solo la del cliente elegido ahora (un cliente nuevo no tiene ventas).
+  const ultimaActual = (!clienteNuevo && ultima && ultima.clienteId === clienteId ? ultima.venta : null) ?? null;
+  const renglonesAnteriores = ultimaActual?.renglones ?? [];
 
+  const olvidarRepeticion = () => {
+    setRepetida(null);
+    setFaltantes([]);
+  };
   const elegirCliente = (cId: string) => {
     setClienteId(cId);
     setClienteNuevo(null);
     setCreando(null);
     setBusquedaCliente("");
     setItems((l) => reproponerPrecios(l, cId, productos, precios));
+    olvidarRepeticion();
+    if (ultima?.clienteId !== cId) {
+      setUltima({ clienteId: cId, venta: undefined });
+      // Si mientras tanto se eligió otro cliente, la respuesta vieja se descarta.
+      const guardar = (venta: UltimaVenta | null) => setUltima((u) => (u?.clienteId === cId ? { clienteId: cId, venta } : u));
+      leerUltimaVenta(cId).then(guardar, () => guardar(null)); // si no se pudo leer, se vende igual, sin la tarjeta
+    }
+  };
+  const repetirVenta = (u: UltimaVenta) => {
+    const r = armarRepeticion(u.renglones, { clienteId, productos, precios });
+    setItems(r.items);
+    setFaltantes(r.faltantes);
+    setRepetida(u.ventaId);
   };
   const confirmarClienteNuevo = () => {
     if (!creando || problemaNuevo) return;
@@ -71,6 +120,7 @@ export function FormularioVenta({
     setCreando(null);
     setBusquedaCliente("");
     setItems((l) => reproponerPrecios(l, nuevo.id, productos, precios));
+    olvidarRepeticion();
   };
   const usarExistente = (c: { id: string; nombre: string }) => {
     if (!datos.clientes.some((x) => x.id === c.id)) setExtra({ id: c.id, nombre: c.nombre });
@@ -79,6 +129,7 @@ export function FormularioVenta({
   const cambiarCliente = () => {
     setClienteId("");
     setClienteNuevo(null);
+    olvidarRepeticion();
   };
   const sumar = (productoId: string, delta: number) =>
     setItems((l) => cambiarCantidad(l, productoId, delta, { clienteId: idElegido, productos, precios }));
@@ -254,6 +305,40 @@ export function FormularioVenta({
     </div>
   );
 
+  const tarjetaUltima = ultimaActual && (
+    <TarjetaUltimaVenta ultima={ultimaActual} hoy={hoy}>
+      {repetida === ultimaActual.ventaId ? (
+        <span className="py-1.5 text-center text-[0.82rem] font-bold text-acento" role="status">
+          ✓ Cargada en la venta: revisá cantidades y precios
+        </span>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => repetirVenta(ultimaActual)}
+            className="boton-toque flex min-h-[44px] items-center justify-center gap-2 rounded-[14px] border border-borde bg-superficie font-bold"
+          >
+            <Icono nombre="repetir" className="h-5 w-5" />
+            Repetir esta venta
+          </button>
+          {items.length > 0 && <span className="text-center text-[0.72rem] text-texto-suave">Reemplaza los productos que ya cargaste.</span>}
+        </>
+      )}
+    </TarjetaUltimaVenta>
+  );
+
+  const avisoFaltantes = faltantes.length > 0 && (
+    <div role="status" data-faltantes={faltantes.length} className="aviso-aparecer flex gap-2 rounded-xl bg-aviso-suave px-3 py-2.5 text-[0.8rem] leading-snug text-texto">
+      <span aria-hidden="true">ⓘ</span>
+      <span className="flex flex-col">
+        <b className="text-aviso">{faltantes.length === 1 ? "Falta stock de 1 producto." : `Falta stock de ${faltantes.length} productos.`}</b>
+        {faltantes.map((f) => (
+          <span key={f.nombre}>{textoFaltante(f)}</span>
+        ))}
+      </span>
+    </div>
+  );
+
   const lineaOpciones = (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3 px-1 text-[0.82rem] text-texto-suave">
@@ -334,6 +419,8 @@ export function FormularioVenta({
       <div className="flex flex-col gap-3 px-4 pb-[200px] lg:grid lg:grid-cols-[1.5fr_1fr] lg:items-start lg:gap-5 lg:px-9 lg:pb-9">
         <div className="flex flex-col gap-3">
           <div className="lg:hidden">{tarjetaCliente}</div>
+          {tarjetaUltima && <div className="lg:hidden">{tarjetaUltima}</div>}
+          {avisoFaltantes}
           <label className="flex min-h-[50px] items-center gap-2.5 rounded-[14px] bg-superficie-2 px-3.5 text-texto-suave lg:border lg:border-borde lg:bg-superficie">
             <Icono nombre="buscar" />
             <input
@@ -351,6 +438,12 @@ export function FormularioVenta({
               const fila = resumen.filas.find((f) => f.productoId === p.id);
               const propuesto = proponerPrecio(p.id, idElegido, productos, precios);
               const origen = item ? item.origen : propuesto.origen;
+              const laUltimaVez = ultimoPrecioDistinto(renglonesAnteriores, p.id, propuesto.precio);
+              const textoUltimaVez = laUltimaVez !== null && (
+                <span className="text-[0.72rem] font-bold text-aviso" data-ultima-vez={laUltimaVez}>
+                  La última vez: {formatearPesos(laUltimaVez)}
+                </span>
+              );
               return (
                 <li key={p.id} className="flex items-center justify-between gap-3 py-3">
                   <div className="flex min-w-0 flex-col gap-1">
@@ -371,11 +464,15 @@ export function FormularioVenta({
                           />
                         </span>
                         <span className="text-[0.72rem] text-texto-suave">Propuesto: {TEXTO_ORIGEN[origen]}</span>
+                        {textoUltimaVez}
                       </label>
                     ) : (
-                      <span className="text-[0.82rem] text-texto-suave">
-                        <span className="num">{propuesto.precio !== null ? formatearPesos(propuesto.precio) : "Sin precio"}</span> · {TEXTO_ORIGEN[origen]}
-                      </span>
+                      <>
+                        <span className="text-[0.82rem] text-texto-suave">
+                          <span className="num">{propuesto.precio !== null ? formatearPesos(propuesto.precio) : "Sin precio"}</span> · {TEXTO_ORIGEN[origen]}
+                        </span>
+                        {textoUltimaVez}
+                      </>
                     )}
                     <span className="text-[0.72rem] text-texto-suave">Quedan {p.unidades}</span>
                     {fila?.precioError && <span className="text-[0.72rem] text-peligro">{fila.precioError}</span>}
@@ -414,6 +511,7 @@ export function FormularioVenta({
         {/* PC: cliente y resumen a la derecha. */}
         <div className="hidden flex-col gap-3 lg:flex">
           {tarjetaCliente}
+          {tarjetaUltima}
           <section className="flex flex-col gap-3 rounded-[20px] border border-borde bg-superficie p-4 shadow-tarjeta" aria-label="Resumen de la venta">
             <h2 className="text-[1.05rem] font-bold">Resumen</h2>
             {resumen.filas.length === 0 ? (

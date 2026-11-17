@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { cambiarCantidad, reproponerPrecios, resumirCarrito, type PreciosCliente, type ProductoVenta } from "./carrito";
+import {
+  armarRepeticion,
+  cambiarCantidad,
+  juntarRenglones,
+  reproponerPrecios,
+  resumirCarrito,
+  textoFaltante,
+  ultimoPrecioDistinto,
+  type PreciosCliente,
+  type ProductoVenta,
+  type RenglonAnterior,
+} from "./carrito";
 
 // Escenario del plan (sección 6): P1 Vapex 8000 (C2: 18 u a $7.000 / USD 5), P2 Nubo 5000 (C3: 15 u a $4.500 / USD 3).
 const P1: ProductoVenta = {
@@ -81,6 +92,68 @@ describe("carrito de la venta", () => {
         expect(r.importe).toBe(r.filas.reduce((s, f) => s + f.cantidad * f.precioCentavos!, 0));
         expect(r.ganancia).toBe(r.importe - r.costoArs);
         expect(r.filas.every((f) => f.faltan === 0)).toBe(true);
+      }),
+    );
+  });
+});
+
+describe("repetir la última venta", () => {
+  const anterior = (productoId: string, cantidad: number, precioUnitario: number, nombre = productoId): RenglonAnterior => ({ productoId, nombre, cantidad, precioUnitario });
+
+  it("mismos productos y cantidades con los precios de hoy (especial → último → general)", () => {
+    const { items, faltantes } = armarRepeticion([anterior("p1", 2, 1_000_000), anterior("p2", 1, 800_000)], ctx("bruno"));
+    expect(items.map((i) => [i.productoId, i.cantidad, i.precio, i.origen])).toEqual([
+      ["p1", 2, "10.500", "especial"],
+      ["p2", 1, "8.000", "general"],
+    ]);
+    expect(faltantes).toEqual([]);
+  });
+
+  it("si falta stock carga lo que hay y avisa; sin stock o sin vender no lo agrega", () => {
+    const { items, faltantes } = armarRepeticion(
+      [anterior("p3", 5, 100, "Lumo 3000"), anterior("p9", 2, 500_000, "Vapex 12000"), anterior("p1", 1, 1_000_000)],
+      ctx("ana"),
+    );
+    expect(items.map((i) => [i.productoId, i.cantidad])).toEqual([["p3", 2], ["p1", 1]]);
+    expect(faltantes).toEqual([
+      { nombre: "Lumo 3000", llevo: 5, cargadas: 2 },
+      { nombre: "Vapex 12000", llevo: 2, cargadas: 0 },
+    ]);
+    expect(faltantes.map(textoFaltante)).toEqual(["Lumo 3000: llevó 5, quedan 2 → cargamos 2.", "Vapex 12000: sin stock, no se agregó."]);
+  });
+
+  it("el mismo producto en dos renglones se junta (vale el precio del último renglón)", () => {
+    const renglones = [anterior("p2", 2, 700_000), anterior("p2", 3, 750_000)];
+    expect(juntarRenglones(renglones)).toEqual([anterior("p2", 5, 750_000)]);
+    expect(armarRepeticion(renglones, ctx("ana")).items).toEqual([{ productoId: "p2", cantidad: 5, precio: "7.500", origen: "ultimo" }]);
+  });
+
+  it("'La última vez' solo si el precio propuesto de hoy es distinto", () => {
+    const renglones = [anterior("p1", 2, 1_000_000), anterior("p2", 1, 800_000)];
+    expect(ultimoPrecioDistinto(renglones, "p1", 1_050_000)).toBe(1_000_000);
+    expect(ultimoPrecioDistinto(renglones, "p2", 800_000)).toBeNull();
+    expect(ultimoPrecioDistinto(renglones, "p3", 100)).toBeNull();
+    expect(ultimoPrecioDistinto(renglones, "p1", null)).toBe(1_000_000);
+  });
+
+  it("nunca pasa del stock ni de lo que llevó, y lo que falta cuadra (fast-check)", () => {
+    const ids = ["p1", "p2", "p3", "p9"];
+    fc.assert(
+      fc.property(fc.array(fc.record({ p: fc.constantFrom(...ids), q: fc.integer({ min: 1, max: 40 }) }), { maxLength: 12 }), (lista) => {
+        const renglones = lista.map((x) => anterior(x.p, x.q, 100));
+        const { items, faltantes } = armarRepeticion(renglones, ctx("ana"));
+        for (const id of ids) {
+          const llevo = lista.filter((x) => x.p === id).reduce((s, x) => s + x.q, 0);
+          const cargado = items.find((i) => i.productoId === id)?.cantidad ?? 0;
+          const stock = productos.get(id)?.unidades ?? 0;
+          expect(cargado).toBeLessThanOrEqual(Math.min(llevo, stock));
+          expect(cargado).toBe(Math.min(llevo, stock));
+          const falta = faltantes.find((f) => f.nombre === id);
+          expect(Boolean(falta)).toBe(llevo > cargado);
+          if (falta) expect(falta).toEqual({ nombre: id, llevo, cargadas: cargado });
+        }
+        expect(new Set(items.map((i) => i.productoId)).size).toBe(items.length);
+        expect(items.every((i) => i.cantidad > 0)).toBe(true);
       }),
     );
   });

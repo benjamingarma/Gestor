@@ -67,6 +67,14 @@ const TRAZOS = {
     </>
   ),
   salir: <path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10" />,
+  repetir: (
+    <>
+      <path d="M4 12a8 8 0 0 1 13.7-5.6L20 9" />
+      <path d="M20 4v5h-5" />
+      <path d="M20 12a8 8 0 0 1-13.7 5.6L4 15" />
+      <path d="M4 20v-5h5" />
+    </>
+  ),
 } as const;
 
 export type NombreIcono = keyof typeof TRAZOS;

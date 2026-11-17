@@ -6,6 +6,7 @@ import { z } from "zod";
 import { parsearImporte } from "@/lib/dinero";
 import { mensajeDeError } from "@/lib/errores";
 import { esDiaValido, hoy } from "@/lib/fechas";
+import { ultimaVentaDeCliente, type UltimaVenta } from "@/datos/ventas";
 import { obtenerSocioActual } from "@/lib/sesion";
 import { crearClienteSupabase } from "@/lib/supabase/servidor";
 import { esUuid } from "@/lib/uuid";
@@ -96,6 +97,13 @@ export async function registrarVenta(_p: EstadoVenta, formulario: FormData): Pro
   revalidatePath("/", "layout");
   // Pantalla de confirmación (maqueta, pantalla 4), con "Deshacer" solo justo después de guardar.
   redirect(`/ventas/${v.id}/guardada`);
+}
+
+/** Última venta del cliente elegido en "Nueva venta" (tarjeta "Última venta"). Solo lee. */
+export async function leerUltimaVenta(clienteId: string): Promise<UltimaVenta | null> {
+  const socio = await obtenerSocioActual();
+  if (!esUuid(clienteId)) return null;
+  return ultimaVentaDeCliente(socio.negocioId, clienteId);
 }
 
 export async function anularVenta(_p: EstadoVenta, formulario: FormData): Promise<EstadoVenta> {

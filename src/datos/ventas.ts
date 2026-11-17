@@ -1,4 +1,5 @@
 import "server-only";
+import type { RenglonAnterior } from "@/dominio/carrito";
 import type { CompraDisponible } from "@/dominio/ventas";
 import { rangoDelMes } from "@/lib/meses";
 import { listarSaldos } from "./cuentas";
@@ -132,6 +133,43 @@ export async function listarVentas(
   const { data, error } = await consulta.order("fecha", { ascending: false }).order("secuencia", { ascending: false });
   if (error) fallar("No se pudieron leer las ventas", error);
   return (data ?? []) as ResumenVenta[];
+}
+
+/** Última venta NO anulada de un cliente, con sus renglones (precio histórico de cada uno). */
+export type UltimaVenta = { ventaId: string; dia: string; importe: number; renglones: RenglonAnterior[] };
+
+export async function ultimaVentaDeCliente(negocioId: string, clienteId: string): Promise<UltimaVenta | null> {
+  const supabase = await crearClienteSupabase();
+  const { data: venta, error } = await supabase
+    .from("v_ventas")
+    .select("venta_id, dia, importe")
+    .eq("negocio_id", negocioId)
+    .eq("cliente_id", clienteId)
+    .is("anulado_en", null)
+    .order("fecha", { ascending: false })
+    .order("secuencia", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) fallar("No se pudo leer la última venta", error);
+  if (!venta) return null;
+  const { data: items, error: e2 } = await supabase
+    .from("venta_items")
+    .select("producto_id, cantidad, precio_unitario, productos ( marca, modelo )")
+    .eq("venta_id", venta.venta_id)
+    .order("renglon");
+  if (e2) fallar("No se pudieron leer los productos de la última venta", e2);
+  type Fila = { producto_id: string; cantidad: number; precio_unitario: number; productos: { marca: string; modelo: string } };
+  return {
+    ventaId: venta.venta_id,
+    dia: venta.dia,
+    importe: venta.importe,
+    renglones: ((items ?? []) as unknown as Fila[]).map((i) => ({
+      productoId: i.producto_id,
+      nombre: `${i.productos.marca} ${i.productos.modelo}`,
+      cantidad: i.cantidad,
+      precioUnitario: i.precio_unitario,
+    })),
+  };
 }
 
 export type DetalleRenglon = {
