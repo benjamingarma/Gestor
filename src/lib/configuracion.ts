@@ -3,7 +3,7 @@ import "server-only";
 /**
  * Variables de entorno. Se leen SOLO en el servidor: ni la URL ni la clave de Supabase
  * llegan al navegador (no usan el prefijo NEXT_PUBLIC_).
- * Valores locales: .env.local (ignorado por git). Producción/prueba: panel de Netlify.
+ * Valores locales: .env.local (ignorado por git). Producción y previews: panel de Vercel.
  */
 export function configuracionSupabase(): { url: string; clavePublica: string } {
   const url = process.env.SUPABASE_URL;

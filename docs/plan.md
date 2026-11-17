@@ -1,4 +1,4 @@
-# Plan del sistema de gestión — Versión 3.4
+# Plan del sistema de gestión — Versión 3.5
 
 > Estado: **aprobado** por los socios (versión 2) con las correcciones de la versión 3:
 > producto sin sabor, costo de compra en dólares (blue) con tipo de cambio por compra,
@@ -13,6 +13,8 @@
 > decisión 11 y T1; ver 12.3).
 > Versión 3.4 (11/11/2026): **el sabor queda descartado** (vuelve a valer "producto sin sabor") y **el gráfico del mes
 > en Inicio se posterga** hasta tener datos reales (después del 1.10). Ver 12.3 y 12.5.
+> Versión 3.5 (17/11/2026): **el hosting pasa de Netlify a Vercel (plan Hobby)**: Netlify pausó los deploys a
+> producción por créditos del plan gratis. Ver 12.4 y `docs/configuracion.md`.
 > Notas para retomar el trabajo en una sesión nueva: `docs/notas-de-sesion.md`.
 > Donde las versiones anteriores digan otra cosa, manda esta.
 
@@ -84,7 +86,7 @@ ramas, un módulo por vez, pruebas obligatorias de dinero e inventario.
 | 12 | Responsables | Quién hizo cada venta, quién registró cada pago, quién recibió el dinero, quién cargó cada compra o ajuste. |
 | 13 | Carga inicial | ~100 clientes, ~700 unidades (+400 en camino, como compra nueva). Deudas, saldos a favor, precios generales y especiales. CSV con verificación de totales antes de confirmar. No se inventan datos. |
 | 14 | Login | Email y contraseña, sesión persistente y segura, un acceso por socio. |
-| 15 | Cuentas | GitHub, Supabase y Netlify a nombre de Benjamín; luego acceso de administrador al papá. Ninguna clave en el código ni en el frontend. |
+| 15 | Cuentas | GitHub, Supabase y Vercel a nombre de Benjamín; luego acceso de administrador al papá. Ninguna clave en el código ni en el frontend. |
 | 16 | Backups | Plan gratis de Supabase. Backup diario automático cifrado fuera de Supabase, exportación a CSV desde la app, tarea que evite la pausa por inactividad, procedimiento de restauración documentado y **probado antes de cargar datos reales**. |
 
 ---
@@ -496,9 +498,9 @@ en USD: si repartieran toda la ganancia en pesos, el capital en USD disponible p
 | T3 | Deudas del papel sin costo | A5: saldo inicial, sin ganancia. |
 | T5 | Aplicación FIFO de pagos se reacomoda al anular | A4; pagos y ventas no cambian nunca. |
 | T6 | Papá sin cuenta todavía | A1. |
-| T7 | "Administrador" | Administrador de GitHub/Supabase/Netlify; en la app los dos socios tienen los mismos permisos. |
+| T7 | "Administrador" | Administrador de GitHub/Supabase/Vercel; en la app los dos socios tienen los mismos permisos. |
 | T8 | Costo en catálogo con FIFO | A10. |
-| T10 | Netlify + Next.js | Solo funciones estables; deploy probado desde el módulo 1.0. |
+| T10 | Hosting + Next.js | Solo funciones estables. Netlify desde el 1.0; **Vercel (plan Hobby) desde el 17/11/2026**, probado con login y totales iguales a los de Netlify. |
 | T11 | UUID en el cliente + FIFO en servidor | El costo lo calcula la base. |
 | T12 | Etapa 1 grande | Dividida en módulos (sección 12). |
 | T13 | Precio especial se pisa | Es configuración; lo histórico está en cada venta. |
@@ -523,7 +525,7 @@ Celular / PC Windows (navegador)
    │  Next.js (App Router) + TypeScript + Tailwind — responsive
    │  Genera UUID de cada operación. Validación con Zod.
    ▼
-Netlify (hosting Next.js)
+Vercel (hosting Next.js, plan Hobby)
    │  @supabase/ssr: sesión en cookies; todo se consulta como el usuario logueado
    │  src/dominio/: cálculos puros (cuenta corriente, ganancia, reparto, visitas, precio propuesto)
    ▼
@@ -562,7 +564,7 @@ GitHub Actions (repo privado)
    (función `ping()` que devuelve la hora, sin datos). El backup diario también genera actividad.
 4. **Procedimiento de restauración** documentado en `docs/restauracion.md`: descargar artefacto, descifrar,
    restaurar en un proyecto Supabase nuevo, verificar controles (cantidades por tabla y cierres de capital),
-   reconfigurar variables en Netlify, recuperar contraseñas.
+   reconfigurar variables en Vercel, recuperar contraseñas.
 5. **Prueba real de restauración** sobre un proyecto Supabase de prueba con datos inventados, **antes** de
    cargar datos reales. Módulo 1.9; sin eso no se pasa al 1.10.
 
@@ -629,7 +631,7 @@ de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 
 | # | Módulo | Estado | PR |
 |---|---|---|---|
-| 1.0 | Base: login, socios, RLS, utilidades de dinero y fechas, CI, Netlify, ping anti-pausa | ✅ terminado | #1 |
+| 1.0 | Base: login, socios, RLS, utilidades de dinero y fechas, CI, hosting (Netlify; hoy Vercel), ping anti-pausa | ✅ terminado | #1 |
 | — | Migraciones automáticas al mergear a `main` (A19) + plan v3.1 | ✅ terminado | #2 |
 | 1.1 | Productos, compras en USD y stock por movimientos; marcado de datos de prueba (A20) | ✅ terminado | #3 |
 | 1.2 | Clientes y visitas básicas | ✅ terminado | #4 |
@@ -722,6 +724,12 @@ se va a ver qué pregunta sirve de verdad. Primero van 1.8, 1.9 y 1.10.
 cuesta más que el costo FIFO si el dólar subió) y margen por producto en el Resumen (para ajustar precios).
 
 ### 12.4 Notas
+- **Hosting en Vercel desde el 17/11/2026** (antes Netlify, que pausó los deploys a producción por créditos del plan
+  gratis). Con los deploys a producción en Vercel, **cada merge a `main` publica solo** la app. Los **deploy previews
+  de Vercel** (uno por PR, link en el PR) sirven para probar los PR **sin migraciones** antes de mergear; como el
+  preview usa la base real y las migraciones se aplican recién al mergear, un PR con migración se sigue haciendo en dos
+  (migración primero, pantalla después). CI, prueba de humo, migraciones automáticas y anti-pausa corren en GitHub
+  Actions y no dependen del hosting.
 - El ping anti-pausa se adelantó al módulo 1.0.
 - No hay un proyecto de producción separado: es el mismo proyecto de Supabase, limpio de datos de prueba en el
   módulo 1.10 (A20).

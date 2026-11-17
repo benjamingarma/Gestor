@@ -1,7 +1,7 @@
 # Gestor
 
 Sistema de gestión para un negocio de venta de vapers de dos socios (Tucumán).
-App web mobile-first: Next.js + TypeScript, Supabase, Netlify.
+App web mobile-first: Next.js + TypeScript, Supabase, Vercel.
 
 - Reglas del proyecto: [`CLAUDE.md`](CLAUDE.md)
 - Plan aprobado: [`docs/plan.md`](docs/plan.md)
