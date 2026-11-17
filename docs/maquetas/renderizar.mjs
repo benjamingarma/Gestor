@@ -15,14 +15,14 @@ for (const tema of ["light", "dark"]) {
   const m = await (await b.newContext({ viewport: { width: 2600, height: 1340 }, colorScheme: tema })).newPage();
   await m.goto(`file://${dir}/movil.html`);
   await m.screenshot({ path: join(img, `celular-${n}.png`), fullPage: true });
-  for (const p of ["inicio", "venta", "cobro"]) {
+  for (const p of ["inicio", "venta", "venta-repetida", "cobro"]) {
     const pc = await (await b.newContext({ viewport: { width: 1366, height: 768 }, colorScheme: tema })).newPage();
     await pc.goto(`file://${dir}/pc.html?p=${p}`);
     await pc.screenshot({ path: join(img, `pc-${p}-${n}.png`) });
   }
   const fondo = n === "claro" ? "#9aa5a0" : "#050706";
   const html = `<body style="margin:0;padding:20px;background:${fondo};display:flex;flex-direction:column;gap:20px;font:700 18px system-ui;color:#fff">` +
-    ["inicio", "venta", "cobro"].map((s, i) => `<div>${i + 1} · ${s[0].toUpperCase() + s.slice(1)} en PC (${n})</div><img src="pc-${s}-${n}.png" style="width:1366px;border-radius:10px">`).join("") + "</body>";
+    ["inicio", "venta", "venta-repetida", "cobro"].map((s, i) => `<div>${i + 1} · ${s[0].toUpperCase() + s.slice(1)} en PC (${n})</div><img src="pc-${s}-${n}.png" style="width:1366px;border-radius:10px">`).join("") + "</body>";
   const tmp = join(img, `_junta-${n}.html`);
   writeFileSync(tmp, html);
   const j = await (await b.newContext({ viewport: { width: 1406, height: 800 } })).newPage();

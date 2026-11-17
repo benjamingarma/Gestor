@@ -25,7 +25,7 @@ body{padding:28px;background:#9aa5a0}
 </style></head><body><div class="hoja" id="hoja"></div>
 <script src="pantallas.js"></script>
 <script>
-const tit={inicio:"1 · Inicio (pantalla completa, con scroll)",venta:"2 · Venta (una pantalla)","cobro-lista":"3a · Cobrar: elegir cliente",cobro:"3b · Cobro (una pantalla)",guardado:"4 · Confirmación al guardar",mas:"5 · Más"};
+const tit={inicio:"1 · Inicio (pantalla completa, con scroll)",venta:"2 · Venta (una pantalla)","ficha-repetir":"6a · Ficha: Repetir última venta","venta-ultima":"6b · Venta: tarjeta Última venta","venta-repetida":"6c · Venta repetida (falta stock)","cobro-lista":"3a · Cobrar: elegir cliente",cobro:"3b · Cobro (una pantalla)",guardado:"4 · Confirmación al guardar",mas:"5 · Más"};
 const sel=(new URLSearchParams(location.search).get("p")||Object.keys(tit).join(",")).split(",");
-document.getElementById("hoja").innerHTML=sel.map(k=>`<div class="marco"><span class="rotulo">${tit[k]}</span><div class="telefono" style="${k==="inicio"?"height:1240px":""}"><div class="estado"><span>9:41</span><span>●●● ▮</span></div>${MOVIL[k]()}</div></div>`).join("");
+document.getElementById("hoja").innerHTML=sel.map(k=>`<div class="marco"><span class="rotulo">${tit[k]}</span><div class="telefono" style="${k==="inicio"||k==="venta-repetida"?"height:1240px":""}"><div class="estado"><span>9:41</span><span>●●● ▮</span></div>${MOVIL[k]()}</div></div>`).join("");
 </script></body></html>
