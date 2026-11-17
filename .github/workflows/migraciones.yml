@@ -1,7 +1,7 @@
 name: Aplicar migraciones a Supabase
 
 # Al mergear a main un cambio en supabase/migrations, aplica las migraciones nuevas
-# al proyecto de Supabase (el que usa la app publicada en Netlify).
+# al proyecto de Supabase (el que usa la app publicada en Vercel).
 # Solo aplica las que todavía no están aplicadas: correrlo dos veces no hace nada.
 # Nunca carga supabase/seed.sql (datos de desarrollo local).
 #

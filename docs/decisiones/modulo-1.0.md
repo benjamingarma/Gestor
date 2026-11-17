@@ -64,5 +64,8 @@ Cada decisión: qué se hizo, por qué y qué se descartó (regla 5 de CLAUDE.md
   2 días (`.github/workflows/mantener-activo.yml`). Evita que el proyecto de prueba se pause durante el desarrollo.
   El backup diario y la exportación quedan para el módulo 1.9, como dice el plan.
 
-## 12. Netlify
+## 12. Netlify (reemplazado por Vercel el 17/11/2026)
 - `netlify.toml` con Node 22; Netlify detecta Next.js y usa su adaptador. Variables en el panel de Netlify.
+- **17/11/2026:** Netlify pausó los deploys a producción por falta de créditos del plan gratis. La app se mudó a
+  **Vercel (plan Hobby)**, se borró `netlify.toml` y el proyecto de Netlify. Vercel detecta Next.js solo (no necesita
+  archivo de configuración); Node 22.x se fija en el panel. Pasos en `docs/configuracion.md`, sección 3.

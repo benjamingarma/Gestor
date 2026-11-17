@@ -19,7 +19,10 @@
 - Maquetas aprobadas en `docs/maquetas/` (leer su README antes de tocar pantallas). Decisiones de la venta a cliente
   nuevo en `docs/decisiones/modulo-1.7-venta-cliente-nuevo.md`.
 - Repositorio privado, rama por defecto `main`. Se trabaja con una rama `claude/...` y un PR por tarea; los socios
-  prueban en el deploy preview de Netlify y **mergean ellos** (nunca mergear sin su aprobación).
+  prueban en el deploy preview de **Vercel** y **mergean ellos** (nunca mergear sin su aprobación).
+- **Hosting: Vercel (plan Hobby) desde el 17/11/2026** (Netlify pausó los deploys a producción por créditos del plan
+  gratis; se borraron el proyecto de Netlify y `netlify.toml`). Cada merge a `main` publica solo. Los previews de
+  Vercel piden login de Vercel (Deployment Protection). Pasos en `docs/configuracion.md`, sección 3.
 - Al mergear, las migraciones se aplican solas a Supabase (`.github/workflows/migraciones.yml`, secreto
   `SUPABASE_DB_URL`). Después de cada merge con migración, revisar el log: el paso "Migraciones pendientes" tiene que
   listar solo la migración nueva.

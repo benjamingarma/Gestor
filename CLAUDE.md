@@ -2,7 +2,7 @@
 
 Sistema de gestión para un negocio de venta de vapers entre dos socios (Tucumán, Argentina).
 App web mobile-first, en español, moneda: pesos argentinos (ARS).
-Stack: Next.js + TypeScript, Supabase (PostgreSQL + Auth), hosting en Netlify.
+Stack: Next.js + TypeScript, Supabase (PostgreSQL + Auth), hosting en Vercel (plan Hobby).
 El plan completo está en `docs/plan.md`.
 
 ## Reglas de trabajo (obligatorias)
@@ -22,7 +22,7 @@ El plan completo está en `docs/plan.md`.
 
 4. **Nunca poner claves ni credenciales en el código.**
    Todo secreto va en variables de entorno (`.env.local`, que está en `.gitignore`,
-   y la configuración de Netlify/Supabase). En el repo solo puede existir
+   y la configuración de Vercel/Supabase). En el repo solo puede existir
    `.env.example` con nombres de variables y valores vacíos o inventados.
    Durante el desarrollo se usa un proyecto de Supabase de prueba con datos inventados,
    nunca datos reales de clientes.

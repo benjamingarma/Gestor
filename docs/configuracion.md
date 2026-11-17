@@ -20,17 +20,34 @@ Mientras estemos en desarrollo: **proyecto de prueba y datos inventados**.
 6. SQL Editor: correr `supabase/admin/vincular-socio.sql` con tu email y `Benjamín`.
    Para tu papá, lo mismo cuando tenga cuenta (con `Papá`).
 
-## 3. Netlify
-1. Add new site > Import from Git > el repositorio. Rama de producción: `main`.
-2. Site configuration > Environment variables:
+## 3. Vercel (hosting; desde el 17/11/2026, antes Netlify)
+1. **Importar el repo.** En vercel.com: **Add New… > Project > Import Git Repository**. Si es la primera vez, conectar
+   GitHub y darle acceso al repositorio `Gestor`. Vercel detecta **Next.js** solo: dejar Framework Preset, Root
+   Directory (`./`) y Build Command como vienen. No hace falta ningún archivo de configuración en el repo.
+2. **Variables de entorno.** En **Settings > Environment Variables** (o en la pantalla de importación, antes de Deploy):
    - `SUPABASE_URL` = Project URL (Supabase > Project Settings > API)
    - `SUPABASE_PUBLISHABLE_KEY` = Publishable key (`sb_publishable_...`). **Nunca** la secret/service_role.
-3. Deploy previews: activados para pull requests (vienen por defecto). Cada PR tiene su link para probar.
-4. En Supabase > Authentication > URL Configuration: poner la URL de Netlify como Site URL.
+
+   En cada una, marcar los tres entornos: **Production, Preview y Development**. Si falta Preview, los deploy previews
+   de los PR arrancan pero no pueden conectarse a Supabase. Cambiar una variable no afecta lo ya publicado: toma efecto
+   en el próximo deploy (o en **Deployments > ⋯ > Redeploy**).
+3. **Versión de Node.** **Settings > Build and Deployment > Node.js Version: 22.x** (la misma que usa el CI). Vercel
+   avisa "The project's values take effect on its next deployment": es normal, se aplica en el próximo deploy.
+4. **Rama de producción: `main`** (viene así). Cada merge a `main` **publica solo** en producción. Cada PR tiene su
+   **deploy preview** (link en el PR, en el check de Vercel) para probar antes de mergear.
+5. **Supabase > Authentication > URL Configuration > Site URL:** poner la URL de producción de Vercel
+   (`https://<proyecto>.vercel.app`). La app entra con email y contraseña, así que **no hace falta cargar Redirect
+   URLs**, ni para producción ni para los previews: la Site URL solo se usa en los emails que manda Supabase (por
+   ejemplo, si se resetea una contraseña desde el panel).
+6. **Previews protegidos.** En el plan Hobby, Vercel protege los deploy previews con su propio login (Settings >
+   Deployment Protection > Vercel Authentication): para abrirlos hay que estar logueado en Vercel con una cuenta que
+   tenga acceso al proyecto. La URL de producción es pública (igual pide el login de la app). Si alguien sin cuenta
+   de Vercel (por ejemplo, el papá) tiene que probar un preview, se puede apagar esa protección para los previews: la
+   app sigue pidiendo su propio login y la seguridad de los datos la da RLS. Decisión de los socios.
 
 ## 4. Tarea anti-pausa (GitHub Actions)
 GitHub > Settings > Secrets and variables > Actions > New repository secret:
-- `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` (los mismos de Netlify).
+- `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` (los mismos que en Vercel).
 Probala a mano: Actions > "Mantener activo Supabase" > Run workflow. Debe mostrar "Supabase respondió: ...".
 
 ## 5. Migraciones automáticas (una sola vez, desde la PC)
