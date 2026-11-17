@@ -16,6 +16,7 @@ const I = {
   roto: '<svg class="i" viewBox="0 0 24 24"><path d="M6 4h12v16H6z"/><path d="m9 9 3 3-2 2 3 3"/></svg>',
   reparto: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l6 4"/></svg>',
   salir: '<svg class="i" viewBox="0 0 24 24"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/></svg>',
+  repetir: '<svg class="i" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 15"/><path d="M4 20v-5h5"/></svg>',
 };
 
 const navItems = [
@@ -166,6 +167,116 @@ function ventaPc() {
   </main></div>`;
 }
 
+// ------------------------------------------------------------------ Repetir última venta (propuesta 17/11/2026)
+// La tarjeta "Última venta" aparece en toda venta apenas se elige el cliente (para mirar el precio que se le hizo).
+const ultimaVenta = (repetida) => `
+  <div class="tarjeta col gap8" style="padding:12px 14px">
+    <div class="fila"><span class="chico fuerte">Última venta</span><span class="mini suave">12/10 · hace 36 días</span></div>
+    <div class="col gap4 chico">
+      <div class="fila"><span>2 × Vapex 8000</span><span class="num">$ 10.500 c/u</span></div>
+      <div class="fila"><span>3 × Nubo 5000</span><span class="num">$ 8.000 c/u</span></div>
+      <div class="fila"><span>1 × Lumo 3000</span><span class="num">$ 6.500 c/u</span></div>
+    </div>
+    <div class="fila chico"><span class="suave">Total</span><span class="fuerte num">$ 51.500</span></div>
+    ${repetida
+      ? `<span class="chico acento fuerte" style="text-align:center;padding:6px 0">✓ Cargada en la venta: revisá cantidades y precios</span>`
+      : `<span class="boton sec" style="min-height:44px;font-size:.95rem;gap:8px">${I.repetir}Repetir esta venta</span>`}
+  </div>`;
+
+const avisoRepetida = `
+  <div class="aviso"><span>ⓘ</span><span><b>Falta stock de 2 productos.</b><br>Nubo 5000: llevó 3, quedan 2 → cargamos 2.<br>Lumo 3000: sin stock, no se agregó.</span></div>`;
+
+// Renglón del carrito como en la app (caja de precio siempre visible). ultima: precio de la última venta si es distinto.
+const renglon = (n, precio, origen, quedan, q, ultima) => `
+  <div class="fila" style="padding:12px 0;align-items:flex-start">
+    <div class="col gap4"><span class="fuerte">${n}</span>
+      <span class="mini suave">Precio por unidad</span>
+      <span class="fila" style="justify-content:flex-start;gap:4px;height:44px;width:144px;border:1px solid var(--borde);border-radius:12px;padding:0 10px"><b class="suave">$</b><b class="num" style="font-size:1.1rem">${precio}</b></span>
+      <span class="mini suave">Propuesto: ${origen}</span>
+      ${ultima ? `<span class="mini fuerte" style="color:var(--aviso)">La última vez: $ ${ultima}</span>` : ""}
+      <span class="mini suave">Quedan ${quedan}</span>
+    </div>
+    <div class="stepper"><span class="paso">−</span><b class="num">${q}</b><span class="paso mas">+</span></div>
+  </div>`;
+const carritoRepetido = `
+  <div class="tarjeta col lista" style="padding:4px 16px">
+    ${renglon("Vapex 8000", "10.000", "precio especial", 11, 2, "10.500")}
+    ${renglon("Nubo 5000", "8.000", "último que pagó", 2, 2, "")}
+    <div class="fila" style="padding:12px 0"><div class="col gap4"><span class="fuerte">Vapex 12000</span><span class="chico suave">$ 14.000 · precio general</span><span class="mini suave">Quedan 6</span></div><span class="paso mas">+</span></div>
+  </div>`;
+const totalRepetido = `
+  <div class="col gap4"><div class="fila"><span class="suave">4 productos</span><span class="grande num" style="font-size:1.8rem">$ 36.000</span></div>
+  <span class="mini suave" style="text-align:right">Ganancia estimada $ 9.500 · costo $ 26.500 (USD 19)</span></div>`;
+
+function fichaRepetirMovil() {
+  return `<div class="pantalla">
+    <div class="sup fila"><span style="font-size:1.25rem;font-weight:800">‹ Bruno</span></div>
+    <div class="cuerpo col gap12">
+      <div class="tarjeta col gap8"><span class="chico suave">Cuenta corriente</span><span class="peligro num" style="font-size:1.6rem;font-weight:800">Debe $ 70.000</span>
+        <div class="fila" style="gap:8px"><span class="boton chicob" style="flex:1;min-height:48px">Cobrar</span><span class="boton sec chicob" style="flex:1;min-height:48px">Ver cuenta</span></div></div>
+      <span class="boton">+ Nueva venta</span>
+      <div class="col gap4"><span class="boton sec" style="gap:8px">${I.repetir}Repetir última venta</span>
+        <span class="mini suave" style="text-align:center">12/10 · 2 × Vapex 8000 · 3 × Nubo 5000 · 1 × Lumo 3000</span></div>
+      <span class="boton sec">✓ Marcar visitado hoy</span>
+      <span class="mini suave" style="text-align:center;border:1px dashed var(--borde);border-radius:10px;padding:8px">(maqueta: el resto de la ficha sigue igual que hoy)</span>
+    </div>
+  </div>`;
+}
+
+function ventaUltimaMovil() {
+  return `<div class="pantalla">
+    <div class="sup fila"><span style="font-size:1.25rem;font-weight:800">Nueva venta</span><span class="suave">${I.cerrar}</span></div>
+    <div class="cuerpo col gap12" style="padding-bottom:190px">
+      ${clienteElegido}${ultimaVenta(false)}
+      <div class="buscador">${I.buscar}<span>Buscar producto</span></div>
+      <div class="tarjeta col lista" style="padding:4px 16px">
+        <div class="fila" style="padding:12px 0"><div class="col gap4"><span class="fuerte">Vapex 8000</span><span class="chico suave">$ 10.000 · precio especial</span><span class="mini fuerte" style="color:var(--aviso)">La última vez: $ 10.500</span><span class="mini suave">Quedan 11</span></div><span class="paso mas">+</span></div>
+        ${productos.slice(1).map((p) => filaProducto([...p.slice(0, 4), 0])).join("")}
+      </div>
+    </div>
+    <div class="pie col gap12"><div class="fila"><span class="suave">0 productos</span><span class="grande num" style="font-size:1.8rem">$ 0</span></div><span class="boton" style="opacity:.5">Guardar venta</span></div>
+  </div>`;
+}
+
+function ventaRepetidaMovil() {
+  return `<div class="pantalla">
+    <div class="sup fila"><span style="font-size:1.25rem;font-weight:800">Nueva venta</span><span class="suave">${I.cerrar}</span></div>
+    <div class="cuerpo col gap12" style="padding-bottom:190px">
+      ${clienteElegido}${ultimaVenta(true)}${avisoRepetida}
+      <div class="buscador">${I.buscar}<span>Buscar producto</span></div>
+      ${carritoRepetido}
+      <div class="fila chico suave" style="padding:0 4px"><span>Hoy · vendió Benjamín · sin nota</span><span class="enlace">Cambiar</span></div>
+    </div>
+    <div class="pie col gap12">${totalRepetido}<span class="boton">Guardar venta</span></div>
+  </div>`;
+}
+
+function ventaRepetidaPc() {
+  return `<div class="pc">${barraLateral("vender")}<main class="pc-main">
+    <span style="font-size:1.6rem;font-weight:800">Nueva venta</span>
+    <div class="pc-grid" style="grid-template-columns:1.5fr 1fr">
+      <div class="col gap12">
+        ${avisoRepetida}
+        <div class="buscador" style="background:var(--superficie);border:1px solid var(--borde)">${I.buscar}<span>Buscar producto</span></div>
+        ${carritoRepetido}
+      </div>
+      <div class="col gap12">
+        ${clienteElegido}${ultimaVenta(true)}
+        <div class="tarjeta col gap12">
+          <span class="titulo">Resumen</span>
+          <div class="col gap8 chico">
+            <div class="fila"><span>2 × Vapex 8000</span><span class="num">$ 20.000</span></div>
+            <div class="fila"><span>2 × Nubo 5000</span><span class="num">$ 16.000</span></div>
+          </div>
+          <div class="sep"></div>${totalRepetido}
+          <div class="fila chico suave"><span>Hoy · vendió Benjamín · sin nota</span><span class="enlace">Cambiar</span></div>
+          <span class="boton">Guardar venta</span>
+        </div>
+      </div>
+    </div>
+  </main></div>`;
+}
+
 // ------------------------------------------------------------------ Cobro
 const formCobro = `
   <div class="tarjeta col gap8" style="align-items:center;padding:22px 16px">
@@ -245,5 +356,5 @@ function masMovil() {
   </div>`;
 }
 
-const MOVIL = { inicio: inicioMovil, venta: ventaMovil, "cobro-lista": cobroListaMovil, cobro: cobroMovil, guardado: guardadoMovil, mas: masMovil };
-const PC = { inicio: inicioPc, venta: ventaPc, cobro: cobroPc };
+const MOVIL = { inicio: inicioMovil, venta: ventaMovil, "ficha-repetir": fichaRepetirMovil, "venta-ultima": ventaUltimaMovil, "venta-repetida": ventaRepetidaMovil, "cobro-lista": cobroListaMovil, cobro: cobroMovil, guardado: guardadoMovil, mas: masMovil };
+const PC = { inicio: inicioPc, venta: ventaPc, "venta-repetida": ventaRepetidaPc, cobro: cobroPc };

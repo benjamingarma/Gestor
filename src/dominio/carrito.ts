@@ -130,3 +130,62 @@ export function resumirCarrito(items: ItemCarrito[], productos: Map<string, Prod
             : null,
   };
 }
+
+// ---------------------------------------------------------------------------------
+// Repetir la última venta (pedido de los socios, maqueta 6). No calcula dinero nuevo:
+// arma el carrito con los mismos productos y cantidades, con los precios de HOY.
+// ---------------------------------------------------------------------------------
+
+/** Un renglón de la venta anterior, tal como quedó guardado (precio histórico). */
+export type RenglonAnterior = { productoId: string; nombre: string; cantidad: number; precioUnitario: Centavos };
+
+/** Producto que no se pudo cargar entero porque no alcanza el stock de hoy. */
+export type FaltanteRepeticion = { nombre: string; llevo: number; cargadas: number };
+
+/** Junta los renglones del mismo producto (sumando cantidades), en el orden en que aparecen. */
+export function juntarRenglones(renglones: RenglonAnterior[]): RenglonAnterior[] {
+  const porProducto = new Map<string, RenglonAnterior>();
+  for (const r of renglones) {
+    const previo = porProducto.get(r.productoId);
+    // Si el mismo producto vino en dos renglones, vale el precio del último renglón.
+    porProducto.set(r.productoId, previo ? { ...r, cantidad: previo.cantidad + r.cantidad } : { ...r });
+  }
+  return [...porProducto.values()];
+}
+
+/**
+ * Carrito para repetir una venta: mismos productos y cantidades, precio propuesto de hoy
+ * (especial → último que pagó → general). Nunca pasa del stock disponible: si falta, carga
+ * lo que hay y lo informa; si no hay nada (o el producto ya no se vende), no lo agrega.
+ */
+export function armarRepeticion(
+  renglones: RenglonAnterior[],
+  ctx: { clienteId: string; productos: Map<string, ProductoVenta>; precios: PreciosCliente },
+): { items: ItemCarrito[]; faltantes: FaltanteRepeticion[] } {
+  const items: ItemCarrito[] = [];
+  const faltantes: FaltanteRepeticion[] = [];
+  for (const r of juntarRenglones(renglones)) {
+    const stock = Math.min(ctx.productos.get(r.productoId)?.unidades ?? 0, MAXIMA_CANTIDAD);
+    const cargadas = Math.max(0, Math.min(r.cantidad, stock));
+    if (cargadas < r.cantidad) faltantes.push({ nombre: r.nombre, llevo: r.cantidad, cargadas });
+    if (cargadas === 0) continue;
+    const pr = proponerPrecio(r.productoId, ctx.clienteId, ctx.productos, ctx.precios);
+    items.push({ productoId: r.productoId, cantidad: cargadas, precio: pr.precio !== null ? centavosATexto(pr.precio) : "", origen: pr.origen });
+  }
+  return { items, faltantes };
+}
+
+/** Texto del aviso de un producto que no alcanzó (maqueta 6c). */
+export function textoFaltante(f: FaltanteRepeticion): string {
+  return f.cargadas === 0 ? `${f.nombre}: sin stock, no se agregó.` : `${f.nombre}: llevó ${f.llevo}, quedan ${f.cargadas} → cargamos ${f.cargadas}.`;
+}
+
+/**
+ * Precio que pagó en la última venta, solo si es distinto del que se propone hoy
+ * (para mostrar "La última vez: $ X"). null si no lo compró la última vez o si es el mismo.
+ */
+export function ultimoPrecioDistinto(renglones: RenglonAnterior[], productoId: string, propuesto: Centavos | null): Centavos | null {
+  const r = juntarRenglones(renglones).find((x) => x.productoId === productoId);
+  if (!r || r.precioUnitario === propuesto) return null;
+  return r.precioUnitario;
+}

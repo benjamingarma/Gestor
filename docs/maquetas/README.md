@@ -32,6 +32,16 @@ Los números son **inventados** y no coinciden entre sí. En la app todo sale de
    medio de pago y quién recibió preseleccionados con el último usado, "Le queda debiendo" en vivo, Guardar.
 4. **Confirmación al guardar:** ✓ animado, monto y resumen, "Listo" y "Deshacer (anular)".
 5. **Más:** ver arriba.
+6. **Repetir última venta** (**aprobada el 17/11/2026**; pantallas `6a`, `6b`, `6c` y
+   `pc.html?p=venta-repetida`):
+   - **Ficha del cliente:** debajo de "+ Nueva venta", botón secundario "Repetir última venta" con la fecha y los
+     productos de la última venta no anulada. Solo si tiene alguna y no está archivado.
+   - **Venta:** apenas se elige un cliente con ventas, tarjeta **"Última venta"** (fecha, productos, cantidades, precio
+     por unidad y total) con "Repetir esta venta". Sirve para mirar el precio que se le hizo la vez anterior.
+   - **Al repetir:** se cargan los mismos productos y cantidades con los **precios de hoy** (especial → último que
+     pagó → general), todo editable; fecha de hoy, quién vende y nota vacía. Si el precio propuesto no coincide con el
+     de la última venta, debajo dice **"La última vez: $ X"** (también en la lista de productos).
+   - **Falta stock:** se carga lo que hay y se avisa ("llevó 3, quedan 2 → cargamos 2"; "sin stock, no se agregó").
 
 ## Decisiones de los socios (10/11/2026)
 1. La app pasa a llamarse **McStock**.

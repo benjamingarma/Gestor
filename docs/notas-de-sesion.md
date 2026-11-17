@@ -241,7 +241,13 @@ Especificación visual: `docs/maquetas/` (README, HTML, imágenes en claro/oscur
     y contraste: ganancia `#13866d` (claro) / `#2f9e85` (oscuro), costo `#5d6ed8` / `#8b84ec`.
 
 ### Pendientes (en este orden)
-**(a) "Repetir última venta" en la ficha del cliente** (era el PR 5 del plan).
+**(a) "Repetir última venta" en la ficha del cliente** (era el PR 5 del plan). **Maqueta aprobada el 17/11/2026 y PR
+abierto** (rama `claude/dreamy-thompson-vvav70`). Decisiones de los socios: el precio propuesto sigue la regla de siempre
+(especial → último que pagó → general) y, si no coincide con el de la última venta, se muestra "La última vez: $ X"; la
+tarjeta "Última venta" aparece en toda venta (ellos siempre miran la venta anterior para decidir el precio). Técnico:
+`armarRepeticion`, `juntarRenglones`, `ultimoPrecioDistinto` en `dominio/carrito.ts` (Vitest + fast-check),
+`ultimaVentaDeCliente` en `datos/ventas.ts` (última venta no anulada por fecha y secuencia), acción `leerUltimaVenta`
+(se llama al elegir otro cliente en la pantalla), `componentes/UltimaVenta.tsx`; humo sección 7. Sin migraciones.
 - Arma una venta nueva con los mismos productos y cantidades de la última venta no anulada, **con los precios de hoy**
   (la regla de siempre: especial → último que pagó → general), **todo editable** antes de guardar, y **aviso si falta
   stock** de algún producto (sin pasar del stock disponible). Se guarda por la pantalla de venta normal.

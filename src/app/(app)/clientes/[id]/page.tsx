@@ -7,7 +7,9 @@ import { ListaVentas } from "@/componentes/ListaVentas";
 import { obtenerCliente } from "@/datos/clientes";
 import { cobrosDeVentas, saldoDeCliente } from "@/datos/cuentas";
 import { listarProductosActivos } from "@/datos/inventario";
-import { listarPreciosEspeciales, listarVentas } from "@/datos/ventas";
+import { listarPreciosEspeciales, listarVentas, ultimaVentaDeCliente } from "@/datos/ventas";
+import { Icono } from "@/componentes/Iconos";
+import { resumenUltimaVenta } from "@/componentes/UltimaVenta";
 import { proximaVisita, ultimaActividad } from "@/dominio/visitas";
 import { formatearPesos } from "@/lib/dinero";
 import { formatearDia, hoy } from "@/lib/fechas";
@@ -39,12 +41,13 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
   const dia = hoy();
   const cliente = await obtenerCliente(socio.negocioId, id, dia);
   if (!cliente) notFound();
-  const [ventas, precios, productos, saldo, cobros] = await Promise.all([
+  const [ventas, precios, productos, saldo, cobros, ultima] = await Promise.all([
     listarVentas(socio.negocioId, { clienteId: id, limite: 5 }),
     listarPreciosEspeciales(id),
     listarProductosActivos(socio.negocioId),
     saldoDeCliente(socio.negocioId, id),
     cobrosDeVentas(socio.negocioId, [id]),
+    ultimaVentaDeCliente(socio.negocioId, id),
   ]);
 
   const wa = enlaceWhatsApp(cliente.telefono);
@@ -133,6 +136,19 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
 
       {!cliente.archivado && (
         <BotonEnlace href={`/ventas/nueva?cliente=${cliente.id}`}>+ Nueva venta</BotonEnlace>
+      )}
+
+      {!cliente.archivado && ultima && (
+        // Repetir la última venta no anulada: abre la venta con esos productos y cantidades, a precios de hoy.
+        <div className="-mt-2 flex flex-col gap-1">
+          <BotonEnlace href={`/ventas/nueva?cliente=${cliente.id}&repetir=1`} variante="secundario">
+            <span className="flex items-center justify-center gap-2">
+              <Icono nombre="repetir" className="h-5 w-5" />
+              Repetir última venta
+            </span>
+          </BotonEnlace>
+          <span className="text-center text-[0.72rem] text-texto-suave">{resumenUltimaVenta(ultima)}</span>
+        </div>
       )}
 
       {!cliente.archivado && (
