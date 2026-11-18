@@ -23,8 +23,10 @@ Propuesta presentada el 18/11/2026 con ejemplos numéricos y aprobada el mismo d
 
 ## Reglas acordadas
 - **Pago en la venta**: medio y quién recibió preseleccionados con el último pago que registró ese socio. El botón y la
-  confirmación muestran "Cobrado $ X · Debe $ Y" (Y = saldo pendiente total del cliente después de guardar; cómo se
-  muestra cuando el cliente ya debía de antes queda para el PR 2B-2). "Pagó todo" cobra solo el total de la venta
+  confirmación muestran "Cobrado $ X · Debe $ Y" (Y = saldo pendiente total del cliente después de guardar). **Si el
+  cliente ya debía de antes (decisión del 18/11/2026):** la confirmación separa la venta de hoy de lo viejo, por ejemplo
+  "Esta venta: pagada · Deuda anterior $ 10.000" o "Esta venta: debe $ 8.000 · Deuda anterior $ 10.000", para no dar a
+  entender que la venta de hoy quedó debiendo lo que en realidad es deuda vieja. "Pagó todo" cobra solo el total de la venta
   nueva; si tenía saldo a favor, registra el total menos el saldo a favor. Venta y pago en **una sola operación** de la
   base (nunca venta guardada con pago fallido), idempotente ante doble toque; "Deshacer" anula los dos juntos.
 - **Imputación del pago de la venta (cambio del 18/11/2026, ver abajo):** el pago registrado en la pantalla de venta

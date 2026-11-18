@@ -27,7 +27,9 @@
   aplicada (log verificado: listó solo esa). **Cambio de los socios (18/11): el pago de la pantalla de venta se aplica
   a esa venta** (camino B; tabla de ejemplos en el documento de decisiones). PR 2B-1 abierto: `aplicarCreditos` con
   `ventaId` + migración solo de comentarios `20261118130000_imputacion_pago_de_venta.sql` (243 Vitest). Siguen 2B-2
-  pantalla (definir cómo se muestra "Debe $ Y" si el cliente ya debía) y 3 ganancia cobrada.
+  pantalla y 3 ganancia cobrada. **Decidido para el 2B-2 (18/11):** si el cliente ya debía, la confirmación muestra
+  "Esta venta: pagada (o debe $ X) · Deuda anterior $ Y" en vez de un solo "Debe $ Y". El 2B-2 se empieza en una
+  sesión nueva, después de mergear el 2B-1 (#25), en una rama nueva desde `main`.
 - **Hosting: Vercel (plan Hobby) desde el 17/11/2026** (Netlify pausó los deploys a producción por créditos del plan
   gratis; se borraron el proyecto de Netlify y `netlify.toml`). Cada merge a `main` publica solo. Los previews de
   Vercel piden login de Vercel (Deployment Protection). Pasos en `docs/configuracion.md`, sección 3.
