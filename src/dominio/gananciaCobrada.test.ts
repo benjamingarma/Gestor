@@ -25,24 +25,24 @@ describe("ejemplos de la propuesta", () => {
     expect(delMes(r, "2026-11")).toMatchObject({ ganancia: 525_000, costoCobrado: 975_000 });
   });
 
-  it("Carlos: $ 8.000 del papel + V3; paga $ 10.000 → $ 8.000 al papel sin ganancia y $ 500 de V3", () => {
+  it("Carlos: $ 8.000 del papel + V3; paga $ 10.000 → $ 8.000 al papel ($ 4.000 de ganancia estimada, 50 %) y $ 500 de V3", () => {
     const r = calcularGananciaCobrada(
       [venta("V3", "carlos", "2026-11-03", 1_200_000, 900_000)],
       [{ id: "S", clienteId: "carlos", tipo: "deuda", dia: "2026-09-01", orden: 1, importe: 800_000 }],
       [pago("P", "carlos", "2026-11-12", 1_000_000)],
     );
-    expect(delMes(r, "2026-11")).toMatchObject({ cobrado: 1_000_000, aPapel: 800_000, ganancia: 50_000, costoCobrado: 150_000 });
+    expect(delMes(r, "2026-11")).toMatchObject({ cobrado: 1_000_000, aPapel: 800_000, ganancia: 450_000, costoCobrado: 550_000 });
   });
 
-  it("desglose de noviembre con Ana y Carlos: $ 25.000 − $ 8.000 − $ 11.250 = $ 5.750 (− $ 1.000 de pérdidas = $ 4.750)", () => {
+  it("desglose de noviembre con Ana y Carlos: $ 25.000 − $ 15.250 de costo (incluye el 50 % del papel) − $ 1.000 = $ 8.750", () => {
     const r = calcularGananciaCobrada(
       [venta("V1", "ana", "2026-10-05", 1_000_000, 600_000), venta("V2", "ana", "2026-11-02", 2_000_000, 1_500_000, 2), venta("V3", "carlos", "2026-11-03", 1_200_000, 900_000, 3)],
       [{ id: "S", clienteId: "carlos", tipo: "deuda", dia: "2026-09-01", orden: 1, importe: 800_000 }],
       [pago("P1", "ana", "2026-11-10", 1_500_000), pago("P2", "carlos", "2026-11-12", 1_000_000)],
     );
     const t = delMes(r, "2026-11");
-    expect(t).toMatchObject({ cobrado: 2_500_000, aPapel: 800_000, costoCobrado: 1_125_000, ganancia: 575_000 });
-    expect(t.cobrado - t.aPapel - t.costoCobrado - 100_000).toBe(475_000);
+    expect(t).toMatchObject({ cobrado: 2_500_000, aPapel: 800_000, costoCobrado: 1_525_000, ganancia: 975_000 });
+    expect(t.cobrado - t.costoCobrado - 100_000).toBe(875_000);
   });
 });
 
@@ -70,6 +70,17 @@ describe("saldo a favor y casos borde", () => {
   it("saldo inicial a favor del papel usado en una venta: ganancia el día de la venta", () => {
     const r = calcularGananciaCobrada([venta("V", "c", "2026-11-03", 1_000_000, 600_000)], [{ id: "F", clienteId: "c", tipo: "a_favor", dia: "2026-09-01", orden: 1, importe: 300_000 }], []);
     expect(delMes(r, "2026-11")).toMatchObject({ aFavorUsado: 300_000, ganancia: 120_000 });
+  });
+  it("deuda del papel pagada en partes: 50 % estimado, y al terminar de pagarse suma exactamente la mitad (redondeada hacia abajo)", () => {
+    const papel: SaldoInicialCobro = { id: "S", clienteId: "c", tipo: "deuda", dia: "2026-09-01", orden: 1, importe: 1_000_001 };
+    const r = calcularGananciaCobrada([], [papel], [pago("a", "c", "2026-10-05", 300_000), pago("b", "c", "2026-11-05", 700_001)]);
+    expect(delMes(r, "2026-10").ganancia).toBe(149_999); // 500.000 × 300.000 ÷ 1.000.001, hacia abajo
+    expect(sumarDias(r.dias).ganancia).toBe(500_000);
+    expect(r.gananciaPendiente).toBe(0);
+  });
+  it("deuda del papel sin cobrar: su 50 % figura como ganancia pendiente", () => {
+    const r = calcularGananciaCobrada([], [{ id: "S", clienteId: "c", tipo: "deuda", dia: "2026-09-01", orden: 1, importe: 800_000 }], []);
+    expect(r.gananciaPendiente).toBe(400_000);
   });
   it("redondeo sobre lo acumulado: tres pagos de $ 1 de una venta de $ 3 con ganancia $ 1 suman exactamente $ 1", () => {
     const r = calcularGananciaCobrada([venta("V", "c", "2026-11-01", 300, 200)], [], [pago("a", "c", "2026-11-01", 100), pago("b", "c", "2026-11-02", 100), pago("d", "c", "2026-11-03", 100)]);
@@ -133,11 +144,11 @@ describe("propiedades (fast-check)", () => {
       fc.property(escenario, (e) => {
         const { ventas, saldos, pagos } = armar(e);
         const r = calcularGananciaCobrada(ventas, saldos, pagos);
-        for (const d of r.dias) expect(d.cobrado - d.aPapel - d.quedoAFavor + d.aFavorUsado).toBe(d.costoCobrado + d.ganancia);
+        for (const d of r.dias) expect(d.cobrado - d.quedoAFavor + d.aFavorUsado).toBe(d.costoCobrado + d.ganancia);
         const t = sumarDias(r.dias);
         expect(t.cobrado).toBe(pagos.reduce((s, p) => s + p.importe, 0));
-        expect(t.ganancia).toBe([...r.ventas.values()].reduce((s, v) => s + v.gananciaCobrada, 0));
-        expect(t.ganancia + r.gananciaPendiente).toBe(ventas.reduce((s, v) => s + v.ganancia, 0));
+        const papel = saldos.filter((s) => s.tipo === "deuda").reduce((s, x) => s + Math.floor(x.importe / 2), 0);
+        expect(t.ganancia + r.gananciaPendiente).toBe(ventas.reduce((s, v) => s + v.ganancia, 0) + papel);
         for (const v of ventas) {
           const x = r.ventas.get(v.id)!;
           if (x.saldo === 0) expect(x.gananciaCobrada).toBe(v.ganancia); // pagada: toda su ganancia

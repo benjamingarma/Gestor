@@ -115,7 +115,9 @@ depende del orden de carga de los pagos. **Excepción (18/11/2026):** el pago re
 aplica primero a esa venta; lo que sobra va a la más vieja (`docs/decisiones/pago-en-venta-y-ganancia-cobrada.md`).
 
 **A5. Deudas y saldos a favor del papel** entran como "saldo inicial": cuentan en la cuenta corriente
-(deuda más vieja) pero no como venta ni ganancia.
+(deuda más vieja) pero no como venta. **Cambio del 18/11/2026:** como no se sabe qué stock fue, lo cobrado de una
+deuda del papel trae una ganancia **estimada en el 50 % fijo**, que entra en la ganancia neta (sin distinguirla) a
+medida que se cobra; el otro 50 % cuenta como costo de lo cobrado. Los saldos a favor del papel no generan ganancia.
 
 **A6. Stock inicial.** Las ~700 unidades se cargan como compras de origen "inventario inicial", una por
 tanda, cada una con su costo en USD, su tipo de cambio (o estimado) y su fecha. Las 400 nuevas, como compra

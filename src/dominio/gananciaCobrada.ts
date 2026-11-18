@@ -10,12 +10,18 @@
  * Cada peso aplicado a una venta trae su parte de la ganancia de esa venta en ese día:
  *   parte = ganancia × cobrado acumulado ÷ total − lo ya reconocido (redondeo hacia abajo sobre lo acumulado:
  *   al terminar de pagarse, la suma de las partes es exactamente la ganancia de la venta).
- * Lo aplicado a deudas del papel no genera ganancia. Una venta de $ 0 reconoce su ganancia el día de la venta.
+ * Deudas del papel: no se sabe qué stock fue, así que su ganancia se estima en el 50 % de su importe (fijo, decisión
+ * de los socios del 18/11/2026) y entra igual que la de una venta, a medida que se cobra.
+ * Una venta de $ 0 reconoce su ganancia el día de la venta.
  * El resultado por venta (cobrado y saldo) es el mismo que el de `aplicarCreditos` (cuenta corriente).
  */
 import type { Centavos } from "@/lib/dinero";
 import type { Dia } from "@/lib/fechas";
 import { compararDeudas, type Deuda } from "./cuentaCorriente";
+
+/** Ganancia estimada de las deudas del papel: 50 % de su importe (fijo). */
+export const PORCENTAJE_GANANCIA_PAPEL = 50;
+export const gananciaEstimadaPapel = (importe: Centavos): Centavos => Math.floor((importe * PORCENTAJE_GANANCIA_PAPEL) / 100);
 
 export type VentaCobro = { id: string; clienteId: string; dia: Dia; orden: number; importe: Centavos; ganancia: Centavos };
 export type SaldoInicialCobro = { id: string; clienteId: string; tipo: "deuda" | "a_favor"; dia: Dia; orden: number; importe: Centavos };
@@ -26,15 +32,13 @@ export type DiaCobrado = {
   dia: Dia;
   /** Plata que entró (pagos). */
   cobrado: Centavos;
-  /** De lo cobrado, lo que fue a deudas del papel (no genera ganancia). */
+  /** Lo aplicado a deudas del papel (informativo: su ganancia es el 50 % estimado y su costo va a costoCobrado). */
   aPapel: Centavos;
   /** De lo cobrado, lo que quedó como saldo a favor. */
   quedoAFavor: Centavos;
-  /** Saldo a favor de antes (pagos o papel) que se usó en ventas ese día. */
+  /** Saldo a favor de antes (pagos o papel) que se usó en deudas ese día. */
   aFavorUsado: Centavos;
-  /** Saldo a favor de antes que se usó en deudas del papel ese día. */
-  aFavorAPapel: Centavos;
-  /** Costo de la mercadería de lo cobrado (lo aplicado a ventas − su ganancia). */
+  /** Costo de la mercadería de lo cobrado (lo aplicado a deudas − su ganancia; en el papel, el 50 % estimado). */
   costoCobrado: Centavos;
   /** Ganancia de lo cobrado. */
   ganancia: Centavos;
@@ -44,7 +48,7 @@ export type ResultadoCobrado = {
   dias: DiaCobrado[];
   /** Por venta: cobrado y ganancia reconocida hasta hoy. */
   ventas: Map<string, { cobrado: Centavos; saldo: Centavos; gananciaCobrada: Centavos }>;
-  /** Ganancia de las ventas que todavía falta cobrar. */
+  /** Ganancia que todavía falta cobrar (ventas y el 50 % estimado de las deudas del papel). */
   gananciaPendiente: Centavos;
 };
 
@@ -71,11 +75,12 @@ export function calcularGananciaCobrada(ventas: VentaCobro[], saldos: SaldoInici
   const dias = new Map<Dia, DiaCobrado>();
   const delDia = (dia: Dia) => {
     let d = dias.get(dia);
-    if (!d) dias.set(dia, (d = { dia, cobrado: 0, aPapel: 0, quedoAFavor: 0, aFavorUsado: 0, aFavorAPapel: 0, costoCobrado: 0, ganancia: 0 }));
+    if (!d) dias.set(dia, (d = { dia, cobrado: 0, aPapel: 0, quedoAFavor: 0, aFavorUsado: 0, costoCobrado: 0, ganancia: 0 }));
     return d;
   };
   const resultadoVentas: ResultadoCobrado["ventas"] = new Map();
   const ventaPorId = new Map(ventas.map((v) => [v.id, v]));
+  const gananciaDe = (d: Deuda) => (d.tipo === "venta" ? ventaPorId.get(d.id)!.ganancia : gananciaEstimadaPapel(d.importe));
 
   // Agrupar por cliente.
   type Datos = { deudas: Deuda[]; aFavor: SaldoInicialCobro[]; pagos: PagoCobro[] };
@@ -88,6 +93,7 @@ export function calcularGananciaCobrada(ventas: VentaCobro[], saldos: SaldoInici
   }
   for (const p of pagos) de(p.clienteId).pagos.push(p);
 
+  let gananciaPendiente = 0;
   for (const c of clientes.values()) {
     const cobrado = new Map<string, number>();
     const pendientes: Deuda[] = [];
@@ -99,13 +105,9 @@ export function calcularGananciaCobrada(ventas: VentaCobro[], saldos: SaldoInici
       const antes = cobrado.get(d.id) ?? 0;
       cobrado.set(d.id, antes + monto);
       const r = delDia(dia);
-      if (d.tipo === "saldo_inicial") {
-        if (origen === "cobro") r.aPapel += monto;
-        else r.aFavorAPapel += monto;
-        return;
-      }
-      const v = ventaPorId.get(d.id)!;
-      const parte = proporcion(v.ganancia, antes + monto, v.importe) - proporcion(v.ganancia, antes, v.importe);
+      if (d.tipo === "saldo_inicial") r.aPapel += monto;
+      const g = gananciaDe(d);
+      const parte = proporcion(g, antes + monto, d.importe) - proporcion(g, antes, d.importe);
       if (origen === "a_favor") r.aFavorUsado += monto;
       r.ganancia += parte;
       r.costoCobrado += monto - parte;
@@ -127,9 +129,9 @@ export function calcularGananciaCobrada(ventas: VentaCobro[], saldos: SaldoInici
     for (const dia of diasCliente) {
       // 1. Deudas del día. Una venta de $ 0 queda pagada y reconoce su ganancia hoy.
       for (const d of c.deudas.filter((x) => x.dia === dia)) {
-        if (d.importe === 0 && d.tipo === "venta") {
+        if (d.importe === 0) {
           // Nada que cobrar: su ganancia (−costo) cuenta hoy y el costo va al costo de lo cobrado (el desglose cierra).
-          const g = ventaPorId.get(d.id)!.ganancia;
+          const g = gananciaDe(d);
           delDia(dia).ganancia += g;
           delDia(dia).costoCobrado -= g;
         }
@@ -156,21 +158,20 @@ export function calcularGananciaCobrada(ventas: VentaCobro[], saldos: SaldoInici
     }
 
     for (const d of c.deudas) {
-      if (d.tipo !== "venta") continue;
-      const v = ventaPorId.get(d.id)!;
+      const g = gananciaDe(d);
       const cob = cobrado.get(d.id) ?? 0;
-      resultadoVentas.set(d.id, { cobrado: d.importe === 0 ? 0 : cob, saldo: d.importe - cob, gananciaCobrada: d.importe === 0 ? v.ganancia : proporcion(v.ganancia, cob, v.importe) });
+      const reconocida = d.importe === 0 ? g : proporcion(g, cob, d.importe);
+      gananciaPendiente += g - reconocida;
+      if (d.tipo === "venta") resultadoVentas.set(d.id, { cobrado: d.importe === 0 ? 0 : cob, saldo: d.importe - cob, gananciaCobrada: reconocida });
     }
   }
 
-  let gananciaPendiente = 0;
-  for (const v of ventas) gananciaPendiente += v.ganancia - (resultadoVentas.get(v.id)?.gananciaCobrada ?? 0);
   return { dias: [...dias.values()].sort((a, b) => (a.dia < b.dia ? -1 : 1)), ventas: resultadoVentas, gananciaPendiente };
 }
 
 /** Totales de un conjunto de días (por ejemplo, un mes). */
 export function sumarDias(dias: DiaCobrado[]) {
-  const t = { cobrado: 0, aPapel: 0, quedoAFavor: 0, aFavorUsado: 0, aFavorAPapel: 0, costoCobrado: 0, ganancia: 0 };
+  const t = { cobrado: 0, aPapel: 0, quedoAFavor: 0, aFavorUsado: 0, costoCobrado: 0, ganancia: 0 };
   for (const d of dias) for (const k of Object.keys(t) as (keyof typeof t)[]) t[k] += d[k];
   return t;
 }
