@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Ruta vieja del cobro (antes del módulo 1.7). Se redirige acá y no desde una página: así la redirección es inmediata
+  // y no pasa por la pantalla de carga de la ficha del cliente. Los parámetros (?importe=, ?venta=) se conservan.
+  async redirects() {
+    return [{ source: "/clientes/:id/cobrar", destination: "/cobrar/:id", permanent: false }];
+  },
   async headers() {
     return [
       {
