@@ -107,7 +107,7 @@ for (const ruta of rutas) {
     if (!ok) errores.push(`"Pagó todo" en la venta: pago ${pago}, confirmación ${datosConf}, en vivo "${linea}", sin elegir deshabilitado ${sinElegir}, efectivo ${efectivo}`);
   }
   const guardada = enBaseTexto(`select importe || '|' || unidades from public.v_ventas where venta_id = '${ventaId}'`);
-  const okVenta = guardada === "2400000|2" && (await pagina.getByRole("heading", { name: "Venta guardada" }).isVisible());
+  const okVenta = guardada === "2400000|2" && (await pagina.getByRole("heading", { name: "Venta guardada" }).waitFor({ timeout: 10_000 }).then(() => true, () => false));
   console.log(`${okVenta ? "OK   " : "FALLA"} venta por la pantalla nueva: 2 u a $ 12.000 tipeado en la caja (sugerido ${sugerido}) = ${guardada}`);
   if (!okVenta) errores.push(`la venta por la pantalla nueva quedó como ${guardada} (se esperaba 2400000|2)`);
   await pagina.click("text=Deshacer (anular)");
@@ -199,7 +199,7 @@ return esperado;
   const guardado = enBaseTexto(`select importe || '|' || medio || '|' || (anulado_en is null) from public.pagos where id = '${pagoId}'`);
   revisar(guardado === "400000|efectivo|true", `cobro por la pantalla nueva guardado en la base: ${guardado}`);
   const mostrado = Number(await pagina.getAttribute("[data-saldo-cliente]", "data-saldo-cliente"));
-  revisar(mostrado === saldoEnBase() && mostrado === saldoAntes - 400000 && (await pagina.getByRole("heading", { name: "Pago registrado" }).isVisible()), `la confirmación dice que le queda debiendo $ ${mostrado / 100}, igual que la base`);
+  revisar(mostrado === saldoEnBase() && mostrado === saldoAntes - 400000 && (await pagina.getByRole("heading", { name: "Pago registrado" }).waitFor({ timeout: 10_000 }).then(() => true, () => false)), `la confirmación dice que le queda debiendo $ ${mostrado / 100}, igual que la base`);
   const conCobro = await compararTotales("con el cobro recién hecho");
   const faltaCon = await faltaCobrarEnVentas();
   revisar(faltaCon === faltaAntes - 400000, `Ventas: "De estas ventas, saldo pendiente" bajó $ 4.000 (${faltaAntes / 100} → ${faltaCon / 100})`);
@@ -297,7 +297,9 @@ return esperado;
   revisar(pagoParcial === "1|400000|transferencia", `Pago parcial con doble toque: un solo pago de $ 4.000 por transferencia (${pagoParcial})`);
   const clienteNuevoId = enBaseTexto(`select id from public.clientes where nombre = '${nombreNuevo}'`);
   await pagina.goto(`${BASE}/clientes/${clienteNuevoId}`);
-  revisar(await pagina.getByText("San Martín 450").first().isVisible(), "la ficha del cliente nuevo muestra su dirección");
+  // Con la pantalla de carga, el contenido llega en un segundo paso: se espera a que aparezca (no se mira en el instante).
+  const conDireccion = await pagina.getByText("San Martín 450").first().waitFor({ timeout: 10_000 }).then(() => true, () => false);
+  revisar(conDireccion, "la ficha del cliente nuevo muestra su dirección");
   await pagina.goto(`${BASE}/ventas/${ventaId}/guardada`);
   const deLaVenta = enBaseTexto(`select c.nombre from public.ventas v join public.clientes c on c.id = v.cliente_id where v.id = '${ventaId}'`);
   revisar(deLaVenta === nombreNuevo, "la venta quedó a nombre del cliente nuevo");
