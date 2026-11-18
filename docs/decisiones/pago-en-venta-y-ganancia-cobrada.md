@@ -87,3 +87,13 @@ aprobados de abajo (Ana, Carlos y el desglose) usan pagos sueltos y no cambian. 
   V3 ($ 500 de ganancia).
 - Desglose de noviembre con los dos y $ 1.000 de pérdidas: Cobrado $ 25.000 − papel $ 8.000 − costo $ 11.250 −
   pérdidas $ 1.000 = Ganancia neta $ 4.750.
+
+## PR 2B-2: pantalla
+- `src/dominio/pagoEnVenta.ts`: `importePagoTodo` (la venta menos el saldo a favor; $ 0 = no se registra pago porque lo
+  cubre el saldo a favor) y `comoQueda` (esta venta / deuda anterior / a favor), probados contra `aplicarCreditos`.
+- El monto de "Pagó todo" lo calcula la pantalla con el saldo que vio y lo manda: si lo recalculara el servidor, un
+  reintento después de guardado daría otro monto y la base lo rechazaría (reintento que no coincide).
+- Guardar usa siempre `registrar_venta_con_pago` ("Deuda" = sin pago). Deshacer y Anular usan `anular_venta_y_pagos`;
+  Anular pregunta "Se le devolvió la plata" (marcado) solo si la venta tiene pagos registrados con ella.
+- Prueba de humo: no se guarda sin elegir, "Pagó todo" con deuda anterior, pago parcial con doble toque, Deshacer anula
+  venta y pago, anular sin devolver deja el pago a cuenta (saldo a favor).

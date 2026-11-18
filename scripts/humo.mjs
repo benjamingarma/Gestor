@@ -88,9 +88,24 @@ for (const ruta of rutas) {
   const sugerido = await pagina.inputValue(`input[aria-label="Precio de ${nombre}"]`);
   if (sugerido !== "10.000") errores.push(`la caja de precio debería venir con 10.000 y vino con "${sugerido}"`);
   await pagina.fill(`input[aria-label="Precio de ${nombre}"]`, "12.000");
-  await pagina.locator("button[type=submit]:visible", { hasText: "Guardar venta" }).click();
+  // Pago en la venta (plan 12.6): sin elegir "¿Pagó?" no se puede guardar; "Pagó todo" cobra solo esta venta
+  // ($ 24.000) aunque el cliente ya debía $ 15.000, y el medio viene con el último pago de este socio (efectivo).
+  const guardarVenta = pagina.locator("button[type=submit]:visible", { hasText: "Guardar venta" });
+  const sinElegir = await guardarVenta.isDisabled();
+  await pagina.locator('button[aria-pressed]:visible', { hasText: "Pagó todo" }).click();
+  const efectivo = await pagina.locator('button:visible', { hasText: "Efectivo" }).getAttribute("aria-pressed");
+  const linea = (await pagina.locator("[data-cobrado]:visible").first().textContent())?.replace(/\s+/g, " ").trim();
+  await guardarVenta.click();
   await pagina.waitForURL(/\/ventas\/[0-9a-f-]{36}\/guardada$/, { timeout: 20_000 });
   const ventaId = pagina.url().split("/").at(-2);
+  {
+    const pago = enBaseTexto(`select count(*) || '|' || coalesce(sum(importe), 0) || '|' || coalesce(max(medio), '') from public.pagos where venta_id = '${ventaId}'`);
+    const conf = await pagina.locator("[data-cobrado]").first();
+    const datosConf = [await conf.getAttribute("data-cobrado"), await conf.getAttribute("data-venta-debe"), await conf.getAttribute("data-deuda-anterior")].join("|");
+    const ok = sinElegir && efectivo === "true" && pago === "1|2400000|efectivo" && datosConf === "2400000|0|1500000" && /Deuda anterior \$ 15\.000/.test(linea ?? "");
+    console.log(`${ok ? "OK   " : "FALLA"} "Pagó todo" en la venta: no guarda sin elegir (${sinElegir}), efectivo preseleccionado (${efectivo}), pago ${pago}, confirmación ${datosConf}, en vivo "${linea}"`);
+    if (!ok) errores.push(`"Pagó todo" en la venta: pago ${pago}, confirmación ${datosConf}, en vivo "${linea}", sin elegir deshabilitado ${sinElegir}, efectivo ${efectivo}`);
+  }
   const guardada = enBaseTexto(`select importe || '|' || unidades from public.v_ventas where venta_id = '${ventaId}'`);
   const okVenta = guardada === "2400000|2" && (await pagina.getByRole("heading", { name: "Venta guardada" }).isVisible());
   console.log(`${okVenta ? "OK   " : "FALLA"} venta por la pantalla nueva: 2 u a $ 12.000 tipeado en la caja (sugerido ${sugerido}) = ${guardada}`);
@@ -99,9 +114,9 @@ for (const ruta of rutas) {
   await pagina.fill("input[name=motivo]", "Prueba de humo");
   await pagina.click("text=Confirmar anulación");
   await pagina.waitForURL(/ok=anulada/, { timeout: 20_000 });
-  const anulada = enBaseTexto(`select anulado_en is not null from public.ventas where id = '${ventaId}'`);
-  console.log(`${anulada === "t" ? "OK   " : "FALLA"} deshacer desde la confirmación anula la venta`);
-  if (anulada !== "t") errores.push("Deshacer no anuló la venta");
+  const anulada = enBaseTexto(`select (select anulado_en is not null from public.ventas where id = '${ventaId}') || '|' || (select bool_and(anulado_en is not null) from public.pagos where venta_id = '${ventaId}')`);
+  console.log(`${anulada === "true|true" ? "OK   " : "FALLA"} deshacer desde la confirmación anula la venta y su pago (${anulada})`);
+  if (anulada !== "true|true") errores.push(`Deshacer no anuló la venta y su pago (${anulada})`);
 }
 
 // 4. Los mismos totales en todas las pantallas, y coinciden con la base (plan del módulo 1.7).
@@ -263,18 +278,38 @@ return esperado;
   revisar(await visible("text=Cliente nuevo").isVisible(), "la tarjeta muestra el cliente elegido como \"Cliente nuevo\"");
   const precio = await pagina.inputValue(`input[aria-label="Precio de ${producto}"]`);
   revisar(precio === "10.000", `el producto cargado antes sigue en la venta, con el precio general ($ ${precio})`);
+  await visible('button[aria-pressed]:has-text("Pago parcial")').click();
+  await visible('input[aria-label="Cuánto pagó"]').fill("4.000");
+  await visible('button[aria-pressed]:has-text("Transferencia")').click();
   await pagina.locator("button[type=submit]:visible", { hasText: "Guardar venta" }).dblclick();
   await pagina.waitForURL(/\/ventas\/[0-9a-f-]{36}\/guardada$/, { timeout: 20_000 });
   const ventaId = pagina.url().split("/").at(-2);
   const creado = enBaseTexto(`select count(*) || '|' || coalesce(max(c.telefono), '') || '|' || coalesce(max(c.direccion), '') || '|' || bool_and(c.es_prueba)
     || '|' || (select count(*) from public.ventas v where v.cliente_id = max(c.id::text)::uuid) from public.clientes c where c.nombre = '${nombreNuevo}'`);
   revisar(creado === "1|381 555-0000|San Martín 450|true|1", `doble toque en Guardar: un solo cliente nuevo (con teléfono, dirección limpia, dato de prueba) y una sola venta (${creado})`);
+  const pagoParcial = enBaseTexto(`select count(*) || '|' || sum(importe) || '|' || max(medio) from public.pagos where venta_id = '${ventaId}'`);
+  revisar(pagoParcial === "1|400000|transferencia", `Pago parcial con doble toque: un solo pago de $ 4.000 por transferencia (${pagoParcial})`);
   const clienteNuevoId = enBaseTexto(`select id from public.clientes where nombre = '${nombreNuevo}'`);
   await pagina.goto(`${BASE}/clientes/${clienteNuevoId}`);
   revisar(await pagina.getByText("San Martín 450").first().isVisible(), "la ficha del cliente nuevo muestra su dirección");
   await pagina.goto(`${BASE}/ventas/${ventaId}/guardada`);
   const deLaVenta = enBaseTexto(`select c.nombre from public.ventas v join public.clientes c on c.id = v.cliente_id where v.id = '${ventaId}'`);
   revisar(deLaVenta === nombreNuevo, "la venta quedó a nombre del cliente nuevo");
+  const confParcial = await pagina.locator("[data-cobrado]").first();
+  const datosParcial = [await confParcial.getAttribute("data-cobrado"), await confParcial.getAttribute("data-venta-debe"), await confParcial.getAttribute("data-deuda-anterior")].join("|");
+  revisar(datosParcial === "400000|600000|0", `confirmación del pago parcial: cobrado $ 4.000, esta venta debe $ 6.000, sin deuda anterior (${datosParcial})`);
+
+  // 6a'. Anular desde la venta SIN devolver la plata: el pago queda a cuenta (saldo a favor de $ 4.000).
+  await pagina.goto(`${BASE}/ventas/${ventaId}`);
+  await pagina.click("text=Anular esta venta");
+  await pagina.fill("input[name=motivo]", "Prueba de humo: no se devolvió");
+  const marcado = await pagina.locator('input[type=checkbox][name=devolvio]').isChecked();
+  await pagina.locator('input[type=checkbox][name=devolvio]').uncheck();
+  await pagina.click("text=Confirmar anulación");
+  await pagina.waitForURL(/ok=anulada/, { timeout: 20_000 });
+  const sinDevolver = enBaseTexto(`select (select anulado_en is not null from public.ventas where id = '${ventaId}') || '|' || (select bool_and(anulado_en is null) from public.pagos where venta_id = '${ventaId}')
+    || '|' || (select saldo from public.v_cuentas_clientes where cliente_id = '${clienteNuevoId}')`);
+  revisar(marcado && sinDevolver === "true|true|-400000", `anular sin devolver la plata: "Se le devolvió" viene marcado (${marcado}); venta anulada, pago vigente y $ 4.000 a favor (${sinDevolver})`);
 
   // 6b. Nombre repetido escrito distinto: avisa y ofrece usar el existente.
   await pagina.goto(`${BASE}/ventas/nueva`);
@@ -291,6 +326,7 @@ return esperado;
   await pagina.click(`button[aria-label="Agregar ${producto}"]`);
   await crearCliente(huerfano);
   await visible('button:has-text("Listo")').click();
+  await visible('button[aria-pressed]:has-text("Deuda")').click();
   const quedan = Number(enBaseTexto(`select unidades from public.v_stock_productos where producto_id = '${ids.producto}'`));
   execFileSync("psql", [DB_URL, "-q", "-v", "ON_ERROR_STOP=1", "-c", `begin; set local role authenticated;
     select set_config('request.jwt.claims', '{"sub":"${userId}","role":"authenticated"}', true);
