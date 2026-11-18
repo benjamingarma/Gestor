@@ -2,11 +2,31 @@
 
 > Para leer al empezar una sesión nueva, junto con `CLAUDE.md` (reglas), `docs/plan.md` (plan y estado,
 > sección 12) y `docs/decisiones/modulo-*.md` (decisiones de cada módulo).
-> Última actualización: 11/11/2026. Módulo 1.7: PR 1 a 4 y "venta a cliente nuevo" (PR A, A2 y B) mergeados; no hay
-> PRs abiertos. Siguen "Repetir última venta" y la prueba del papá (sección 6). El sabor quedó descartado y el
-> gráfico del mes en Inicio se posterga hasta tener datos reales (plan 12.5).
+> Última actualización: 18/11/2026. Todo mergeado hasta #31; no hay PRs abiertos. Siguen la prueba del papá (cierre del
+> 1.7), 1.9 Backups, 1.10 Pasaje a producción y, después, la carga a mano de los datos del papel. **1.8 descartado.**
 
-## 1. Dónde estamos
+## 0. Estado al 18/11/2026 (lo más nuevo; el resto del documento es historia)
+
+- **Mergeado el 18/11** (`benjamingarma/Gestor`): #24 migración venta con pago, #25 imputación del pago a su venta
+  (+ migración de comentarios), #26 pantalla "¿Pagó?" (Pagó todo / Pago parcial / Deuda), #27 ganancia según lo
+  cobrado y desglose, #28 "Nos deben" sin cortarse en el celular, #29 ganancia estimada del 50 % fijo de lo cobrado del
+  papel, #30 Inicio y Resumen por semana (domingo a sábado), #31 pantallas de carga (esqueletos).
+  Decisiones en `docs/decisiones/pago-en-venta-y-ganancia-cobrada.md` y plan 12.6. Las dos migraciones del día se
+  aplicaron solas (logs de "Aplicar migraciones" verificados: cada uno listó solo la suya).
+- **CI de `main` en verde en `01c54ba`** (#31): 281 Vitest, 408 pgTAP, concurrencia 4/4, humo 32 pantallas y 32 totales.
+- **Rendimiento (auditoría del 18/11):** causas encontradas: la región de Vercel (EE.UU.) lejos de la base (São
+  Paulo), varias consultas en cadena por pantalla (sesión verificada dos veces, "deuda más vieja" leída aparte en
+  Inicio, etc.) y ninguna pantalla de carga. Los socios **cambiaron la región de Vercel a São Paulo** y pidieron
+  **solo** las pantallas de carga (#31). Quedan propuestas, **no pedidas**: verificar la sesión con `getClaims` en
+  `obtenerSocioActual` (un viaje menos) y sacar consultas en cadena (Inicio, Ventas, ficha del cliente, detalle de
+  venta y confirmaciones). Caché de datos de dinero entre visitas: **no** (decisión del módulo 1.0).
+- **1.8 Importación CSV: descartado.** Cargan a mano desde la app **después del 1.10** (si cargan ahora, en MODO PRUEBA,
+  se borra). Los socios pidieron **no cambiar la app** para esto (la "última visita" previa no se carga). Ver plan 12.4.
+- **Pendiente de confirmar por los socios:** una venta de $ 0 con costo reconoce su pérdida el día de la venta.
+- **Siguen:** prueba del papá (cierre del 1.7) → 1.9 Backups y restauración → 1.10 Pasaje a producción → carga a mano.
+- Rama de trabajo de estas sesiones: `claude/dreamy-thompson-vvav70` (se reinicia desde `main` después de cada merge).
+
+## 1. Dónde estamos (al 11/11/2026)
 
 - Terminados y mergeados en `main`: módulos 1.0 a 1.6 (PR #1 a #10 de `benjamingarma/Gestor`).
 - **En curso: 1.7 Simplificación del diseño.** Mergeados: PR 1 a 4 (#11, #12, #14, #15), documentación (#13) y
