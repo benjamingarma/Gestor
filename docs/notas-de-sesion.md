@@ -23,7 +23,7 @@
 - **En curso (18/11/2026): pago en la venta, ganancia según lo cobrado y lenguaje** (plan 12.6, decisiones en
   `docs/decisiones/pago-en-venta-y-ganancia-cobrada.md`, glosario en `docs/glosario.md`). PRs en orden: 1 lenguaje,
   2A migración de venta con pago, 2B pantalla, 3 ganancia cobrada. "Repetir última venta" mergeado (#22, 17/11).
-  PR 1 (lenguaje) mergeado (#23). PR 2A abierto: migración `20261118120000_venta_con_pago.sql` (405 pgTAP,
+  PR 1 (lenguaje) mergeado (#23). PR 2A abierto: migración `20261118120000_venta_con_pago.sql` (408 pgTAP,
   concurrencia 4/4). Después de mergearlo, revisar que "Aplicar migraciones" liste solo esa migración.
 - **Hosting: Vercel (plan Hobby) desde el 17/11/2026** (Netlify pausó los deploys a producción por créditos del plan
   gratis; se borraron el proyecto de Netlify y `netlify.toml`). Cada merge a `main` publica solo. Los previews de

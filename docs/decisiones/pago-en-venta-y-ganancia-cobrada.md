@@ -43,7 +43,8 @@ Propuesta presentada el 18/11/2026 con ejemplos numéricos y aprobada el mismo d
   la aplicación de pagos sigue siendo FIFO por cliente (A4) y no lo mira. `v_pagos` lo suma al final.
 - **`registrar_pago_de_venta(p_id, p_venta_id, p_importe, p_medio, p_recibido_por)`** (SECURITY DEFINER, como
   `registrar_pago`): cliente y día (hora de Tucumán) de la venta; rechaza venta anulada, monto ≤ 0, medio inválido y
-  socio de otro negocio; idempotente (`on conflict (id) do nothing` + misma comprobación que `registrar_pago`).
+  socio de otro negocio; idempotente (`on conflict (id) do nothing`): un reintento devuelve el mismo pago solo si
+  coincide en todo (venta, monto, medio y quién recibió); si cambia algo, se rechaza.
 - **`registrar_venta_con_pago(...)`** (SECURITY INVOKER, como la venta a cliente nuevo): llama a la misma
   `registrar_venta` o `registrar_venta_cliente_nuevo` (con `p_cliente_nuevo` = nombre, teléfono, dirección) y, si hay
   `p_pago_importe`, a `registrar_pago_de_venta`, todo en la misma transacción. "Deuda" = sin pago. Si el pago falla, no
@@ -52,7 +53,7 @@ Propuesta presentada el 18/11/2026 con ejemplos numéricos y aprobada el mismo d
   `anular_pago` de cada pago con esa venta, mismo motivo, todo junto. Con `false`, el pago queda a cuenta del cliente.
 - `borrar_datos_de_prueba` no cambia: borra los pagos antes que las ventas, y si un pago real apuntara a una venta de
   prueba, la FK frena el borrado entero (no se borra nada).
-- Pruebas: `supabase/tests/08_venta_con_pago.test.sql` (49) y cuarta parte de `concurrencia.sh` (doble toque de
+- Pruebas: `supabase/tests/08_venta_con_pago.test.sql` (52) y cuarta parte de `concurrencia.sh` (doble toque de
   venta con pago a un cliente nuevo: un cliente, una venta, un pago). Con la atomicidad rota a propósito fallan 9.
 
 ## Ejemplos numéricos de la propuesta
