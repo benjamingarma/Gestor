@@ -646,8 +646,8 @@ de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 | 1.4 | Pagos y cuenta corriente + filtro por mes en el historial de ventas | ✅ terminado | #6 |
 | 1.5 | Resumen y ganancia 50/50 (reparto con vigencia) + prueba de humo en CI | ✅ terminado | #7 |
 | 1.6 | Ajustes de stock | ✅ terminado | #9, #10 (arreglo del CI) |
-| **1.7** | **Simplificación del diseño** | **🚧 en curso**: PR 1 a 4 y venta a cliente nuevo (con dirección) mergeados; faltan "Repetir última venta" y la prueba del papá (12.3) | #11 a #18 |
-| 1.8 | Importación CSV | pendiente | — |
+| **1.7** | **Simplificación del diseño** | **🚧 en curso**: todo mergeado (incluidos "Repetir última venta" y lo de 12.6); falta la prueba del papá (12.3) | #11 a #31 |
+| ~~1.8~~ | ~~Importación CSV~~ | **descartado (18/11/2026)**: los socios cargan los datos del papel a mano desde la app, después del 1.10 | — |
 | 1.9 | Backups y restauración | pendiente | — |
 | 1.10 | Pasaje a producción | pendiente | — |
 
@@ -660,9 +660,8 @@ venta, cobro y venta a cliente nuevo de punta a punta), todas en verde. No hay P
 | # | Módulo | Contenido | Sesiones |
 |---|---|---|---|
 | 1.7 | **Simplificación del diseño** (lo que falta) | Ver 12.3: "Repetir última venta" y prueba del papá. (Sabor descartado; gráfico del mes postergado a 12.5.) | 1 a 2 |
-| 1.8 | Importación CSV | Plantillas (productos, clientes **con dirección opcional**, compras/stock inicial con USD y tipo de cambio por tanda, precios especiales, saldos del papel), vista previa con totales, confirmación atómica e idempotente. | 1 a 2 |
 | 1.9 | Backups y restauración | Backup diario cifrado (`age`) fuera de Supabase con GitHub Actions y el secreto `SUPABASE_DB_URL`; exportar todo a CSV desde la app; `docs/restauracion.md`; **prueba real de restauración**; **ensayo del borrado de datos de prueba** (A20). | 1 a 2 |
-| 1.10 | Pasaje a producción | Con los socios: borrar datos de prueba, desactivar modo prueba, cuentas reales (vincular la cuenta del papá), importación de datos reales. Solo con 1.9 aprobado. | 1 |
+| 1.10 | Pasaje a producción | Con los socios: borrar datos de prueba, desactivar modo prueba, cuentas reales (vincular la cuenta del papá). Solo con 1.9 aprobado. **Después, los socios cargan a mano los datos del papel** (ver 12.4). | 1 |
 
 Total estimado para lo que falta: 5 a 8 sesiones, más el gráfico del margen (12.5) después del 1.10.
 
@@ -708,7 +707,8 @@ decisiones). La app pasa a llamarse **McStock**.
 - **Gráfico del mes en Inicio: postergado** hasta trabajar con datos reales (ver 12.5). Se propuso una torta
   "vendido = costo + ganancia" y se descartó: no contesta la pregunta que se hacen los socios.
 
-Después del 1.7: 1.8 Importación CSV → 1.9 Backups y restauración → 1.10 Pasaje a producción → (12.5) gráfico del margen.
+Después del 1.7: 1.9 Backups y restauración → 1.10 Pasaje a producción → carga a mano de los datos del papel →
+(12.5) gráfico del margen. (1.8 Importación CSV: descartado el 18/11/2026.)
 
 ### 12.5 Después del 1.10: gráfico del margen real (idea acordada el 11/11/2026, sin programar)
 
@@ -750,6 +750,15 @@ orden de PRs:
   Período `sem-AAAA-MM-DD` en `src/lib/semanas.ts`; los cálculos de ganancia no cambian.
 
 ### 12.4 Notas
+- **1.8 Importación CSV descartado (18/11/2026).** Los datos del papel están en papel; los socios evaluaron pasarlos a
+  Google Sheets e importarlos y eligieron **cargarlos a mano desde la app**, que ya tiene todo: productos, clientes,
+  stock inicial (compra con "inventario inicial", fecha pasada, USD, tipo de cambio y "estimado"), precios especiales y
+  saldos del papel (ficha del cliente → Saldo pendiente). La "última visita" anterior a la app no se carga: la próxima
+  visita se cuenta desde el alta del cliente (decidido no cambiar la app). Las decisiones A6, A13 y A16 sobre la
+  importación quedan sin efecto en lo que respecta al CSV.
+- **Los datos reales se cargan recién después del 1.10.** Mientras esté el MODO PRUEBA, todo lo cargado se marca como
+  dato de prueba y se borra al pasar a producción (A20); además el plan exige backups probados (1.9) antes de cargar
+  datos reales.
 - **Hosting en Vercel desde el 17/11/2026** (antes Netlify, que pausó los deploys a producción por créditos del plan
   gratis). Con los deploys a producción en Vercel, **cada merge a `main` publica solo** la app. Los **deploy previews
   de Vercel** (uno por PR, link en el PR) sirven para probar los PR **sin migraciones** antes de mergear; como el
