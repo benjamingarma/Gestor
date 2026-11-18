@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Aviso } from "@/componentes/Aviso";
 import { BotonEnlace } from "@/componentes/BotonEnlace";
 import { Encabezado } from "@/componentes/Encabezado";
-import { cobrosDeVentas } from "@/datos/cuentas";
+import { cobradoConVenta, cobrosDeVentas } from "@/datos/cuentas";
 import { obtenerVenta } from "@/datos/ventas";
 import { formatearDolares, formatearPesos, formatearTipoDeCambio } from "@/lib/dinero";
 import { formatearDia, formatearFechaHora } from "@/lib/fechas";
@@ -19,7 +19,9 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
   const venta = await obtenerVenta(socio.negocioId, id);
   if (!venta) notFound();
   const anulada = venta.anulado_en !== null;
-  const cobro = anulada ? undefined : (await cobrosDeVentas(socio.negocioId, [venta.cliente_id])).get(venta.venta_id);
+  const [cobro, pagadoAlVender] = anulada
+    ? [undefined, 0]
+    : await Promise.all([cobrosDeVentas(socio.negocioId, [venta.cliente_id]).then((m) => m.get(venta.venta_id)), cobradoConVenta(socio.negocioId, venta.venta_id)]);
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
@@ -60,7 +62,7 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
                 {cobro.saldo > 0 ? formatearPesos(cobro.saldo) : "Pagada"}
               </span>
             </div>
-            <p className="text-[0.72rem] text-texto-suave">Los pagos del cliente se aplican primero a sus deudas más viejas.</p>
+            <p className="text-[0.72rem] text-texto-suave">El pago registrado con la venta se aplica a esta venta; los demás pagos del cliente, primero a sus deudas más viejas.</p>
           </>
         )}
       </section>
@@ -109,7 +111,7 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
           Otra venta a {venta.cliente_nombre}
         </BotonEnlace>
       )}
-      {!anulada && <AnularVenta ventaId={venta.venta_id} />}
+      {!anulada && <AnularVenta ventaId={venta.venta_id} pagadoAlVender={pagadoAlVender} />}
     </main>
   );
 }

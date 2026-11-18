@@ -29,6 +29,14 @@ const esquemaVenta = z.object({
     })
     .nullish(),
   vendidoPor: z.string().refine(esUuid),
+  // Cómo pagó (sin preselección: no se puede guardar sin elegir, decisión 1 del 18/11/2026).
+  pago: z.object({
+    forma: z.enum(["todo", "parcial", "deuda"], { message: "Elegí si pagó todo, una parte o queda debiendo." }),
+    id: z.string().refine(esUuid),
+    importe: z.string(),
+    medio: z.enum(["efectivo", "transferencia", "mercado_pago"]).nullable(),
+    recibidoPor: z.string(),
+  }),
   fecha: z.string(),
   nota: z.string().max(500),
   items: z
@@ -66,25 +74,37 @@ export async function registrarVenta(_p: EstadoVenta, formulario: FormData): Pro
     items.push({ producto_id: it.productoId, cantidad: it.cantidad, precio_unitario: precio.centavos });
   }
 
+  // Pago: "Deuda" no registra pago. "Pagó todo" trae el monto calculado en la pantalla (la venta menos el saldo a
+  // favor; $ 0 si el saldo a favor la cubre entera, y entonces tampoco se registra pago). "Pago parcial": lo tipeado.
+  let pago: { importe: number; medio: string; recibidoPor: string | null } | null = null;
+  if (v.pago.forma !== "deuda") {
+    const importe = parsearImporte(v.pago.importe);
+    if (!importe.ok) return { error: `Pago: ${importe.error}` };
+    if (v.pago.forma === "parcial" && importe.centavos <= 0) return { error: "Escribí cuánto pagó." };
+    if (importe.centavos > 0) {
+      if (!v.pago.medio) return { error: "Elegí cómo pagó." };
+      pago = { importe: importe.centavos, medio: v.pago.medio, recibidoPor: esUuid(v.pago.recibidoPor) ? v.pago.recibidoPor : null };
+    }
+  }
+
   const supabase = await crearClienteSupabase();
-  const comunes = {
+  // Venta (y cliente nuevo) y pago en una sola transacción: si el pago falla, no queda la venta.
+  const { error } = await supabase.rpc("registrar_venta_con_pago", {
+    p_venta_id: v.id,
     p_negocio_id: socio.negocioId,
     p_cliente_id: v.clienteId,
     p_items: items,
+    p_pago_id: pago ? v.pago.id : null,
+    p_pago_importe: pago?.importe ?? null,
+    p_pago_medio: pago?.medio ?? null,
+    p_pago_recibido_por: pago?.recibidoPor ?? null,
     p_fecha: v.fecha,
     p_vendido_por: v.vendidoPor,
     p_nota: v.nota.trim() || null,
-  };
-  // Cliente nuevo: cliente y venta en una sola transacción (si la venta falla, el cliente no queda).
-  const { error } = v.clienteNuevo
-    ? await supabase.rpc("registrar_venta_cliente_nuevo", {
-        p_venta_id: v.id,
-        p_nombre: v.clienteNuevo.nombre,
-        p_telefono: v.clienteNuevo.telefono || null,
-        p_direccion: v.clienteNuevo.direccion || null,
-        ...comunes,
-      })
-    : await supabase.rpc("registrar_venta", { p_id: v.id, ...comunes });
+    p_cliente_nuevo: v.clienteNuevo
+      ? { nombre: v.clienteNuevo.nombre, telefono: v.clienteNuevo.telefono || null, direccion: v.clienteNuevo.direccion || null }
+      : null,
+  });
   if (error?.hint === "cliente_duplicado" && esUuid(error.details ?? "")) {
     const { data } = await supabase.from("clientes").select("id, nombre, archivado_en").eq("id", error.details).maybeSingle();
     return {
@@ -113,7 +133,10 @@ export async function anularVenta(_p: EstadoVenta, formulario: FormData): Promis
   const motivo = String(formulario.get("motivo") ?? "").trim();
   if (!motivo) return { error: "Escribí el motivo de la anulación." };
   const supabase = await crearClienteSupabase();
-  const { error } = await supabase.rpc("anular_venta", { p_venta_id: ventaId, p_motivo: motivo.slice(0, 300) });
+  // Los pagos registrados con la venta se anulan junto con ella, salvo que no se haya devuelto la plata
+  // (decisión 5: entonces el pago queda a cuenta del cliente). "Deshacer" siempre los anula.
+  const anularPagos = formulario.get("devolvio") !== "no";
+  const { error } = await supabase.rpc("anular_venta_y_pagos", { p_venta_id: ventaId, p_motivo: motivo.slice(0, 300), p_anular_pagos: anularPagos });
   if (error) return { error: mensajeDeError(error, "No se pudo anular la venta.") };
   revalidatePath("/", "layout");
   redirect(`/ventas/${ventaId}?ok=anulada`);

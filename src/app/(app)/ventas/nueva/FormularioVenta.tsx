@@ -18,9 +18,11 @@ import {
   type FaltanteRepeticion,
   type ItemCarrito,
 } from "@/dominio/carrito";
+import { MEDIOS, preseleccionDeCobro, type Medio, type UltimoCobro } from "@/dominio/cobro";
+import { comoQueda, FORMAS_DE_PAGO, importePagoTodo, type FormaDePago } from "@/dominio/pagoEnVenta";
 import { limpiarNombre, MAXIMO_DIRECCION, MAXIMO_NOMBRE, MAXIMO_TELEFONO, problemaClienteNuevo, textoParaCrear } from "@/dominio/clienteNuevo";
 import type { DatosNuevaVenta, UltimaVenta } from "@/datos/ventas";
-import { formatearDolares, formatearPesos } from "@/lib/dinero";
+import { formatearDolares, formatearPesos, parsearImporte } from "@/lib/dinero";
 import { formatearDia } from "@/lib/fechas";
 import { coincide } from "@/lib/texto";
 import { nuevoUuid } from "@/lib/uuid";
@@ -35,6 +37,7 @@ export function FormularioVenta({
   volverA,
   ultimaInicial,
   repetir,
+  ultimoCobro,
 }: {
   datos: DatosNuevaVenta;
   clienteInicial: string;
@@ -45,6 +48,8 @@ export function FormularioVenta({
   ultimaInicial: UltimaVenta | null;
   /** Vino de "Repetir última venta" (ficha del cliente): el carrito arranca con esa venta. */
   repetir: boolean;
+  /** Último pago que registró este socio: preselecciona medio y quién recibió (como en "Registrar pago"). */
+  ultimoCobro: UltimoCobro;
 }) {
   const [estado, enviar, enviando] = useActionState(registrarVenta, {});
   const [id] = useState(() => nuevoUuid()); // una venta = un identificador: reenviar no duplica
@@ -74,6 +79,14 @@ export function FormularioVenta({
   const [creando, setCreando] = useState<{ nombre: string; telefono: string; direccion: string } | null>(null);
   // Cliente existente que no estaba en la lista al abrir la pantalla (lo creó otro socio mientras tanto).
   const [extra, setExtra] = useState<{ id: string; nombre: string } | null>(null);
+  // Pago en la venta: sin preselección de "Pagó todo / Pago parcial / Deuda" (decisión 1); medio y quién recibió,
+  // con el último pago de este socio. Un pago = un identificador (reenviar no duplica).
+  const [pagoId] = useState(() => nuevoUuid());
+  const [forma, setForma] = useState<FormaDePago | null>(null);
+  const [importeParcial, setImporteParcial] = useState("");
+  const [preseleccion] = useState(() => preseleccionDeCobro(ultimoCobro, datos.socios, socioActual));
+  const [medio, setMedio] = useState<Medio | null>(preseleccion.medio);
+  const [recibidoPor, setRecibidoPor] = useState(preseleccion.recibidoPor);
 
   const cliente = datos.clientes.find((c) => c.id === clienteId) ?? (extra?.id === clienteId ? extra : undefined);
   // El cliente al que se le vende: uno existente o el nuevo (los precios se proponen con su id: el nuevo no tiene
@@ -140,17 +153,34 @@ export function FormularioVenta({
   const productosFiltrados = datos.productos.filter((p) => coincide(p.nombre, busquedaProducto));
   const nombreSocio = datos.socios.find((s) => s.id === vendidoPor)?.nombre ?? "";
   const textoOpciones = `${fecha === hoy ? "Hoy" : formatearDia(fecha)} · vendió ${nombreSocio} · ${nota.trim() ? `nota: “${nota.trim()}”` : "sin nota"}`;
+  // Saldo del cliente antes de esta venta (> 0 debe, < 0 a favor); un cliente nuevo no debe nada.
+  const saldo = cliente ? (datos.saldos[cliente.id] ?? 0) : 0;
+  const parcial = parsearImporte(importeParcial);
+  const pagoCentavos =
+    forma === "todo" ? importePagoTodo(saldo, resumen.importe) : forma === "parcial" ? (parcial.ok && parcial.centavos > 0 ? parcial.centavos : 0) : 0;
+  const queda = comoQueda(saldo, resumen.importe, pagoCentavos);
+  const problemaPago =
+    forma === null
+      ? "Elegí si pagó todo, una parte o queda debiendo."
+      : forma === "parcial" && importeParcial.trim() !== "" && !parcial.ok
+        ? parcial.error
+        : forma === "parcial" && pagoCentavos === 0
+          ? "Escribí cuánto pagó."
+          : pagoCentavos > 0 && medio === null
+            ? "Elegí cómo pagó."
+            : null;
+  const problema = resumen.problema ?? problemaPago;
   const datosJson = JSON.stringify({
     id,
     clienteId: idElegido,
     clienteNuevo: clienteNuevo ? { nombre: clienteNuevo.nombre, telefono: clienteNuevo.telefono, direccion: clienteNuevo.direccion } : null,
     vendidoPor,
+    pago: { forma, id: pagoId, importe: forma === "todo" ? String(pagoCentavos / 100).replace(".", ",") : importeParcial, medio, recibidoPor },
     fecha,
     nota,
     items: items.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad, precio: i.precio })),
   });
 
-  const saldo = cliente ? (datos.saldos[cliente.id] ?? 0) : 0;
   const campo = "min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3 text-texto";
   const avisoDuplicado = (existente: { id: string; nombre: string; archivado?: boolean }, mensaje: string) => (
     <div role="alert" className="aviso-aparecer flex flex-col gap-2 rounded-[14px] bg-aviso-suave px-3 py-2.5 text-[0.85rem] leading-snug">
@@ -388,15 +418,100 @@ export function FormularioVenta({
     </div>
   );
 
+  // "Cobrado $ X · Esta venta: pagada · Deuda anterior $ Y" (decisión del 18/11/2026: la deuda vieja va aparte).
+  const lineaQueda = (
+    <p aria-live="polite" className="text-center text-[0.85rem] leading-snug" data-cobrado={queda.cobrado} data-venta-debe={queda.ventaDebe} data-deuda-anterior={queda.deudaAnterior}>
+      Cobrado <b className="num">{formatearPesos(queda.cobrado)}</b> · Esta venta:{" "}
+      {queda.ventaDebe === 0 ? <b className="text-acento">pagada</b> : <b className="num text-peligro">debe {formatearPesos(queda.ventaDebe)}</b>}
+      {queda.deudaAnterior > 0 && (
+        <>
+          {" "}
+          · Deuda anterior <b className="num text-peligro">{formatearPesos(queda.deudaAnterior)}</b>
+        </>
+      )}
+      {queda.aFavor > 0 && <> · Le queda {formatearPesos(queda.aFavor)} a favor</>}
+    </p>
+  );
+
+  const segmento = "grid gap-2";
+  const opcion = (sel: boolean) =>
+    `flex min-h-[52px] flex-col items-center justify-center rounded-[14px] px-1 text-center text-[0.88rem] leading-[1.15] font-semibold transition-colors duration-150 ${sel ? "border-2 border-acento bg-acento-suave text-acento" : "border-[1.5px] border-borde bg-superficie"}`;
+  const conPago = forma === "todo" ? pagoCentavos > 0 : forma === "parcial";
+  const seccionPago = hayCliente && (
+    <section className="flex flex-col gap-3 rounded-[20px] border border-borde bg-superficie p-4 shadow-tarjeta" aria-label="Pago de la venta">
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-[0.85rem] font-bold">¿Pagó?</legend>
+        <div className={`${segmento} grid-cols-3`}>
+          {FORMAS_DE_PAGO.map((f) => (
+            <button key={f.id} type="button" aria-pressed={forma === f.id} onClick={() => setForma(f.id)} className={opcion(forma === f.id)}>
+              {f.texto}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      {forma === "todo" && pagoCentavos === 0 && resumen.importe > 0 && (
+        <p className="text-[0.82rem] text-texto-suave">La paga con su saldo a favor: no hace falta registrar un pago.</p>
+      )}
+      {forma === "todo" && pagoCentavos > 0 && saldo < 0 && (
+        <p className="text-[0.82rem] text-texto-suave">
+          Tenía {formatearPesos(-saldo)} a favor: se cobra {formatearPesos(pagoCentavos)}.
+        </p>
+      )}
+      {forma === "parcial" && (
+        <label className="flex flex-col gap-1">
+          <span className="text-[0.85rem] font-semibold">¿Cuánto pagó?</span>
+          <span className="flex h-[50px] items-center gap-1 rounded-[14px] border border-borde bg-superficie px-3">
+            <span className="font-bold text-texto-suave">$</span>
+            <input
+              inputMode="decimal"
+              autoComplete="off"
+              value={importeParcial}
+              onChange={(e) => setImporteParcial(e.target.value)}
+              placeholder="0"
+              aria-label="Cuánto pagó"
+              className="num w-full min-w-0 bg-transparent text-lg font-bold text-texto outline-none"
+            />
+          </span>
+        </label>
+      )}
+      {conPago && (
+        <>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 text-[0.85rem] font-bold">¿Cómo pagó?</legend>
+            <div className={`${segmento} grid-cols-3`}>
+              {MEDIOS.map((m) => (
+                <button key={m.id} type="button" aria-pressed={medio === m.id} onClick={() => setMedio(m.id)} className={opcion(medio === m.id)}>
+                  {m.texto}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 text-[0.85rem] font-bold">¿Quién recibió la plata?</legend>
+            <div className={segmento} style={{ gridTemplateColumns: `repeat(${Math.max(datos.socios.length, 1)}, minmax(0, 1fr))` }}>
+              {datos.socios.map((so) => (
+                <button key={so.id} type="button" aria-pressed={recibidoPor === so.id} onClick={() => setRecibidoPor(so.id)} className={opcion(recibidoPor === so.id)}>
+                  {so.nombre}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        </>
+      )}
+    </section>
+  );
+
   const guardar = (
     <>
       {estado.duplicado && clienteNuevo
         ? avisoDuplicado(estado.duplicado, estado.error ?? "")
         : estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
       {resumen.problema && (items.length > 0 || hayCliente) && <p className="text-center text-[0.82rem] text-peligro">{resumen.problema}</p>}
+      {!resumen.problema && problemaPago && forma !== null && <p className="text-center text-[0.82rem] text-peligro">{problemaPago}</p>}
+      {!resumen.problema && forma !== null && !problemaPago && lineaQueda}
       <button
         type="submit"
-        disabled={resumen.problema !== null || enviando}
+        disabled={problema !== null || enviando}
         className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl bg-acento text-[1.1rem] font-bold text-acento-texto transition-opacity disabled:opacity-50"
       >
         {enviando && <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none" />}
@@ -505,6 +620,7 @@ export function FormularioVenta({
             })}
             {productosFiltrados.length === 0 && <li className="py-3 text-texto-suave">No hay productos con stock que coincidan.</li>}
           </ul>
+          {seccionPago && <div className="lg:hidden">{seccionPago}</div>}
           <div className="lg:hidden">{lineaOpciones}</div>
         </div>
 
@@ -512,6 +628,7 @@ export function FormularioVenta({
         <div className="hidden flex-col gap-3 lg:flex">
           {tarjetaCliente}
           {tarjetaUltima}
+          {seccionPago}
           <section className="flex flex-col gap-3 rounded-[20px] border border-borde bg-superficie p-4 shadow-tarjeta" aria-label="Resumen de la venta">
             <h2 className="text-[1.05rem] font-bold">Resumen</h2>
             {resumen.filas.length === 0 ? (
