@@ -1,0 +1,87 @@
+name: Backup diario
+
+# Backup de los datos de la app (módulo 1.9), todos los días a las 4:30 de Tucumán.
+#   1. Copia los datos del esquema public de Supabase (sin la estructura, que está en supabase/migrations, y sin las
+#      cuentas de login). Ver scripts/backup/volcar.sh.
+#   2. Lo cierra con contraseña (7-Zip, AES-256, también se cifran los nombres de archivo).
+#   3. Lo guarda como artefacto privado del repositorio durante 90 días.
+# El registro solo muestra cantidades de filas y totales (huella de control), nunca datos de clientes.
+# Para abrirlo y restaurarlo: docs/restauracion.md.
+#
+# Secretos requeridos (GitHub > Settings > Secrets and variables > Actions):
+#   SUPABASE_DB_URL   cadena de conexión "Session pooler" (la misma de las migraciones).
+#   BACKUP_PASSWORD   contraseña del backup. La eligen los socios y la guardan también fuera de GitHub:
+#                     sin ella el backup no se puede abrir.
+on:
+  schedule:
+    - cron: "30 7 * * *" # 4:30 en Tucumán (UTC−3)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-diario
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar secretos
+        run: |
+          falta=""
+          [ -n "$SUPABASE_DB_URL" ] || falta="$falta SUPABASE_DB_URL"
+          [ -n "$BACKUP_PASSWORD" ] || falta="$falta BACKUP_PASSWORD"
+          if [ -n "$falta" ]; then
+            echo "::error::Faltan secretos:$falta. Ver docs/configuracion.md."
+            exit 1
+          fi
+          if [ "${#BACKUP_PASSWORD}" -lt 16 ]; then
+            echo "::error::La contraseña del backup tiene que tener al menos 16 caracteres."
+            exit 1
+          fi
+
+      - name: Instalar pg_dump 17 (misma versión que la base)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-client-17
+          command -v 7z > /dev/null || sudo apt-get install -y -q p7zip-full
+
+      - name: Copiar los datos y cerrarlos con contraseña
+        env:
+          PG_DUMP: /usr/lib/postgresql/17/bin/pg_dump
+          PSQL: /usr/lib/postgresql/17/bin/psql
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$RUNNER_TEMP/backup"
+          mkdir -p "$dir"
+          nombre="gestor-$(TZ=America/Argentina/Tucuman date +%Y-%m-%d)"
+          bash scripts/backup/volcar.sh "$SUPABASE_DB_URL" > "$dir/$nombre.dump" 2> "$dir/huella.txt"
+          echo "Huella de control (cantidades y totales, sin datos):"
+          cat "$dir/huella.txt"
+          (cd "$dir" && 7z a -bd -bso0 -p"$BACKUP_PASSWORD" -mhe=on "$nombre.7z" "$nombre.dump" huella.txt)
+          rm "$dir/$nombre.dump"
+          # Control: el archivo se abre con la contraseña y su contenido está entero.
+          (cd "$dir" && 7z t -bd -bso0 -p"$BACKUP_PASSWORD" "$nombre.7z")
+          echo "Backup: $nombre.7z ($(du -h "$dir/$nombre.7z" | cut -f1))"
+          echo "NOMBRE=$nombre" >> "$GITHUB_ENV"
+
+      - name: Guardar el backup (90 días)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NOMBRE }}
+          path: ${{ runner.temp }}/backup/${{ env.NOMBRE }}.7z
+          retention-days: 90
+          if-no-files-found: error
+          compression-level: 0
