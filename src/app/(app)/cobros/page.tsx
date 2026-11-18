@@ -15,7 +15,7 @@ export default async function PaginaCobros() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
-      <Encabezado titulo="Cobros" volverA="/" />
+      <Encabezado titulo="Pagos recibidos" volverA="/" />
 
       <section className="grid grid-cols-2 gap-3 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
         <div className="flex flex-col">
@@ -33,7 +33,7 @@ export default async function PaginaCobros() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-[1.05rem] font-bold">Quién debe plata</h2>
+        <h2 className="text-[1.05rem] font-bold">Deudores</h2>
         {deudores.length === 0 && <p className="text-texto-suave">Nadie debe nada. 🎉</p>}
         <ul className="flex flex-col gap-2">
           {deudores.map((d) => (
@@ -75,8 +75,8 @@ export default async function PaginaCobros() {
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-[1.05rem] font-bold">Últimos cobros</h2>
-        {pagos.length === 0 && <p className="text-texto-suave">Todavía no hay cobros.</p>}
+        <h2 className="text-[1.05rem] font-bold">Últimos pagos recibidos</h2>
+        {pagos.length === 0 && <p className="text-texto-suave">Todavía no hay pagos.</p>}
         <ul className="flex flex-col gap-2">
           {pagos.map((p) => (
             <li key={p.pago_id}>

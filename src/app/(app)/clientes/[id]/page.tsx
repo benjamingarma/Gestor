@@ -119,17 +119,17 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
 
       <section className="flex flex-col gap-2 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
         <div className="flex flex-col gap-1">
-          <span className="text-[0.82rem] text-texto-suave">Cuenta corriente</span>
+          <span className="text-[0.82rem] text-texto-suave">Saldo pendiente (lo que nos debe)</span>
           <span className={`num text-[1.6rem] font-extrabold tracking-[-0.02em] ${saldo > 0 ? "text-peligro" : saldo < 0 ? "text-acento" : ""}`}>
             {saldo > 0 ? `Debe ${formatearPesos(saldo)}` : saldo < 0 ? `${formatearPesos(-saldo)} a favor` : "Al día"}
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <BotonEnlace href={`/cobrar/${cliente.id}`} variante={saldo > 0 ? "principal" : "secundario"}>
-            Cobrar
+            Registrar pago
           </BotonEnlace>
           <BotonEnlace href={`/clientes/${cliente.id}/cuenta`} variante="secundario">
-            Ver cuenta
+            Ver detalle
           </BotonEnlace>
         </div>
       </section>

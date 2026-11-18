@@ -42,7 +42,7 @@ export async function registrarPago(_p: EstadoCobro, formulario: FormData): Prom
     p_recibido_por: esUuid(recibidoPor) ? recibidoPor : null,
     p_nota: String(formulario.get("nota") ?? "").trim().slice(0, 500) || null,
   });
-  if (error) return { error: mensajeDeError(error, "No se pudo guardar el cobro.") };
+  if (error) return { error: mensajeDeError(error, "No se pudo guardar el pago.") };
   revalidatePath("/", "layout");
   // Confirmación con "Deshacer (anular)" (módulo 1.7); si se cobró desde una venta, "Listo" vuelve a esa venta.
   redirect(`/cobros/${id}/guardado${esUuid(volverA) ? `?venta=${volverA}` : ""}`);
@@ -58,7 +58,7 @@ export async function anularPago(_p: EstadoSimple, formulario: FormData): Promis
   if (!motivo) return { error: "Escribí el motivo." };
   const supabase = await crearClienteSupabase();
   const { error } = await supabase.rpc("anular_pago", { p_pago_id: pagoId, p_motivo: motivo.slice(0, 300) });
-  if (error) return { error: mensajeDeError(error, "No se pudo anular el cobro.") };
+  if (error) return { error: mensajeDeError(error, "No se pudo anular el pago.") };
   revalidatePath("/", "layout");
   // "Deshacer (anular)" desde la confirmación: se queda en la confirmación, que pasa a decir "Cobro anulado".
   if (formulario.get("desde") === "guardado" && esUuid(pagoId)) redirect(`/cobros/${pagoId}/guardado`);

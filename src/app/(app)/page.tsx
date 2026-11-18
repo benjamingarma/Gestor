@@ -42,7 +42,7 @@ export default async function PaginaInicio() {
           {formatearPesos(t.nosDeben.total)}
         </span>
         <Link href="/cobrar" className="flex min-h-[40px] items-center rounded-xl bg-acento px-3.5 text-[0.9rem] font-bold text-acento-texto">
-          Cobrar
+          Ver deudores
         </Link>
       </div>
       <span className="text-[0.82rem] text-texto-suave">
@@ -149,8 +149,8 @@ export default async function PaginaInicio() {
   );
 
   const quienDebe = (
-    <Tarjeta className="hidden flex-col gap-2 lg:flex" aria-label="Quién debe plata">
-      <h2 className="text-[1.05rem] font-bold">Quién debe plata</h2>
+    <Tarjeta className="hidden flex-col gap-2 lg:flex" aria-label="Deudores">
+      <h2 className="text-[1.05rem] font-bold">Deudores</h2>
       {deudores.length === 0 ? (
         <p className="text-texto-suave">Nadie debe nada.</p>
       ) : (

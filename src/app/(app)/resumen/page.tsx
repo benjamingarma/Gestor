@@ -112,7 +112,7 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
         <Fila etiqueta="Ventas · unidades" valor={`${ventas.ventas} · ${ventas.unidades} u`} />
       </Tarjeta>
 
-      <Tarjeta titulo={`Dinero cobrado · ${nombrePeriodo}`} enlace={{ href: "/cobros", texto: "Ver cobros" }}>
+      <Tarjeta titulo={`Cobrado (plata que entró) · ${nombrePeriodo}`} enlace={{ href: "/cobros", texto: "Ver pagos recibidos" }}>
         <Fila etiqueta="Total cobrado" valor={formatearPesos(cobrado.total)} fuerte dato={["cobrado-mes", cobrado.total]} />
         {[...cobrado.porMedio].map(([m, t]) => (
           <Fila key={m} etiqueta={NOMBRE_MEDIO[m] ?? m} valor={formatearPesos(t)} />
@@ -167,7 +167,7 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
         </ul>
       </Tarjeta>
 
-      <Tarjeta titulo={`Quién debe plata (${nosDeben.length})`} enlace={{ href: "/cobros", texto: "Ver todos" }}>
+      <Tarjeta titulo={`Deudores (${nosDeben.length})`} enlace={{ href: "/cobros", texto: "Ver todos" }}>
         {nosDeben.length === 0 && <p className="text-texto-suave">Nadie debe nada.</p>}
         <ul className="flex flex-col gap-1">
           {nosDeben.slice(0, 5).map((d) => (

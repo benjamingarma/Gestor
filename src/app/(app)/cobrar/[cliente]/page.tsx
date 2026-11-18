@@ -37,7 +37,7 @@ export default async function PaginaCobroCliente({ params, searchParams }: PageP
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col leading-[1.2]">
       <div className="flex flex-col lg:grid lg:grid-cols-[1fr_1.25fr] lg:items-start lg:gap-5 lg:px-9 lg:pb-9">
-        <h1 className="hidden text-[1.6rem] font-extrabold lg:col-span-2 lg:block lg:pt-7">Cobrar</h1>
+        <h1 className="hidden text-[1.6rem] font-extrabold lg:col-span-2 lg:block lg:pt-7">Deudores</h1>
         <div className="hidden lg:block">
           <ListaQuienDebe {...lista} seleccionado={clienteId} />
         </div>

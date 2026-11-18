@@ -43,8 +43,8 @@ export function AnularPago({ pagoId, clienteId }: { pagoId: string; clienteId: s
     <AnularConMotivo
       accion={anularPago}
       campos={{ pagoId, clienteId }}
-      texto="Anular este cobro"
-      explicacion="El cobro no se borra: queda en el historial como anulado y la deuda se recalcula."
+      texto="Anular este pago"
+      explicacion="El pago no se borra: queda en el historial como anulado y la deuda se recalcula."
     />
   );
 }
@@ -70,7 +70,7 @@ export function FormularioSaldoInicial({ clienteId, hoy }: { clienteId: string; 
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="clienteId" value={clienteId} />
         <p className="text-[0.82rem] text-texto-suave">
-          Para deudas o saldos a favor anteriores a la app. Cuentan en la cuenta corriente pero no como venta ni como
+          Para deudas o saldos a favor anteriores a la app. Cuentan en el saldo pendiente pero no como venta ni como
           ganancia.
         </p>
         <fieldset className="grid grid-cols-2 gap-2">

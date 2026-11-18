@@ -13,8 +13,8 @@ import { esUuid } from "@/lib/uuid";
 import { AnularPago, AnularSaldo, FormularioSaldoInicial } from "./AccionesCuenta";
 
 const MENSAJES: Record<string, string> = {
-  cobro: "Cobro registrado.",
-  "pago-anulado": "Cobro anulado.",
+  cobro: "Pago registrado.",
+  "pago-anulado": "Pago anulado.",
   saldo: "Saldo del papel guardado.",
   "saldo-anulado": "Saldo anulado.",
 };
@@ -34,7 +34,7 @@ export default async function PaginaCuenta({ params, searchParams }: PageProps<"
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
-      <Encabezado titulo={`Cuenta de ${cliente.nombre}`} volverA={`/clientes/${id}`} />
+      <Encabezado titulo={`Saldo de ${cliente.nombre}`} volverA={`/clientes/${id}`} />
       {mensaje && <Aviso tipo="ok">{mensaje}</Aviso>}
 
       <section className="flex flex-col gap-1 rounded-[20px] border border-borde bg-superficie shadow-tarjeta p-4">
@@ -56,11 +56,11 @@ export default async function PaginaCuenta({ params, searchParams }: PageProps<"
         </span>
       </section>
 
-      <BotonEnlace href={`/cobrar/${id}`}>Registrar cobro</BotonEnlace>
+      <BotonEnlace href={`/cobrar/${id}`}>Registrar pago</BotonEnlace>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-[1.05rem] font-bold">Deudas</h2>
-        <p className="text-[0.82rem] text-texto-suave">De la más vieja a la más nueva: los cobros se aplican en este orden.</p>
+        <p className="text-[0.82rem] text-texto-suave">De la más vieja a la más nueva: los pagos se aplican en este orden.</p>
         {cuenta.deudas.length === 0 && <p className="text-texto-suave">No tiene compras.</p>}
         <ul className="flex flex-col gap-2">
           {cuenta.deudas.map((d) => (
@@ -84,7 +84,7 @@ export default async function PaginaCuenta({ params, searchParams }: PageProps<"
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-[1.05rem] font-bold">Cobros</h2>
+        <h2 className="text-[1.05rem] font-bold">Pagos recibidos</h2>
         {pagos.length === 0 && <p className="text-texto-suave">Todavía no pagó nada.</p>}
         <ul className="flex flex-col gap-2">
           {pagos.map((p) => (
