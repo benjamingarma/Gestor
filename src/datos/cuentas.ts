@@ -180,3 +180,11 @@ export async function ultimoCobroDe(negocioId: string, socioId: string): Promise
   if (error) fallar("No se pudo leer el último cobro", error);
   return (data as { medio: Pago["medio"]; recibido_por: string } | null) ?? null;
 }
+
+/** Total de los pagos (no anulados) registrados junto con una venta, en la pantalla de venta. */
+export async function cobradoConVenta(negocioId: string, ventaId: string): Promise<number> {
+  const supabase = await crearClienteSupabase();
+  const { data, error } = await supabase.from("pagos").select("importe").eq("negocio_id", negocioId).eq("venta_id", ventaId).is("anulado_en", null);
+  if (error) fallar("No se pudieron leer los pagos de la venta", error);
+  return (data ?? []).reduce((s, p) => s + Number(p.importe), 0);
+}

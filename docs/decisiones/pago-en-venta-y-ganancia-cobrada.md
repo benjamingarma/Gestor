@@ -23,8 +23,10 @@ Propuesta presentada el 18/11/2026 con ejemplos numéricos y aprobada el mismo d
 
 ## Reglas acordadas
 - **Pago en la venta**: medio y quién recibió preseleccionados con el último pago que registró ese socio. El botón y la
-  confirmación muestran "Cobrado $ X · Debe $ Y" (Y = saldo pendiente total del cliente después de guardar; cómo se
-  muestra cuando el cliente ya debía de antes queda para el PR 2B-2). "Pagó todo" cobra solo el total de la venta
+  confirmación muestran "Cobrado $ X · Debe $ Y" (Y = saldo pendiente total del cliente después de guardar). **Si el
+  cliente ya debía de antes (decisión del 18/11/2026):** la confirmación separa la venta de hoy de lo viejo, por ejemplo
+  "Esta venta: pagada · Deuda anterior $ 10.000" o "Esta venta: debe $ 8.000 · Deuda anterior $ 10.000", para no dar a
+  entender que la venta de hoy quedó debiendo lo que en realidad es deuda vieja. "Pagó todo" cobra solo el total de la venta
   nueva; si tenía saldo a favor, registra el total menos el saldo a favor. Venta y pago en **una sola operación** de la
   base (nunca venta guardada con pago fallido), idempotente ante doble toque; "Deshacer" anula los dos juntos.
 - **Imputación del pago de la venta (cambio del 18/11/2026, ver abajo):** el pago registrado en la pantalla de venta
@@ -85,3 +87,13 @@ aprobados de abajo (Ana, Carlos y el desglose) usan pagos sueltos y no cambian. 
   V3 ($ 500 de ganancia).
 - Desglose de noviembre con los dos y $ 1.000 de pérdidas: Cobrado $ 25.000 − papel $ 8.000 − costo $ 11.250 −
   pérdidas $ 1.000 = Ganancia neta $ 4.750.
+
+## PR 2B-2: pantalla
+- `src/dominio/pagoEnVenta.ts`: `importePagoTodo` (la venta menos el saldo a favor; $ 0 = no se registra pago porque lo
+  cubre el saldo a favor) y `comoQueda` (esta venta / deuda anterior / a favor), probados contra `aplicarCreditos`.
+- El monto de "Pagó todo" lo calcula la pantalla con el saldo que vio y lo manda: si lo recalculara el servidor, un
+  reintento después de guardado daría otro monto y la base lo rechazaría (reintento que no coincide).
+- Guardar usa siempre `registrar_venta_con_pago` ("Deuda" = sin pago). Deshacer y Anular usan `anular_venta_y_pagos`;
+  Anular pregunta "Se le devolvió la plata" (marcado) solo si la venta tiene pagos registrados con ella.
+- Prueba de humo: no se guarda sin elegir, "Pagó todo" con deuda anterior, pago parcial con doble toque, Deshacer anula
+  venta y pago, anular sin devolver deja el pago a cuenta (saldo a favor).

@@ -1,5 +1,6 @@
 import { BotonEnlace } from "@/componentes/BotonEnlace";
 import { Encabezado } from "@/componentes/Encabezado";
+import { ultimoCobroDe } from "@/datos/cuentas";
 import { datosParaNuevaVenta, ultimaVentaDeCliente } from "@/datos/ventas";
 import { hoy } from "@/lib/fechas";
 import { obtenerSocioActual } from "@/lib/sesion";
@@ -8,7 +9,7 @@ import { FormularioVenta } from "./FormularioVenta";
 export default async function PaginaNuevaVenta({ searchParams }: PageProps<"/ventas/nueva">) {
   const { cliente, repetir } = await searchParams;
   const socio = await obtenerSocioActual();
-  const datos = await datosParaNuevaVenta(socio.negocioId);
+  const [datos, ultimoCobro] = await Promise.all([datosParaNuevaVenta(socio.negocioId), ultimoCobroDe(socio.negocioId, socio.socioId)]);
   const clienteInicial = typeof cliente === "string" && datos.clientes.some((c) => c.id === cliente) ? cliente : "";
   const volverA = clienteInicial ? `/clientes/${clienteInicial}` : "/";
   // Tarjeta "Última venta" del cliente con el que se abre (y, desde la ficha, la venta a repetir).
@@ -35,6 +36,7 @@ export default async function PaginaNuevaVenta({ searchParams }: PageProps<"/ven
         volverA={volverA}
         ultimaInicial={ultimaInicial}
         repetir={repetir === "1" && ultimaInicial !== null}
+        ultimoCobro={ultimoCobro}
       />
     </main>
   );
