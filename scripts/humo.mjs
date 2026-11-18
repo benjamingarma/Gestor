@@ -136,7 +136,13 @@ async function compararTotales(etiqueta) {
     "nos-deben": enBase(`select coalesce(sum(saldo), 0) from public.v_cuentas_clientes where negocio_id = '${NEGOCIO}' and saldo > 0`),
     "vendido-mes": enBase(`select coalesce(sum(importe), 0) from public.v_ventas where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', dia) = ${mes}`),
     "cobrado-mes": enBase(`select coalesce(sum(importe), 0) from public.pagos where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', fecha) = ${mes}`),
-    "ganancia-neta-mes": enBase(`select (select coalesce(sum(ganancia), 0) from public.v_ventas where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', dia) = ${mes})
+    // Ganancia según lo cobrado (plan 12.6), calculada aparte en SQL para este escenario (todo pasa este mes, sin
+    // deudas del papel ni pagos de venta vigentes): cada venta cobra por FIFO lo que pagó su cliente y trae
+    // ganancia × cobrado ÷ importe (redondeo hacia abajo).
+    "ganancia-neta-mes": enBase(`select (select coalesce(sum(floor(v.ganancia::numeric * v.cobrado / v.importe)), 0) from (
+        select x.ganancia, x.importe, least(x.importe, greatest(0, coalesce((select sum(p.importe) from public.pagos p where p.cliente_id = x.cliente_id and p.anulado_en is null), 0)
+          - coalesce(sum(x.importe) over (partition by x.cliente_id order by x.dia, x.secuencia rows between unbounded preceding and 1 preceding), 0))) as cobrado
+        from public.v_ventas x where x.negocio_id = '${NEGOCIO}' and x.anulado_en is null and x.importe > 0) v)
       - (select coalesce(sum(costo_total_ars), 0) from public.ajustes_stock where negocio_id = '${NEGOCIO}' and anulado_en is null and date_trunc('month', fecha) = ${mes})`),
     "capital-ars": enBase(`select stock_ars from public.v_capital where negocio_id = '${NEGOCIO}'`),
     "capital-usd": enBase(`select stock_usd from public.v_capital where negocio_id = '${NEGOCIO}'`),

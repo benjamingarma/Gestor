@@ -28,14 +28,31 @@ const PLAN: DatosTablero = {
   },
   socios: [{ id: "b", nombre: "Benjamín", orden: 1 }, { id: "p", nombre: "Papá", orden: 2 }],
   vigencias: [],
+  // Las mismas ventas y cobros, uno por uno: Ana (V1) y Bruno (saldo del papel $ 20.000, V2 y V3).
+  movimientos: {
+    ventas: [
+      { id: "V1", clienteId: "ana", dia: "2026-10-05", orden: 1, importe: 12_000_000, ganancia: 4_600_000 },
+      { id: "V2", clienteId: "bruno", dia: "2026-10-06", orden: 2, importe: 4_750_000, ganancia: 1_750_000 },
+      { id: "V3", clienteId: "bruno", dia: "2026-10-20", orden: 3, importe: 3_150_000, ganancia: 1_050_000 },
+    ],
+    saldos: [{ id: "SI", clienteId: "bruno", tipo: "deuda", dia: "2026-09-01", orden: 1, importe: 2_000_000 }],
+    pagos: [
+      { id: "P1", clienteId: "ana", dia: "2026-10-10", importe: 6_000_000, ventaId: null },
+      { id: "P2", clienteId: "bruno", dia: "2026-10-25", importe: 5_000_000, ventaId: null },
+      { id: "P3", clienteId: "bruno", dia: "2026-10-30", importe: 5_000_000, ventaId: null },
+    ],
+  },
 };
 
 describe("armarTablero (los mismos totales para Inicio, Cobrar y Resumen)", () => {
   it("octubre del plan: vendido, ganancia neta, cobrado, deudas, saldos a favor y capital", () => {
     const t = armarTablero(PLAN, "2026-10");
     expect(t.ventas).toMatchObject({ ventas: 3, unidades: 20, importe: 19_900_000, costoArs: 12_500_000, ganancia: 7_400_000 });
-    expect(t.ganancia).toMatchObject({ bruta: 7_400_000, perdidas: 700_000, neta: 6_700_000 });
-    expect(t.ganancia.partes.map((p) => p.importe)).toEqual([3_350_000, 3_350_000]);
+    // Según lo cobrado: Ana pagó la mitad ($ 23.000) y Bruno pagó el papel (sin ganancia), V2 y V3 enteras ($ 28.000).
+    expect(t.ganancia).toMatchObject({ bruta: 5_100_000, perdidas: 700_000, neta: 4_400_000 });
+    expect(t.ganancia.partes.map((p) => p.importe)).toEqual([2_200_000, 2_200_000]);
+    expect(t.desglose).toMatchObject({ cobrado: 16_000_000, aPapel: 2_000_000, quedoAFavor: 100_000, aFavorUsado: 0, costoCobrado: 8_800_000, ganancia: 5_100_000 });
+    expect(t.gananciaPendiente).toBe(2_300_000);
     expect(t.perdidas).toEqual({ ajustes: 1, unidades: 1, costoArs: 700_000, costoUsd: 500 });
     expect(t.cobrado.total).toBe(16_000_000);
     expect([...t.cobrado.porSocio.values()]).toEqual([{ nombre: "Benjamín", total: 11_000_000 }, { nombre: "Papá", total: 5_000_000 }]);
@@ -47,7 +64,9 @@ describe("armarTablero (los mismos totales para Inicio, Cobrar y Resumen)", () =
   it("la ganancia no se mezcla con lo cobrado ni con el capital", () => {
     const t = armarTablero(PLAN, "2026-10");
     expect(t.ganancia.neta).not.toBe(t.cobrado.total);
-    expect(t.ganancia.neta).toBe(t.ventas.ganancia - t.perdidas.costoArs);
+    const d = t.desglose;
+    expect(d.cobrado).toBe(t.cobrado.total);
+    expect(d.cobrado - d.aPapel - d.quedoAFavor + d.aFavorUsado - d.costoCobrado - t.ganancia.perdidas).toBe(t.ganancia.neta);
   });
 
   it("un mes sin movimientos da cero, pero deudas, saldos a favor y capital son de hoy (no dependen del mes)", () => {
@@ -57,7 +76,8 @@ describe("armarTablero (los mismos totales para Inicio, Cobrar y Resumen)", () =
     expect(t.ganancia.neta).toBe(0);
     expect(t.nosDeben.total).toBe(6_000_000);
     expect(t.capital.stock_ars).toBe(13_550_000);
-    expect(t.acumulada.neta).toBe(6_700_000);
+    expect(t.acumulada.neta).toBe(4_400_000);
+    expect(t.gananciaPendiente).toBe(2_300_000);
   });
 
   it("si el capital no cierra por un centavo, se avisa", () => {
@@ -78,6 +98,11 @@ describe("armarTablero (los mismos totales para Inicio, Cobrar y Resumen)", () =
             ganancias: vs.map((v) => ({ dia: v.dia, ventas: 1, unidades: 1, importe: v.importe, costo_ars: v.importe - v.ganancia, costo_usd: 0, ganancia: v.ganancia })),
             perdidas: ps.map((p) => ({ dia: p.dia, ajustes: 1, unidades: 1, costo_ars: p.costo, costo_usd: 0 })),
             cobros: cs.map((c) => ({ dia: c.dia, medio: "efectivo", recibido_por: "b", recibido_por_nombre: "Benjamín", cobros: 1, total: c.total })),
+            movimientos: {
+              ventas: vs.map((v, i) => ({ id: `v${i}`, clienteId: `c${i % 2}`, dia: v.dia, orden: i, importe: v.importe, ganancia: v.ganancia })),
+              saldos: [],
+              pagos: cs.map((c, i) => ({ id: `p${i}`, clienteId: `c${i % 2}`, dia: c.dia, importe: c.total, ventaId: null })),
+            },
           };
           const todo = armarTablero(datos, "todo");
           const meses = ["2026-09", "2026-10", "2026-11", "2026-12"].map((m) => armarTablero(datos, m));
