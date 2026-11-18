@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(49);
+select plan(52);
 
 -- ---------------------------------------------------------------------------------
 -- Permisos de las funciones
@@ -87,6 +87,19 @@ select throws_ok($$ select registrar_venta_con_pago('60000000-0000-0000-0000-000
   '50000000-0000-0000-0000-000000000001', '[{"producto_id":"30000000-0000-0000-0000-000000000001","cantidad":2,"precio_unitario":1050000}]',
   '70000000-0000-0000-0000-000000000001', 999, 'efectivo') $$,
   '23505', null, 'el mismo identificador de pago con otro monto se rechaza');
+select throws_ok($$ select registrar_venta_con_pago('60000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001',
+  '50000000-0000-0000-0000-000000000001', '[{"producto_id":"30000000-0000-0000-0000-000000000001","cantidad":2,"precio_unitario":1050000}]',
+  '70000000-0000-0000-0000-000000000001', 2100000, 'efectivo', '20000000-0000-0000-0000-000000000001') $$,
+  '23505', 'Este pago ya se registró con otro socio como quien recibió el dinero',
+  'el reintento con otro socio que recibió se rechaza con un aviso claro');
+select throws_ok($$ select registrar_venta_con_pago('60000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001',
+  '50000000-0000-0000-0000-000000000001', '[{"producto_id":"30000000-0000-0000-0000-000000000001","cantidad":2,"precio_unitario":1050000}]',
+  '70000000-0000-0000-0000-000000000001', 2100000, 'efectivo') $$,
+  '23505', 'Este pago ya se registró con otro socio como quien recibió el dinero',
+  'el reintento sin decir quién recibió (queda el que carga, Benjamín) tampoco pasa si el original lo recibió Papá');
+select results_eq($$ select count(*)::int, min(recibido_por::text) from pagos where venta_id = '60000000-0000-0000-0000-000000000001' $$,
+  $$ values (1, '20000000-0000-0000-0000-000000000002') $$,
+  'después de los reintentos rechazados sigue habiendo un solo pago, el que recibió Papá');
 
 -- ---------------------------------------------------------------------------------
 -- "Pago parcial" y "Deuda"

@@ -61,13 +61,19 @@ begin
     raise exception 'Venta inexistente' using errcode = '23503';
   end if;
 
-  -- Reintento (doble toque): devuelve el mismo pago.
+  -- Quién recibió: si no se dice, el socio que lo carga. Se resuelve antes del reintento para compararlo.
+  v_receptor := coalesce(p_recibido_por, public.socio_actual(v_venta.negocio_id));
+
+  -- Reintento (doble toque): devuelve el mismo pago solo si coincide en todo.
   select * into v_pago from public.pagos where id = p_id;
   if found then
-    if v_pago.venta_id = p_venta_id and v_pago.importe = p_importe and v_pago.medio = p_medio then
-      return v_pago;
+    if v_pago.venta_id is distinct from p_venta_id or v_pago.importe <> p_importe or v_pago.medio is distinct from p_medio then
+      raise exception 'Ya existe otro pago con este identificador' using errcode = '23505';
     end if;
-    raise exception 'Ya existe otro pago con este identificador' using errcode = '23505';
+    if v_pago.recibido_por is distinct from v_receptor then
+      raise exception 'Este pago ya se registró con otro socio como quien recibió el dinero' using errcode = '23505';
+    end if;
+    return v_pago;
   end if;
 
   if v_venta.anulado_en is not null then
@@ -79,7 +85,6 @@ begin
   if p_medio is null or p_medio not in ('efectivo', 'transferencia', 'mercado_pago') then
     raise exception 'Elegí cómo pagó' using errcode = '22023';
   end if;
-  v_receptor := coalesce(p_recibido_por, public.socio_actual(v_venta.negocio_id));
   if not exists (select 1 from public.socios where id = v_receptor and negocio_id = v_venta.negocio_id) then
     raise exception 'El socio que recibió el dinero no es de este negocio' using errcode = '22023';
   end if;
@@ -96,6 +101,9 @@ begin
     select * into v_pago from public.pagos where id = p_id;
     if v_pago.venta_id is distinct from p_venta_id or v_pago.importe <> p_importe or v_pago.medio <> p_medio then
       raise exception 'Ya existe otro pago con este identificador' using errcode = '23505';
+    end if;
+    if v_pago.recibido_por is distinct from v_receptor then
+      raise exception 'Este pago ya se registró con otro socio como quien recibió el dinero' using errcode = '23505';
     end if;
   end if;
   return v_pago;
