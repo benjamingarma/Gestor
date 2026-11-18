@@ -23,7 +23,11 @@
 - **1.8 Importación CSV: descartado.** Cargan a mano desde la app **después del 1.10** (si cargan ahora, en MODO PRUEBA,
   se borra). Los socios pidieron **no cambiar la app** para esto (la "última visita" previa no se carga). Ver plan 12.4.
 - **Pendiente de confirmar por los socios:** una venta de $ 0 con costo reconoce su pérdida el día de la venta.
-- **Siguen:** prueba del papá (cierre del 1.7) → 1.9 Backups y restauración → 1.10 Pasaje a producción → carga a mano.
+- **1.9 terminado (18/11):** backup diario a las 4:30 con contraseña `BACKUP_PASSWORD` (#33; Benjamín abrió un backup
+  real con 7-Zip), prueba de restauración en CI, Exportar todo (CSV) en Más (#34) y ensayo mínimo del borrado de datos
+  de prueba (5 pgTAP en 08). Procedimiento del día del 1.10 en plan sección 10.
+- **Siguen:** 1.10 Pasaje a producción (con los socios) → carga a mano de los datos del papel. La prueba del papá del
+  1.7 sigue pendiente (Benjamín aprobó avanzar igual).
 - Rama de trabajo de estas sesiones: `claude/dreamy-thompson-vvav70` (se reinicia desde `main` después de cada merge).
 
 ## 1. Dónde estamos (al 11/11/2026)

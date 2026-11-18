@@ -588,6 +588,17 @@ GitHub Actions (repo privado)
   backup real), y **Exportar todo (CSV)** en Más > Configuración (`/mas/exportar`): un `.zip` con `LEAME.txt` y un
   CSV por tabla (14), separador ";", UTF-8 con BOM, montos con coma decimal, horas de Tucumán y apóstrofo ante
   `= + - @` (Excel no ejecuta fórmulas). Lee como el socio logueado (RLS), solo lectura, todas las filas.
+- **Ensayo del borrado de datos de prueba (A20):** los socios eligieron la versión mínima (18/11/2026): el borrado ya
+  tenía pruebas por módulo (01 a 06) y se agregaron 5 en `supabase/tests/08_venta_con_pago.test.sql` para lo que vino
+  después (ventas con pago, pagos con `venta_id`, clientes creados desde la venta; lo real del otro negocio intacto).
+  Sin un ensayo de punta a punta aparte: el día del 1.10 el procedimiento empieza con un backup a mano y el paso 1 del
+  script ("ver qué se va a borrar"). Queda anotado, sin hacer: si un pago **real** apuntara a una venta **de prueba**,
+  el borrado se frena entero (no borra nada) pero con un error técnico en vez del aviso claro de los otros casos.
+- **Procedimiento del día del 1.10:** (1) backup a mano (Actions > "Backup diario" > Run workflow); (2) SQL Editor:
+  paso 1 de `supabase/admin/borrar-datos-de-prueba.sql` y revisar los números con los socios; (3) paso 2 (borrar) y
+  paso 3 (salir del modo prueba), en ese orden; (4) Inicio, Deudores y Stock en cero; (5) vincular la cuenta del papá;
+  (6) recién ahí cargar a mano los datos del papel. Hoy **todo** lo cargado es de prueba: ese día se borra todo menos
+  negocio, socios, reparto y cuentas.
 
 ---
 
@@ -662,7 +673,7 @@ de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 | 1.6 | Ajustes de stock | ✅ terminado | #9, #10 (arreglo del CI) |
 | **1.7** | **Simplificación del diseño** | **🚧 en curso**: todo mergeado (incluidos "Repetir última venta" y lo de 12.6); falta la prueba del papá (12.3) | #11 a #31 |
 | ~~1.8~~ | ~~Importación CSV~~ | **descartado (18/11/2026)**: los socios cargan los datos del papel a mano desde la app, después del 1.10 | — |
-| 1.9 | Backups y restauración | pendiente | — |
+| 1.9 | Backups y restauración | ✅ terminado (18/11/2026): backup diario con contraseña, prueba de restauración en CI, exportar a CSV y ensayo mínimo del borrado | #33, #34, este PR |
 | 1.10 | Pasaje a producción | pendiente | — |
 
 Todos los PR son de `benjamingarma/Gestor`. Pruebas en `main` al 11/11/2026 (verificado en el log de GitHub): 356 pgTAP,
