@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Encabezado } from "@/componentes/Encabezado";
 import { SelectorMes } from "@/componentes/SelectorMes";
+import { AvisoInfo } from "@/componentes/UI";
 import { listarClientes } from "@/datos/clientes";
+import { AVISO_GANANCIA_NETA, DesgloseGanancia } from "@/componentes/DesgloseGanancia";
 import { leerDatosTablero } from "@/datos/resumen";
 import { vigenteEn } from "@/dominio/ganancia";
 import { armarTablero } from "@/dominio/tablero";
@@ -83,27 +85,23 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
       <SelectorMes meses={meses} actual={periodo} ruta="/resumen" conTodo />
 
       <Tarjeta titulo={`Ganancia · ${nombrePeriodo}`} enlace={{ href: "/resumen/reparto", texto: "Ver o cambiar el reparto" }}>
-        <Fila etiqueta="Ganancia de las ventas" valor={formatearPesos(ganancia.bruta)} />
-        <Fila
-          etiqueta={
-            <Link href={`/ajustes?mes=${periodo}`} className="text-acento">
-              − Pérdidas por ajustes de stock{ajustes.unidades > 0 ? ` (${ajustes.unidades} u)` : ""}
-            </Link>
-          }
-          valor={formatearPesos(ganancia.perdidas)}
-          rojo={ganancia.perdidas > 0}
-        />
-        <Fila etiqueta="Ganancia neta" valor={formatearPesos(ganancia.neta)} fuerte rojo={ganancia.neta < 0} dato={["ganancia-neta-mes", ganancia.neta]} />
+        <DesgloseGanancia t={t} />
+        {ajustes.unidades > 0 && (
+          <Link href={`/ajustes?mes=${periodo}`} className="text-[0.82rem] text-acento">
+            Ver los ajustes de stock ({ajustes.unidades} u) ›
+          </Link>
+        )}
         <div className="mt-1 flex flex-col gap-1 border-t border-borde pt-2">
           {ganancia.partes.map((p) => (
             <Fila key={p.socioId} etiqueta={`Le corresponde a ${p.nombre}`} valor={formatearPesos(p.importe)} />
           ))}
         </div>
         <p className="text-[0.72rem] text-texto-suave">
-          Es lo que se ganó con las ventas (precio − costo de la mercadería), menos el costo de lo regalado, perdido o
-          roto, se haya cobrado o no. No es plata
-          disponible: parte puede estar sin cobrar, y el costo de la mercadería es capital, no ganancia.
+          Cada pago trae su parte de la ganancia de la venta que paga, en el día del pago. Las ventas de{" "}
+          {nombrePeriodo} generaron {formatearPesos(ventas.ganancia)} de ganancia, se cobren o no; todavía falta cobrar{" "}
+          <span data-dato="ganancia-pendiente" data-centavos={t.gananciaPendiente}>{formatearPesos(t.gananciaPendiente)}</span> de ganancia (de todas las ventas).
         </p>
+        <AvisoInfo titulo="Ojo:">{AVISO_GANANCIA_NETA}</AvisoInfo>
       </Tarjeta>
 
       <Tarjeta titulo={`Ventas · ${nombrePeriodo}`} enlace={periodo === "todo" ? undefined : { href: `/ventas?mes=${periodo}`, texto: "Ver las ventas" }}>

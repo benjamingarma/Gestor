@@ -80,13 +80,41 @@ export async function leerCapital(negocioId: string): Promise<Capital> {
   return data as Capital;
 }
 
+/** Ventas, saldos iniciales y pagos vigentes uno por uno (ganancia según lo cobrado, src/dominio/gananciaCobrada.ts). */
+export async function leerMovimientosDeCobro(negocioId: string): Promise<DatosTablero["movimientos"]> {
+  const supabase = await crearClienteSupabase();
+  type FilaVenta = { venta_id: string; cliente_id: string; dia: string; secuencia: number; importe: number; ganancia: number };
+  type FilaSaldo = { id: string; cliente_id: string; tipo: "deuda" | "a_favor"; importe: number; fecha: string };
+  type FilaPago = { id: string; cliente_id: string; fecha: string; importe: number; venta_id: string | null };
+  const [ventas, saldos, pagos] = await Promise.all([
+    leerTodo<FilaVenta>(
+      (d, h) => supabase.from("v_ventas").select("venta_id, cliente_id, dia, secuencia, importe, ganancia").eq("negocio_id", negocioId).is("anulado_en", null).order("secuencia").range(d, h),
+      "No se pudieron leer las ventas",
+    ),
+    leerTodo<FilaSaldo>(
+      (d, h) => supabase.from("saldos_iniciales").select("id, cliente_id, tipo, importe, fecha").eq("negocio_id", negocioId).is("anulado_en", null).order("fecha").order("creado_en").order("id").range(d, h),
+      "No se pudieron leer los saldos iniciales",
+    ),
+    leerTodo<FilaPago>(
+      (d, h) => supabase.from("pagos").select("id, cliente_id, fecha, importe, venta_id").eq("negocio_id", negocioId).is("anulado_en", null).order("secuencia").range(d, h),
+      "No se pudieron leer los pagos",
+    ),
+  ]);
+  return {
+    ventas: ventas.map((v) => ({ id: v.venta_id, clienteId: v.cliente_id, dia: v.dia, orden: v.secuencia, importe: Number(v.importe), ganancia: Number(v.ganancia) })),
+    saldos: saldos.map((s, i) => ({ id: s.id, clienteId: s.cliente_id, tipo: s.tipo, dia: s.fecha, orden: i, importe: Number(s.importe) })),
+    pagos: pagos.map((p) => ({ id: p.id, clienteId: p.cliente_id, dia: p.fecha, importe: Number(p.importe), ventaId: p.venta_id })),
+  };
+}
+
 /** Todo lo que necesita armarTablero, leído en paralelo. */
 export async function leerDatosTablero(negocioId: string): Promise<DatosTablero> {
-  const [{ socios, vigencias }, { ganancias, perdidas, cobros }, capital, saldos] = await Promise.all([
+  const [{ socios, vigencias }, { ganancias, perdidas, cobros }, capital, saldos, movimientos] = await Promise.all([
     leerSociosYReparto(negocioId),
     leerMovimientosDiarios(negocioId),
     leerCapital(negocioId),
     listarSaldos(negocioId),
+    leerMovimientosDeCobro(negocioId),
   ]);
-  return { socios, vigencias, ganancias, perdidas, cobros, capital, saldos };
+  return { socios, vigencias, ganancias, perdidas, cobros, capital, saldos, movimientos };
 }

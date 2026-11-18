@@ -3,6 +3,7 @@ import { Icono, Logo } from "@/componentes/Iconos";
 import { AvisoInfo, Avatar, Chip, Tarjeta } from "@/componentes/UI";
 import { listarClientes } from "@/datos/clientes";
 import { deudasMasViejas } from "@/datos/cuentas";
+import { AVISO_GANANCIA_NETA, DesgloseGanancia } from "@/componentes/DesgloseGanancia";
 import { leerDatosTablero } from "@/datos/resumen";
 import { armarTablero } from "@/dominio/tablero";
 import { compararParaVisitar } from "@/dominio/visitas";
@@ -51,6 +52,11 @@ export default async function PaginaInicio() {
           : `${t.nosDeben.clientes} cliente${t.nosDeben.clientes === 1 ? "" : "s"}` +
             (masVieja ? ` · la deuda más vieja es de ${masVieja.nombre} (hace ${dias(diasEntre(masVieja.dia, dia))})` : "")}
       </span>
+      {t.gananciaPendiente !== 0 && (
+        <span className="text-[0.72rem] text-texto-suave" data-dato="ganancia-pendiente" data-centavos={t.gananciaPendiente}>
+          De eso, {formatearPesos(t.gananciaPendiente)} es ganancia que todavía falta cobrar.
+        </span>
+      )}
     </Tarjeta>
   );
 
@@ -121,18 +127,13 @@ export default async function PaginaInicio() {
         </div>
         {separador}
         <div className="flex flex-col gap-1">
-          <span className="text-[0.82rem] text-texto-suave">Ganancia neta</span>
-          <span className={`num text-[1.35rem] font-bold ${netaNegativa ? "text-peligro" : "text-acento"}`} data-dato="ganancia-neta-mes" data-centavos={t.ganancia.neta}>
-            {formatearPesos(t.ganancia.neta)}
-          </span>
-          <span className="text-[0.72rem] text-texto-suave">
-            {formatearPesos(t.ganancia.bruta)} de ventas − {formatearPesos(t.ganancia.perdidas)} de pérdidas
-          </span>
+          <span className="text-[0.82rem] text-texto-suave">Ganancia neta (de lo cobrado)</span>
+          <span className={`num text-[1.35rem] font-bold ${netaNegativa ? "text-peligro" : "text-acento"}`}>{formatearPesos(t.ganancia.neta)}</span>
+          <span className="text-[0.72rem] text-texto-suave">Las ventas del mes generaron {formatearPesos(t.ventas.ganancia)} de ganancia, se cobren o no.</span>
         </div>
       </div>
-      <AvisoInfo titulo="La ganancia no es plata disponible.">
-        Parte todavía nos la deben y el costo de la mercadería es capital para reponer.
-      </AvisoInfo>
+      <DesgloseGanancia t={t} />
+      <AvisoInfo titulo="Ojo:">{AVISO_GANANCIA_NETA}</AvisoInfo>
     </Tarjeta>
   );
 
