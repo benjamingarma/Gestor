@@ -38,6 +38,24 @@ Propuesta presentada el 18/11/2026 con ejemplos numéricos y aprobada el mismo d
   "Nos deben" con la ganancia pendiente de cobro y la ganancia generada por las ventas del mes como dato secundario.
 - El **capital** (invertido = costo de lo vendido + pérdidas + stock) no cambia: depende de ventas y stock, no de pagos.
 
+## PR 2A: migración `20261118120000_venta_con_pago.sql`
+- **`pagos.venta_id`** (opcional, FK a la venta del mismo negocio): qué pago se registró con qué venta. Informativo:
+  la aplicación de pagos sigue siendo FIFO por cliente (A4) y no lo mira. `v_pagos` lo suma al final.
+- **`registrar_pago_de_venta(p_id, p_venta_id, p_importe, p_medio, p_recibido_por)`** (SECURITY DEFINER, como
+  `registrar_pago`): cliente y día (hora de Tucumán) de la venta; rechaza venta anulada, monto ≤ 0, medio inválido y
+  socio de otro negocio; idempotente (`on conflict (id) do nothing`): un reintento devuelve el mismo pago solo si
+  coincide en todo (venta, monto, medio y quién recibió); si cambia algo, se rechaza.
+- **`registrar_venta_con_pago(...)`** (SECURITY INVOKER, como la venta a cliente nuevo): llama a la misma
+  `registrar_venta` o `registrar_venta_cliente_nuevo` (con `p_cliente_nuevo` = nombre, teléfono, dirección) y, si hay
+  `p_pago_importe`, a `registrar_pago_de_venta`, todo en la misma transacción. "Deuda" = sin pago. Si el pago falla, no
+  queda la venta (ni el cliente nuevo). Las funciones anteriores no cambian (la app las sigue usando hasta el PR 2B).
+- **`anular_venta_y_pagos(p_venta_id, p_motivo, p_anular_pagos default true)`** (SECURITY DEFINER): `anular_venta` +
+  `anular_pago` de cada pago con esa venta, mismo motivo, todo junto. Con `false`, el pago queda a cuenta del cliente.
+- `borrar_datos_de_prueba` no cambia: borra los pagos antes que las ventas, y si un pago real apuntara a una venta de
+  prueba, la FK frena el borrado entero (no se borra nada).
+- Pruebas: `supabase/tests/08_venta_con_pago.test.sql` (52) y cuarta parte de `concurrencia.sh` (doble toque de
+  venta con pago a un cliente nuevo: un cliente, una venta, un pago). Con la atomicidad rota a propósito fallan 9.
+
 ## Ejemplos numéricos de la propuesta
 - Venta $ 10.000, costo $ 6.000 (ganancia $ 4.000): paga $ 5.000 en noviembre → $ 2.000 de ganancia en noviembre.
 - Ana: V1 oct $ 10.000 (costo 6.000) y V2 nov $ 20.000 (costo 15.000). Paga $ 15.000 en noviembre → V1 $ 4.000 +

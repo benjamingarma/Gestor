@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prueba de concurrencia (plan 11.1 #13 y A11): dos socios venden la ÚLTIMA unidad al mismo tiempo,
 # después uno la vende mientras el otro la da de baja con un ajuste (módulo 1.6), y por último
-# un doble toque de "Guardar" en una venta a un cliente nuevo (módulo 1.7).
+# un doble toque de "Guardar" en una venta a un cliente nuevo (módulo 1.7) y en una venta con pago (18/11/2026).
 # En cada caso debe grabarse UNA sola salida y la otra recibir "No hay stock suficiente".
 # Usa dos conexiones reales a la base local (no se puede hacer dentro de pgTAP).
 set -euo pipefail
@@ -136,11 +136,47 @@ clientes=$(psql "$DB_URL" -tAq -c "select count(*) from public.clientes where ne
 ventas_nuevo=$(psql "$DB_URL" -tAq -c "select count(*) from public.ventas where cliente_id = '$CN'")
 stock=$(psql "$DB_URL" -tAq -c "select coalesce(sum(cantidad),0) from public.movimientos_stock where negocio_id = '$N'")
 iguales=$(cat /tmp/concurrencia_e.txt /tmp/concurrencia_f.txt | grep -c "GUARDADA $VN" || true)
-limpiar
 
 echo "doble toque a cliente nuevo · clientes: $clientes · ventas: $ventas_nuevo · stock final: $stock (esperado 1) · respuestas con la misma venta: $iguales"
 if [ "$clientes" = "1" ] && [ "$ventas_nuevo" = "1" ] && [ "$stock" = "1" ] && [ "$iguales" = "2" ]; then
   echo "OK: dos Guardar simultáneos a un cliente nuevo -> un solo cliente y una sola venta"
 else
-  echo "FALLÓ la prueba de concurrencia (doble toque a cliente nuevo)"; cat /tmp/concurrencia_e.txt /tmp/concurrencia_f.txt; exit 1
+  echo "FALLÓ la prueba de concurrencia (doble toque a cliente nuevo)"; cat /tmp/concurrencia_e.txt /tmp/concurrencia_f.txt; limpiar; exit 1
+fi
+
+# Cuarta parte: doble toque de "Guardar" en una venta CON PAGO a un cliente nuevo (registrar_venta_con_pago, PR 2A).
+# Mismos identificadores de cliente, venta y pago al mismo tiempo: un solo cliente, una sola venta, un solo pago.
+CP=99999999-0000-4000-8000-0000000000d3  # cliente nuevo
+VP=99999999-0000-4000-8000-0000000000f5  # venta
+PP=99999999-0000-4000-8000-0000000000a5  # pago
+guardar_con_pago() {
+  psql "$DB_URL" -q -tA -v ON_ERROR_STOP=1 2>&1 <<SQL || true
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"$U","role":"authenticated"}', true);
+select 'GUARDADA ' || id from public.registrar_venta_con_pago('$VP', '$N', '$CP',
+  '[{"producto_id":"$P","cantidad":1,"precio_unitario":1000000}]', '$PP', 400000, 'efectivo',
+  p_cliente_nuevo => '{"nombre":"Cliente con pago"}');
+select pg_sleep(2);
+commit;
+SQL
+}
+
+guardar_con_pago > /tmp/concurrencia_g.txt &
+sleep 0.5
+guardar_con_pago > /tmp/concurrencia_h.txt &
+wait
+
+clientes=$(psql "$DB_URL" -tAq -c "select count(*) from public.clientes where negocio_id = '$N' and nombre = 'Cliente con pago'")
+ventas_pago=$(psql "$DB_URL" -tAq -c "select count(*) from public.ventas where cliente_id = '$CP'")
+pagos=$(psql "$DB_URL" -tAq -c "select count(*) || '|' || coalesce(sum(importe), 0) from public.pagos where cliente_id = '$CP' and venta_id = '$VP'")
+stock=$(psql "$DB_URL" -tAq -c "select coalesce(sum(cantidad),0) from public.movimientos_stock where negocio_id = '$N'")
+iguales=$(cat /tmp/concurrencia_g.txt /tmp/concurrencia_h.txt | grep -c "GUARDADA $VP" || true)
+limpiar
+
+echo "doble toque a venta con pago · clientes: $clientes · ventas: $ventas_pago · pagos: $pagos (esperado 1|400000) · stock final: $stock (esperado 0) · respuestas con la misma venta: $iguales"
+if [ "$clientes" = "1" ] && [ "$ventas_pago" = "1" ] && [ "$pagos" = "1|400000" ] && [ "$stock" = "0" ] && [ "$iguales" = "2" ]; then
+  echo "OK: dos Guardar simultáneos de una venta con pago -> un solo cliente, una sola venta y un solo pago"
+else
+  echo "FALLÓ la prueba de concurrencia (venta con pago)"; cat /tmp/concurrencia_g.txt /tmp/concurrencia_h.txt; exit 1
 fi
