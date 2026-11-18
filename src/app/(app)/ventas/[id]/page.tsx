@@ -26,7 +26,7 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
       <Encabezado titulo={`Venta a ${venta.cliente_nombre}`} volverA="/ventas" subtitulo={formatearDia(venta.dia)} />
       {ok === "venta" && <Aviso tipo="ok">Venta guardada.</Aviso>}
       {ok === "anulada" && <Aviso tipo="ok">Venta anulada. El stock volvió a sus compras.</Aviso>}
-      {ok === "cobro" && <Aviso tipo="ok">Cobro registrado.</Aviso>}
+      {ok === "cobro" && <Aviso tipo="ok">Pago registrado.</Aviso>}
       {anulada && (
         <p className="rounded-[14px] bg-peligro-suave px-4 py-3 font-semibold text-peligro">
           ANULADA el {formatearFechaHora(new Date(venta.anulado_en!))} por {venta.anulado_por_nombre}. Motivo: {venta.motivo_anulacion}
@@ -60,7 +60,7 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
                 {cobro.saldo > 0 ? formatearPesos(cobro.saldo) : "Pagada"}
               </span>
             </div>
-            <p className="text-[0.72rem] text-texto-suave">Los cobros del cliente se aplican primero a sus deudas más viejas.</p>
+            <p className="text-[0.72rem] text-texto-suave">Los pagos del cliente se aplican primero a sus deudas más viejas.</p>
           </>
         )}
       </section>
@@ -101,7 +101,7 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
 
       {cobro && cobro.saldo > 0 && (
         <BotonEnlace href={`/cobrar/${venta.cliente_id}?importe=${encodeURIComponent(formatearPesos(cobro.saldo).replace("$ ", ""))}&venta=${venta.venta_id}`}>
-          Registrar cobro
+          Registrar pago
         </BotonEnlace>
       )}
       {!anulada && (

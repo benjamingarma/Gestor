@@ -28,13 +28,13 @@ export default async function PaginaCobroGuardado({ params, searchParams }: Page
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col">
       <header className="flex items-center justify-between px-[18px] pt-2 pb-3">
-        <span className="text-[1.25rem] font-extrabold">Cobrar</span>
+        <span className="text-[1.25rem] font-extrabold">Registrar pago</span>
         <Link href={listo} aria-label="Cerrar" className="grid h-11 w-11 place-items-center text-texto-suave">
           <Icono nombre="cerrar" />
         </Link>
       </header>
       <Confirmacion
-        titulo={anulado ? "Cobro anulado" : "Cobro guardado"}
+        titulo={anulado ? "Pago anulado" : "Pago registrado"}
         monto={formatearPesos(pago.importe)}
         acciones={
           <>

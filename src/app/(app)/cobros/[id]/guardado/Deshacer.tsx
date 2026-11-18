@@ -25,7 +25,7 @@ export function DeshacerCobro({ pagoId, clienteId }: { pagoId: string; clienteId
         <span className="font-semibold">¿Por qué lo anulás?</span>
         <input name="motivo" required autoFocus placeholder="Ej: lo cargué mal" className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3" />
       </label>
-      <p className="text-[0.82rem] text-texto-suave">El cobro queda en el historial como anulado y la deuda vuelve a como estaba.</p>
+      <p className="text-[0.82rem] text-texto-suave">El pago queda en el historial como anulado y la deuda vuelve a como estaba.</p>
       {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
       <button type="submit" disabled={enviando} className={`${boton} text-peligro disabled:opacity-50`}>
         {enviando ? "Anulando…" : "Confirmar anulación"}

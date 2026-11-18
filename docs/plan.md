@@ -1,4 +1,4 @@
-# Plan del sistema de gestión — Versión 3.5
+# Plan del sistema de gestión — Versión 3.6
 
 > Estado: **aprobado** por los socios (versión 2) con las correcciones de la versión 3:
 > producto sin sabor, costo de compra en dólares (blue) con tipo de cambio por compra,
@@ -15,6 +15,9 @@
 > en Inicio se posterga** hasta tener datos reales (después del 1.10). Ver 12.3 y 12.5.
 > Versión 3.5 (17/11/2026): **el hosting pasa de Netlify a Vercel (plan Hobby)**: Netlify pausó los deploys a
 > producción por créditos del plan gratis. Ver 12.4 y `docs/configuracion.md`.
+> Versión 3.6 (18/11/2026): **pago en la pantalla de venta**, **ganancia según lo cobrado** (cambia la decisión 2) y
+> **lenguaje** ("Deudores", "Registrar pago", "Pagos recibidos"). Ver 12.6, `docs/glosario.md` y
+> `docs/decisiones/pago-en-venta-y-ganancia-cobrada.md`.
 > Notas para retomar el trabajo en una sesión nueva: `docs/notas-de-sesion.md`.
 > Donde las versiones anteriores digan otra cosa, manda esta.
 
@@ -72,6 +75,7 @@ ramas, un módulo por vez, pruebas obligatorias de dinero e inventario.
 | 1b | Moneda de compra | Se compra en **USD**. Cada compra guarda costo unitario en USD, **tipo de cambio blue de ese día** (cargado a mano; la app sugiere el último usado) y costo unitario en pesos = USD × tipo de cambio. Si no se recuerda el tipo de cambio exacto de una tanda, se carga **estimado** y queda marcado. El costo en pesos queda fijo al cargar la compra. |
 | 1c | Moneda de venta | Ventas, precios, cobros, deudas y ganancia: **pesos**. La venta no usa tipo de cambio. |
 | 2 | Ganancia | Ganancia = venta en pesos − costo en pesos (FIFO) de lo vendido. No hay ganancia proporcional a lo cobrado. Cada venta muestra: importe, costo, ganancia, cobrado y saldo. |
+|  | *Cambio 18/11/2026* | **La ganancia neta del período es la de lo cobrado**: cada peso cobrado (aplicado por FIFO a la deuda más vieja) trae su parte proporcional de la ganancia de esa venta, en el día del pago; lo cobrado de deudas del papel no genera ganancia. La ganancia de cada venta se sigue mostrando como "ganancia generada". Ver 12.6. |
 | 3 | Cuenta corriente | Cada pago se carga a cuenta del cliente y se aplica solo a las deudas más viejas (FIFO). Pagos parciales permitidos. Lo que sobra queda como **saldo a favor**. |
 | 4 | Reparto | Primero se descuenta el costo; la ganancia se divide según el porcentaje (50/50 por defecto, configurable). Se muestran por separado: ganancia, parte de cada socio, ganancia acumulada y dinero cobrado. No se distribuye dinero. |
 | 4b | Capital | Capital invertido y stock se muestran **en USD y en pesos al costo de compra**. El cierre del capital se verifica en las dos monedas. |
@@ -724,6 +728,18 @@ se va a ver qué pregunta sirve de verdad. Primero van 1.8, 1.9 y 1.10.
 
 **Ideas relacionadas, para más adelante** (no pedidas): costo de reposición con el dólar de hoy (plan T4; reponer
 cuesta más que el costo FIFO si el dólar subió) y margen por producto en el Resumen (para ajustar precios).
+
+### 12.6 Pago en la venta, ganancia según lo cobrado y lenguaje (pedido de los socios, 18/11/2026)
+
+Propuesta con ejemplos numéricos aprobada el 18/11/2026; decisiones y reglas en
+`docs/decisiones/pago-en-venta-y-ganancia-cobrada.md`, glosario en `docs/glosario.md`. Se hace antes del 1.8, en este
+orden de PRs:
+1. **Lenguaje**: "Cobrar" → "Deudores", la acción → "Registrar pago", el historial → "Pagos recibidos", "Cuenta
+   corriente" → "Saldo pendiente". Solo textos. Sin migración.
+2. **Venta con pago** ("Pagó todo", "Pago parcial", "Deuda", sin preselección): **2A** migración (venta y pago en una
+   sola operación, `pagos.venta_id`, Deshacer conjunto; pgTAP y concurrencia) y **2B** pantalla.
+3. **Ganancia según lo cobrado** y su desglose en Inicio y Resumen (Cobrado − deudas del papel − costo de lo cobrado −
+   pérdidas = Ganancia neta). Sin migración.
 
 ### 12.4 Notas
 - **Hosting en Vercel desde el 17/11/2026** (antes Netlify, que pausó los deploys a producción por créditos del plan

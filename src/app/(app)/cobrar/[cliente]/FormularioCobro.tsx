@@ -77,7 +77,7 @@ export function FormularioCobro({ cliente, saldo, pendientes, importeInicial, so
         className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl bg-acento text-[1.1rem] font-bold text-acento-texto transition-opacity disabled:opacity-50"
       >
         {enviando && <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none" />}
-        {enviando ? "Guardando…" : centavos !== null ? `Guardar cobro · ${formatearPesos(centavos)}` : "Guardar cobro"}
+        {enviando ? "Guardando…" : centavos !== null ? `Guardar pago · ${formatearPesos(centavos)}` : "Guardar pago"}
       </button>
     </>
   );
@@ -93,7 +93,7 @@ export function FormularioCobro({ cliente, saldo, pendientes, importeInicial, so
       <input type="hidden" name="nota" value={nota} />
 
       <header className="flex items-center justify-between px-[18px] pt-2 pb-3 lg:hidden">
-        <span className="text-[1.25rem] font-extrabold">Cobrar</span>
+        <span className="text-[1.25rem] font-extrabold">Registrar pago</span>
         <Link href={cerrarA} aria-label="Cerrar sin guardar" className="grid h-11 w-11 place-items-center text-texto-suave">
           <Icono nombre="cerrar" />
         </Link>
@@ -186,7 +186,7 @@ export function FormularioCobro({ cliente, saldo, pendientes, importeInicial, so
           {opciones && (
             <div className="flex flex-col gap-3 rounded-[20px] border border-borde bg-superficie p-4">
               <label className="flex flex-col gap-1">
-                <span className="text-[0.85rem] font-semibold">Fecha del cobro</span>
+                <span className="text-[0.85rem] font-semibold">Fecha del pago</span>
                 <input type="date" value={fecha} max={hoy} onChange={(ev) => setFecha(ev.target.value)} className="min-h-[50px] rounded-[14px] border border-borde bg-superficie px-3" />
               </label>
               <label className="flex flex-col gap-1">

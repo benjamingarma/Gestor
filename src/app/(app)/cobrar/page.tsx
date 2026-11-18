@@ -11,12 +11,12 @@ export default async function PaginaCobrar() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col leading-[1.2]">
       <header className="px-[18px] pt-2 pb-3 lg:px-9 lg:pt-7 lg:pb-5">
-        <h1 className="text-[1.25rem] font-extrabold lg:text-[1.6rem]">Cobrar</h1>
+        <h1 className="text-[1.25rem] font-extrabold lg:text-[1.6rem]">Deudores</h1>
       </header>
       <div className="flex flex-col gap-3 px-4 pb-6 lg:grid lg:grid-cols-[1fr_1.25fr] lg:items-start lg:gap-5 lg:px-9 lg:pb-9">
         <ListaQuienDebe {...datos} />
         <p className="hidden rounded-[20px] border border-dashed border-borde p-6 text-center text-texto-suave lg:block">
-          Elegí de la lista a quién le cobrás. ¿No debe pero paga por adelantado? Buscalo: se le guarda a favor.
+          Elegí de la lista quién te pagó. ¿No debe pero paga por adelantado? Buscalo: se le guarda a favor.
         </p>
       </div>
     </main>

@@ -126,7 +126,7 @@ async function compararTotales(etiqueta) {
     "capital-ars": enBase(`select stock_ars from public.v_capital where negocio_id = '${NEGOCIO}'`),
     "capital-usd": enBase(`select stock_usd from public.v_capital where negocio_id = '${NEGOCIO}'`),
   };
-  const pantallas = { Inicio: "/", Resumen: "/resumen", Cobros: "/cobros", Cobrar: "/cobrar", Ventas: "/ventas", Stock: "/productos" };
+  const pantallas = { Inicio: "/", Resumen: "/resumen", "Pagos recibidos": "/cobros", Deudores: "/cobrar", Ventas: "/ventas", Stock: "/productos" };
   const vistos = {};
   for (const [nombre, ruta] of Object.entries(pantallas)) vistos[nombre] = await totales(ruta);
   console.log(`     totales ${etiqueta}:`);
@@ -160,7 +160,7 @@ return esperado;
   const faltaAntes = await faltaCobrarEnVentas();
   await pagina.goto(`${BASE}/cobrar`);
   const fila = pagina.locator(`a[href="/cobrar/${ids.cliente}"]`).first();
-  revisar((await fila.textContent())?.includes("$ 15.000") ?? false, `la lista de Cobrar muestra al cliente de humo con su deuda ($ ${saldoAntes / 100})`);
+  revisar((await fila.textContent())?.includes("$ 15.000") ?? false, `la lista de Deudores muestra al cliente de humo con su deuda ($ ${saldoAntes / 100})`);
   await fila.click();
   await pagina.waitForURL(new RegExp(`/cobrar/${ids.cliente}$`), { timeout: 20_000 });
   // Medio preseleccionado con el último cobro que registró este socio (el de la carga inicial: efectivo).
@@ -172,27 +172,27 @@ return esperado;
   revisar((await queda()) === -500000 && (await pagina.getByText("Le quedan $ 5.000 a favor.").isVisible()), "si paga de más, avisa el saldo a favor en vivo ($ 5.000)");
   await pagina.fill("#importe", "4.000");
   revisar((await queda()) === saldoAntes - 400000, `Le queda debiendo en vivo: $ ${(saldoAntes - 400000) / 100}`);
-  await pagina.locator("button[type=submit]:visible", { hasText: "Guardar cobro · $ 4.000" }).click();
+  await pagina.locator("button[type=submit]:visible", { hasText: "Guardar pago · $ 4.000" }).click();
   await pagina.waitForURL(/\/cobros\/[0-9a-f-]{36}\/guardado$/, { timeout: 20_000 });
   const pagoId = pagina.url().split("/").at(-2);
   const guardado = enBaseTexto(`select importe || '|' || medio || '|' || (anulado_en is null) from public.pagos where id = '${pagoId}'`);
   revisar(guardado === "400000|efectivo|true", `cobro por la pantalla nueva guardado en la base: ${guardado}`);
   const mostrado = Number(await pagina.getAttribute("[data-saldo-cliente]", "data-saldo-cliente"));
-  revisar(mostrado === saldoEnBase() && mostrado === saldoAntes - 400000 && (await pagina.getByRole("heading", { name: "Cobro guardado" }).isVisible()), `la confirmación dice que le queda debiendo $ ${mostrado / 100}, igual que la base`);
+  revisar(mostrado === saldoEnBase() && mostrado === saldoAntes - 400000 && (await pagina.getByRole("heading", { name: "Pago registrado" }).isVisible()), `la confirmación dice que le queda debiendo $ ${mostrado / 100}, igual que la base`);
   const conCobro = await compararTotales("con el cobro recién hecho");
   const faltaCon = await faltaCobrarEnVentas();
-  revisar(faltaCon === faltaAntes - 400000, `Ventas: "De estas ventas falta cobrar" bajó $ 4.000 (${faltaAntes / 100} → ${faltaCon / 100})`);
+  revisar(faltaCon === faltaAntes - 400000, `Ventas: "De estas ventas, saldo pendiente" bajó $ 4.000 (${faltaAntes / 100} → ${faltaCon / 100})`);
   await pagina.goto(`${BASE}/cobros/${pagoId}/guardado`);
   await pagina.click("text=Deshacer (anular)");
   await pagina.fill("input[name=motivo]", "Prueba de humo");
   await pagina.click("text=Confirmar anulación");
-  await pagina.getByRole("heading", { name: "Cobro anulado" }).waitFor({ timeout: 20_000 });
+  await pagina.getByRole("heading", { name: "Pago anulado" }).waitFor({ timeout: 20_000 });
   const anulado = enBaseTexto(`select anulado_en is not null from public.pagos where id = '${pagoId}'`);
   const despues = Number(await pagina.getAttribute("[data-saldo-cliente]", "data-saldo-cliente"));
   revisar(anulado === "t" && despues === saldoAntes, `deshacer desde la confirmación anula el cobro y la deuda vuelve a $ ${despues / 100}`);
   const sinCobro = await compararTotales("después de deshacer el cobro");
   const faltaSin = await faltaCobrarEnVentas();
-  revisar(faltaSin === faltaAntes, `Ventas: "De estas ventas falta cobrar" volvió a $ ${faltaSin / 100} al deshacer`);
+  revisar(faltaSin === faltaAntes, `Ventas: "De estas ventas, saldo pendiente" volvió a $ ${faltaSin / 100} al deshacer`);
   revisar(conCobro["nos-deben"] === sinCobro["nos-deben"] - 400000 && conCobro["cobrado-mes"] === sinCobro["cobrado-mes"] + 400000, "el cobro movió exactamente $ 4.000 en Nos deben y en Cobrado del mes");
 }
 // 7. Repetir la última venta (maqueta 6): ficha → "Repetir última venta" → venta cargada con precios de hoy;

@@ -67,7 +67,7 @@ export function ListaQuienDebe({ deudores, todos, totalDeuda, seleccionado }: { 
           {buscando ? "No hay clientes que coincidan." : "Nadie debe nada."}
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-borde rounded-[20px] border border-borde bg-superficie px-4 py-1 shadow-tarjeta lg:border-0 lg:p-0 lg:shadow-none" aria-label="Clientes para cobrar">
+        <ul className="flex flex-col divide-y divide-borde rounded-[20px] border border-borde bg-superficie px-4 py-1 shadow-tarjeta lg:border-0 lg:p-0 lg:shadow-none" aria-label="Deudores">
           {lista.map((c) => {
             const elegido = c.id === seleccionado;
             return (

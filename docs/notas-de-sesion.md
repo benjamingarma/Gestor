@@ -20,6 +20,9 @@
   nuevo en `docs/decisiones/modulo-1.7-venta-cliente-nuevo.md`.
 - Repositorio privado, rama por defecto `main`. Se trabaja con una rama `claude/...` y un PR por tarea; los socios
   prueban en el deploy preview de **Vercel** y **mergean ellos** (nunca mergear sin su aprobación).
+- **En curso (18/11/2026): pago en la venta, ganancia según lo cobrado y lenguaje** (plan 12.6, decisiones en
+  `docs/decisiones/pago-en-venta-y-ganancia-cobrada.md`, glosario en `docs/glosario.md`). PRs en orden: 1 lenguaje,
+  2A migración de venta con pago, 2B pantalla, 3 ganancia cobrada. "Repetir última venta" mergeado (#22, 17/11).
 - **Hosting: Vercel (plan Hobby) desde el 17/11/2026** (Netlify pausó los deploys a producción por créditos del plan
   gratis; se borraron el proyecto de Netlify y `netlify.toml`). Cada merge a `main` publica solo. Los previews de
   Vercel piden login de Vercel (Deployment Protection). Pasos en `docs/configuracion.md`, sección 3.
