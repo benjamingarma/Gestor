@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(52);
+select plan(57);
 
 -- ---------------------------------------------------------------------------------
 -- Permisos de las funciones
@@ -268,6 +268,35 @@ select registrar_venta_con_pago('60000000-0000-0000-0000-000000000050', '1000000
 select results_eq($$ select es_prueba, registrado_por from pagos where id = '70000000-0000-0000-0000-000000000050' $$,
   $$ values (false, '20000000-0000-0000-0000-000000000004'::uuid) $$,
   'en un negocio fuera de modo prueba, el pago queda como dato real');
+
+-- ---------------------------------------------------------------------------------
+-- Borrado de datos de prueba (A20, ensayo del módulo 1.9): también limpia las ventas con pago, los pagos
+-- registrados con una venta (pagos.venta_id) y los clientes creados desde la venta. Lo real no se toca.
+-- ---------------------------------------------------------------------------------
+reset role;
+select set_config('request.jwt.claims', '', true);
+create temp table _antes as
+  select (select count(*) from pagos where negocio_id = '10000000-0000-0000-0000-000000000001' and venta_id is not null) as pagos_de_venta,
+         (select count(*) from ventas where negocio_id = '10000000-0000-0000-0000-000000000001' and anulado_en is not null) as anuladas,
+         (select count(*) from clientes where negocio_id = '10000000-0000-0000-0000-000000000001') as clientes;
+select ok((select pagos_de_venta > 0 and anuladas > 0 and clientes > 3 from _antes),
+  'antes del borrado hay pagos de ventas, ventas anuladas y clientes creados desde la venta (la prueba no es en vacío)');
+select lives_ok($$ select * from borrar_datos_de_prueba('10000000-0000-0000-0000-000000000001', 'BORRAR DATOS DE PRUEBA') $$,
+  'el borrado de datos de prueba corre aunque haya pagos registrados con una venta');
+select results_eq($$ select (select count(*) from ventas where negocio_id = '10000000-0000-0000-0000-000000000001')
+                          + (select count(*) from venta_items where negocio_id = '10000000-0000-0000-0000-000000000001')
+                          + (select count(*) from pagos where negocio_id = '10000000-0000-0000-0000-000000000001')
+                          + (select count(*) from clientes where negocio_id = '10000000-0000-0000-0000-000000000001')
+                          + (select count(*) from movimientos_stock where negocio_id = '10000000-0000-0000-0000-000000000001')
+                          + (select count(*) from compras where negocio_id = '10000000-0000-0000-0000-000000000001')
+                          + (select count(*) from productos where negocio_id = '10000000-0000-0000-0000-000000000001') $$,
+  $$ values (0::bigint) $$, 'después del borrado no queda ningún dato de prueba (ventas, renglones, pagos, clientes, stock, compras, productos)');
+select results_eq($$ select (select count(*) from negocios where id = '10000000-0000-0000-0000-000000000001'),
+                            (select count(*) from socios where negocio_id = '10000000-0000-0000-0000-000000000001') $$,
+  $$ values (1::bigint, 2::bigint) $$, 'se conservan el negocio y sus socios');
+select results_eq($$ select (select count(*) from ventas where id = '60000000-0000-0000-0000-000000000050'),
+                            (select count(*) from pagos where id = '70000000-0000-0000-0000-000000000050' and venta_id is not null) $$,
+  $$ values (1::bigint, 1::bigint) $$, 'la venta con pago real del otro negocio queda intacta');
 
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 set local role anon;
