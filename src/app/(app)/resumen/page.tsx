@@ -12,6 +12,8 @@ import { formatearDolares, formatearPesos } from "@/lib/dinero";
 import { hoy } from "@/lib/fechas";
 import { esMesValido, mesDe, mesesEntre, nombreDelMes } from "@/lib/meses";
 import { obtenerSocioActual } from "@/lib/sesion";
+import { esSemanaValida, inicioDeSemana, nombreDeSemana, periodoDeSemana } from "@/lib/semanas";
+import { sumarDias } from "@/lib/fechas";
 import { EtiquetaEstadoVisita } from "@/componentes/EstadoVisita";
 
 const NOMBRE_MEDIO: Record<string, string> = { efectivo: "Efectivo", transferencia: "Transferencia", mercado_pago: "Mercado Pago" };
@@ -52,11 +54,20 @@ function Fila({ etiqueta, valor, fuerte, rojo, dato }: { etiqueta: React.ReactNo
 }
 
 export default async function PaginaResumen({ searchParams }: PageProps<"/resumen">) {
-  const { mes: pedido } = await searchParams;
+  const { mes: pedido, semana: semanaPedida } = await searchParams;
   const socio = await obtenerSocioActual();
   const dia = hoy();
   const mesActual = mesDe(dia);
-  const periodo = pedido === "todo" ? "todo" : typeof pedido === "string" && esMesValido(pedido) && pedido <= mesActual ? pedido : mesActual;
+  // Por defecto, la semana actual (domingo a sábado; decisión del 18/11/2026). ?semana=AAAA-MM-DD (domingo) o ?mes=AAAA-MM|todo.
+  const semanaActual = inicioDeSemana(dia);
+  const semana =
+    typeof semanaPedida === "string" && esSemanaValida(semanaPedida) && semanaPedida <= semanaActual
+      ? semanaPedida
+      : typeof pedido === "string" && (pedido === "todo" || (esMesValido(pedido) && pedido <= mesActual))
+        ? null
+        : semanaActual;
+  const periodo = semana ? periodoDeSemana(semana) : pedido === "todo" ? "todo" : (pedido as string);
+  const modo = semana ? "semana" : periodo === "todo" ? "todo" : "mes";
 
   const [datos, clientes] = await Promise.all([leerDatosTablero(socio.negocioId), listarClientes(socio.negocioId, dia)]);
   const { socios, vigencias, ganancias, perdidas, cobros, capital } = datos;
@@ -64,7 +75,8 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
 
   const primerMes = [ganancias[0]?.dia, perdidas[0]?.dia, cobros[0]?.dia].filter(Boolean).sort()[0];
   const meses = mesesEntre(primerMes && mesDe(primerMes) < mesActual ? mesDe(primerMes) : mesActual, mesActual);
-  const nombrePeriodo = periodo === "todo" ? "todo el historial" : nombreDelMes(periodo).toLowerCase();
+  const nombrePeriodo = semana ? `semana del ${nombreDeSemana(semana)}` : periodo === "todo" ? "todo el historial" : nombreDelMes(periodo).toLowerCase();
+  const mesDelPeriodo = semana ? mesDe(semana) : periodo === "todo" ? mesActual : periodo;
 
   // Mismos totales que Inicio y Cobrar (src/dominio/tablero.ts).
   const t = armarTablero(datos, periodo);
@@ -82,12 +94,57 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6 leading-[1.25] pantalla-entrar lg:py-7">
       <Encabezado titulo="Resumen" volverA="/" />
-      <SelectorMes meses={meses} actual={periodo} ruta="/resumen" conTodo />
+      <div className="grid grid-cols-3 rounded-[14px] bg-superficie-2 p-1 text-[0.9rem] font-semibold" role="group" aria-label="Período">
+        {[
+          { id: "semana", texto: "Semana", href: `/resumen?semana=${semanaActual}` },
+          { id: "mes", texto: "Mes", href: `/resumen?mes=${mesActual}` },
+          { id: "todo", texto: "Todo", href: "/resumen?mes=todo" },
+        ].map((o) => (
+          <Link
+            key={o.id}
+            href={o.href}
+            aria-current={modo === o.id ? "page" : undefined}
+            className={`flex min-h-[44px] items-center justify-center rounded-[11px] ${modo === o.id ? "bg-superficie text-texto shadow-tarjeta" : "text-texto-suave"}`}
+          >
+            {o.texto}
+          </Link>
+        ))}
+      </div>
+      {semana ? (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/resumen?semana=${sumarDias(semana, -7)}`}
+            aria-label="Semana anterior"
+            className="boton-toque grid h-[50px] w-[50px] shrink-0 place-items-center rounded-[14px] border border-borde bg-superficie text-xl font-bold"
+          >
+            ‹
+          </Link>
+          <span className="flex min-h-[50px] w-full items-center justify-center rounded-[14px] border border-borde bg-superficie px-2 text-center text-[0.95rem] leading-tight font-bold">
+            {semana === semanaActual ? "Esta semana · " : ""}
+            {nombreDeSemana(semana)}
+          </span>
+          {semana < semanaActual ? (
+            <Link
+              href={`/resumen?semana=${sumarDias(semana, 7)}`}
+              aria-label="Semana siguiente"
+              className="boton-toque grid h-[50px] w-[50px] shrink-0 place-items-center rounded-[14px] border border-borde bg-superficie text-xl font-bold"
+            >
+              ›
+            </Link>
+          ) : (
+            <span aria-hidden="true" className="grid h-[50px] w-[50px] shrink-0 place-items-center rounded-[14px] border border-borde bg-superficie text-xl font-bold opacity-30">
+              ›
+            </span>
+          )}
+        </div>
+      ) : (
+        modo === "mes" && <SelectorMes meses={meses} actual={periodo} ruta="/resumen" />
+      )}
 
       <Tarjeta titulo={`Ganancia · ${nombrePeriodo}`} enlace={{ href: "/resumen/reparto", texto: "Ver o cambiar el reparto" }}>
         <DesgloseGanancia t={t} />
         {ajustes.unidades > 0 && (
-          <Link href={`/ajustes?mes=${periodo}`} className="text-[0.82rem] text-acento">
+          <Link href={`/ajustes?mes=${mesDelPeriodo}`} className="text-[0.82rem] text-acento">
             Ver los ajustes de stock ({ajustes.unidades} u) ›
           </Link>
         )}
@@ -104,7 +161,7 @@ export default async function PaginaResumen({ searchParams }: PageProps<"/resume
         <AvisoInfo titulo="Ojo:">{AVISO_GANANCIA_NETA}</AvisoInfo>
       </Tarjeta>
 
-      <Tarjeta titulo={`Ventas · ${nombrePeriodo}`} enlace={periodo === "todo" ? undefined : { href: `/ventas?mes=${periodo}`, texto: "Ver las ventas" }}>
+      <Tarjeta titulo={`Ventas · ${nombrePeriodo}`} enlace={modo === "mes" ? { href: `/ventas?mes=${periodo}`, texto: "Ver las ventas" } : undefined}>
         <Fila etiqueta="Vendido" valor={formatearPesos(ventas.importe)} dato={["vendido-mes", ventas.importe]} />
         <Fila etiqueta="Costo de la mercadería vendida" valor={<Doble usd={ventas.costoUsd} ars={ventas.costoArs} />} />
         <Fila etiqueta="Ventas · unidades" valor={`${ventas.ventas} · ${ventas.unidades} u`} />

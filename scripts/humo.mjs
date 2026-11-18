@@ -51,7 +51,7 @@ execFileSync("psql", [DB_URL, "-q", "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio
 const rutas = [
   "/", "/clientes", "/clientes/nuevo", `/clientes/${ids.cliente}`, `/clientes/${ids.cliente}/cuenta`, `/clientes/${ids.cliente}/cobrar`,
   "/productos", "/productos/nuevo", `/productos/${ids.producto}`, `/productos/${ids.producto}/ajuste`, "/ajustes", "/ajustes?mes=todo", "/compras", "/compras/nueva",
-  "/ventas", "/ventas/nueva", `/ventas/nueva?cliente=${ids.cliente}`, `/ventas/${ids.venta}`, `/ventas/${ids.venta}/guardada`, "/cobros", "/resumen", "/resumen?mes=todo", "/resumen/reparto",
+  "/ventas", "/ventas/nueva", `/ventas/nueva?cliente=${ids.cliente}`, `/ventas/${ids.venta}`, `/ventas/${ids.venta}/guardada`, "/cobros", "/resumen", "/resumen?mes=todo", "/resumen/reparto", "/?ver=mes", "/resumen?mes=2026-11", "/resumen?semana=2026-11-15",
   "/mas", "/buscar?q=humo",
   "/cobrar", `/cobrar/${ids.cliente}`, `/cobrar/${ids.cliente}?importe=5.000&venta=${ids.venta}`, `/cobros/${ids.pago}/guardado`,
 ];
