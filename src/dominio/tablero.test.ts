@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { aplicarCreditos, diaDeudaMasVieja } from "./cuentaCorriente";
 import { armarTablero, type DatosTablero } from "./tablero";
+import { inicioDeSemana, periodoDeSemana } from "@/lib/semanas";
 
 // Escenario del plan (secciones 6 y 7), con la rotura A1 del módulo 1.6.
 const PLAN: DatosTablero = {
@@ -112,6 +113,14 @@ describe("armarTablero (los mismos totales para Inicio, Cobrar y Resumen)", () =
           expect(suma((t) => t.perdidas.costoArs)).toBe(todo.perdidas.costoArs);
           expect(suma((t) => t.ganancia.neta)).toBe(todo.ganancia.neta);
           expect(todo.acumulada.neta).toBe(todo.ganancia.neta);
+          // Lo mismo por semanas (domingo a sábado): cada día cae en una sola semana.
+          const dias = [...vs, ...ps, ...cs].map((x) => x.dia);
+          const semanas = [...new Set(dias.map((x) => periodoDeSemana(inicioDeSemana(x))))].map((p) => armarTablero(datos, p));
+          const sumaSem = (f: (t: typeof todo) => number) => semanas.reduce((s, t) => s + f(t), 0);
+          expect(sumaSem((t) => t.ventas.importe)).toBe(todo.ventas.importe);
+          expect(sumaSem((t) => t.cobrado.total)).toBe(todo.cobrado.total);
+          expect(sumaSem((t) => t.ganancia.neta)).toBe(todo.ganancia.neta);
+          expect(sumaSem((t) => t.desglose.costoCobrado)).toBe(todo.desglose.costoCobrado);
         },
       ),
     );

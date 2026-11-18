@@ -1,12 +1,15 @@
 /** Totales de un período a partir de filas diarias (ventas y cobros). */
 import type { Centavos } from "@/lib/dinero";
+import { enSemana, esPeriodoSemana, PREFIJO_SEMANA } from "@/lib/semanas";
 
 export type FilaGanancia = { dia: string; ventas: number; unidades: number; importe: Centavos; costo_ars: Centavos; costo_usd: Centavos; ganancia: Centavos };
 export type FilaCobro = { dia: string; medio: string; recibido_por: string; recibido_por_nombre: string; cobros: number; total: Centavos };
 
-/** ¿El día cae en el período? período = "AAAA-MM" o "todo". */
+/** ¿El día cae en el período? período = "AAAA-MM", "sem-AAAA-MM-DD" (semana que empieza ese domingo) o "todo". */
 export function enPeriodo(dia: string, periodo: string): boolean {
-  return periodo === "todo" || dia.startsWith(`${periodo}-`);
+  if (periodo === "todo") return true;
+  if (esPeriodoSemana(periodo)) return enSemana(dia, periodo.slice(PREFIJO_SEMANA.length));
+  return dia.startsWith(`${periodo}-`);
 }
 
 export function totalesVentas(filas: FilaGanancia[]) {
