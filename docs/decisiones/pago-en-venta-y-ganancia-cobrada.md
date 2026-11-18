@@ -97,3 +97,17 @@ aprobados de abajo (Ana, Carlos y el desglose) usan pagos sueltos y no cambian. 
   Anular pregunta "Se le devolvió la plata" (marcado) solo si la venta tiene pagos registrados con ella.
 - Prueba de humo: no se guarda sin elegir, "Pagó todo" con deuda anterior, pago parcial con doble toque, Deshacer anula
   venta y pago, anular sin devolver deja el pago a cuenta (saldo a favor).
+
+## PR 3: ganancia según lo cobrado
+- `src/dominio/gananciaCobrada.ts` (`calcularGananciaCobrada`): por cliente, día por día: entran las deudas del día; el
+  pago de una venta va a esa venta; el saldo a favor de antes va a lo pendiente (más viejo primero); lo cobrado ese día
+  va a lo más viejo y lo que sobra queda a favor. Cada peso aplicado a una venta trae ganancia × acumulado ÷ total −
+  lo ya reconocido, en ese día. Lo cobrado de cada venta da igual que `aplicarCreditos` (prueba con fast-check).
+- Desglose del período (cierra exacto): Cobrado − de deudas del papel − quedó como saldo a favor + saldo a favor usado
+  en ventas − costo de la mercadería de lo cobrado − pérdidas por ajustes = Ganancia neta. El reparto entre socios usa
+  `calcularGanancia` con la ganancia cobrada de cada día (porcentaje vigente ese día).
+- **A confirmar:** una venta de $ 0 con costo no tiene nada que cobrar; su ganancia (−costo) se reconoce el día de la
+  venta (si no, nunca aparecería).
+- Prueba de humo: la ganancia neta del mes se calcula aparte en SQL para su escenario (FIFO simple) y se compara con
+  Inicio y Resumen.
+
