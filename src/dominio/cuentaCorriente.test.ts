@@ -131,3 +131,126 @@ describe("propiedades (fast-check)", () => {
     );
   });
 });
+
+// Imputación del pago registrado en la pantalla de venta (decisión del 18/11/2026, camino B).
+// Beto debe V0 de octubre ($ 10.000) y el 18/11 compra V1 ($ 20.000).
+describe("pago de la pantalla de venta: se aplica a esa venta", () => {
+  const V0: Deuda = { id: "V0", tipo: "venta", dia: "2026-10-10", orden: 1, importe: 1_000_000 };
+  const V1: Deuda = { id: "V1", tipo: "venta", dia: "2026-11-18", orden: 2, importe: 2_000_000 };
+  const PAPEL: Deuda = { id: "P", tipo: "saldo_inicial", dia: "2026-09-01", orden: 1, importe: 800_000 };
+
+  it('"Pagó todo" $ 20.000: V1 pagada, V0 sigue debiendo $ 10.000', () => {
+    const c = aplicarCreditos([V0, V1], [{ importe: 2_000_000, ventaId: "V1" }]);
+    expect(resumen(c)).toEqual([["V0", 0, 1_000_000], ["V1", 2_000_000, 0]]);
+    expect(c.debe).toBe(1_000_000);
+  });
+
+  it("Pago parcial $ 12.000: V1 debe $ 8.000 y V0 $ 10.000", () => {
+    const c = aplicarCreditos([V0, V1], [{ importe: 1_200_000, ventaId: "V1" }]);
+    expect(resumen(c)).toEqual([["V0", 0, 1_000_000], ["V1", 1_200_000, 800_000]]);
+    expect(c.debe).toBe(1_800_000);
+  });
+
+  it("Pago de $ 25.000 (más que la venta): V1 pagada y el sobrante de $ 5.000 va a V0", () => {
+    const c = aplicarCreditos([V0, V1], [{ importe: 2_500_000, ventaId: "V1" }]);
+    expect(resumen(c)).toEqual([["V0", 500_000, 500_000], ["V1", 2_000_000, 0]]);
+  });
+
+  it("anular V1 sin devolver la plata: el pago queda libre, cubre V0 y quedan $ 10.000 a favor", () => {
+    const c = aplicarCreditos([V0], [{ importe: 2_000_000, ventaId: "V1" }]);
+    expect(resumen(c)).toEqual([["V0", 1_000_000, 0]]);
+    expect(c.aFavor).toBe(1_000_000);
+  });
+
+  it("anular V1 devolviendo la plata (se anula el pago): Beto vuelve a deber V0", () => {
+    expect(aplicarCreditos([V0], []).debe).toBe(1_000_000);
+  });
+
+  it("deuda del papel: el pago de la venta no la toca; un pago suelto después sí va primero al papel", () => {
+    const V3: Deuda = { id: "V3", tipo: "venta", dia: "2026-11-18", orden: 3, importe: 1_200_000 };
+    expect(resumen(aplicarCreditos([PAPEL, V3], [{ importe: 1_200_000, ventaId: "V3" }]))).toEqual([["P", 0, 800_000], ["V3", 1_200_000, 0]]);
+    expect(resumen(aplicarCreditos([PAPEL, V3], [{ importe: 1_200_000, ventaId: "V3" }, 1_000_000]))).toEqual([["P", 800_000, 0], ["V3", 1_200_000, 0]]);
+  });
+
+  it("saldo a favor + pago de la venta: el saldo a favor completa la venta (\"Pagó todo\" registra total − saldo a favor)", () => {
+    const c = aplicarCreditos([V1], [300_000, { importe: 1_700_000, ventaId: "V1" }]);
+    expect(resumen(c)).toEqual([["V1", 2_000_000, 0]]);
+    expect(c.saldo).toBe(0);
+  });
+
+  it("dos pagos de la misma venta: entre los dos hasta el total, el resto libre", () => {
+    const c = aplicarCreditos([V0, V1], [{ importe: 1_500_000, ventaId: "V1" }, { importe: 1_000_000, ventaId: "V1" }]);
+    expect(resumen(c)).toEqual([["V0", 500_000, 500_000], ["V1", 2_000_000, 0]]);
+  });
+
+  it("los pagos sueltos siguen igual que antes (a la deuda más vieja)", () => {
+    expect(resumen(aplicarCreditos([V0, V1], [2_000_000]))).toEqual([["V0", 1_000_000, 0], ["V1", 1_000_000, 1_000_000]]);
+    expect(resumen(aplicarCreditos([V0, V1], [{ importe: 2_000_000, ventaId: null }]))).toEqual(resumen(aplicarCreditos([V0, V1], [2_000_000])));
+  });
+
+  it("rechaza un pago de la venta con importe inválido", () => {
+    expect(() => aplicarCreditos([V1], [{ importe: 0, ventaId: "V1" }])).toThrow(RangeError);
+  });
+});
+
+describe("propiedades con pagos de ventas (fast-check)", () => {
+  const ids = ["a", "b", "c", "d", "e", "f"];
+  const deudas = fc.uniqueArray(
+    fc.record({
+      id: fc.constantFrom(...ids),
+      tipo: fc.constantFrom("saldo_inicial" as const, "venta" as const),
+      dia: fc.constantFrom("2026-09-01", "2026-10-01", "2026-10-20"),
+      orden: fc.nat(1000),
+      importe: fc.integer({ min: 0, max: 5_000_000 }),
+    }),
+    { selector: (d) => d.id, maxLength: 6 },
+  );
+  // ventaId puede apuntar a una venta que no está (anulada) o a un saldo inicial (no es venta: queda libre).
+  const creditos = fc.array(
+    fc.oneof(fc.integer({ min: 1, max: 5_000_000 }), fc.record({ importe: fc.integer({ min: 1, max: 5_000_000 }), ventaId: fc.option(fc.constantFrom(...ids, "anulada")) })),
+    { maxLength: 6 },
+  );
+  const importe = (c: number | { importe: number }) => (typeof c === "number" ? c : c.importe);
+
+  it("el saldo, lo cobrado en total y los topes son los mismos que con FIFO puro", () => {
+    fc.assert(
+      fc.property(deudas, creditos, (ds, cs) => {
+        const b = aplicarCreditos(ds, cs);
+        const a = aplicarCreditos(ds, cs.map(importe));
+        expect(b.saldo).toBe(a.saldo);
+        expect(b.debe).toBe(a.debe);
+        expect(b.aFavor).toBe(a.aFavor);
+        expect(b.deudas.reduce((s, d) => s + d.cobrado, 0)).toBe(a.deudas.reduce((s, d) => s + d.cobrado, 0));
+        for (const d of b.deudas) {
+          expect(d.cobrado).toBeGreaterThanOrEqual(0);
+          expect(d.cobrado).toBeLessThanOrEqual(d.importe);
+          expect(d.saldo).toBe(d.importe - d.cobrado);
+        }
+      }),
+    );
+  });
+
+  it("cada venta recibe al menos lo que le pagaron con ella (hasta su total)", () => {
+    fc.assert(
+      fc.property(deudas, creditos, (ds, cs) => {
+        const b = aplicarCreditos(ds, cs);
+        for (const d of b.deudas) {
+          if (d.tipo !== "venta") continue;
+          const propio = cs.reduce<number>((s, c) => s + (typeof c !== "number" && c.ventaId === d.id ? c.importe : 0), 0);
+          expect(d.cobrado).toBeGreaterThanOrEqual(Math.min(propio, d.importe));
+        }
+      }),
+    );
+  });
+
+  it("no depende del orden de carga ni de dividir un pago de una venta en dos", () => {
+    fc.assert(
+      fc.property(deudas, creditos, fc.integer(), (ds, cs, semilla) => {
+        const mezclar = <T,>(xs: T[]) => [...xs].sort(() => ((semilla = (semilla * 9301 + 49297) % 233280) / 233280) - 0.5);
+        expect(resumen(aplicarCreditos(mezclar(ds), mezclar(cs)))).toEqual(resumen(aplicarCreditos(ds, cs)));
+        const partidos = cs.flatMap((c) => (typeof c !== "number" && c.importe > 1 ? [{ ...c, importe: 1 }, { ...c, importe: c.importe - 1 }] : [c]));
+        expect(resumen(aplicarCreditos(ds, partidos))).toEqual(resumen(aplicarCreditos(ds, cs)));
+      }),
+    );
+  });
+});

@@ -1,5 +1,5 @@
 import "server-only";
-import { aplicarCreditos, diaDeudaMasVieja, type CuentaCorriente, type Deuda } from "@/dominio/cuentaCorriente";
+import { aplicarCreditos, diaDeudaMasVieja, type CuentaCorriente, type Credito, type Deuda } from "@/dominio/cuentaCorriente";
 import { crearClienteSupabase } from "@/lib/supabase/servidor";
 
 function fallar(contexto: string, error: { message: string }): never {
@@ -18,6 +18,8 @@ export type Pago = {
   nota: string | null;
   anulado_en: string | null;
   motivo_anulacion: string | null;
+  /** Venta con la que se registró el pago (pantalla de venta); null si es un pago suelto. */
+  venta_id: string | null;
 };
 
 export type SaldoInicial = {
@@ -65,7 +67,7 @@ async function leerCrudos(negocioId: string, clienteIds?: string[]): Promise<Dat
 
 function armarCuentas(d: DatosCrudos): Map<string, CuentaCorriente> {
   const deudas = new Map<string, Deuda[]>();
-  const creditos = new Map<string, number[]>();
+  const creditos = new Map<string, Credito[]>();
   const agregar = <T,>(m: Map<string, T[]>, k: string, v: T) => m.set(k, [...(m.get(k) ?? []), v]);
   const clientes = new Set<string>();
   for (const v of d.ventas) {
@@ -81,7 +83,7 @@ function armarCuentas(d: DatosCrudos): Map<string, CuentaCorriente> {
   for (const p of d.pagos) {
     if (p.anulado_en) continue;
     clientes.add(p.cliente_id);
-    agregar(creditos, p.cliente_id, p.importe);
+    agregar(creditos, p.cliente_id, { importe: p.importe, ventaId: p.venta_id });
   }
   const cuentas = new Map<string, CuentaCorriente>();
   for (const c of clientes) cuentas.set(c, aplicarCreditos(deudas.get(c) ?? [], creditos.get(c) ?? []));

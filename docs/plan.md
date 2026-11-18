@@ -111,7 +111,8 @@ visitas y orden de aplicación de pagos, no el costo ya asignado.
 
 **A4. Aplicación de pagos calculada, no guardada.** Créditos del cliente (pagos + saldo inicial a favor)
 cubren las deudas de la más vieja a la más nueva. Si se anula algo, se reacomoda solo; el resultado no
-depende del orden de carga de los pagos.
+depende del orden de carga de los pagos. **Excepción (18/11/2026):** el pago registrado en la pantalla de venta se
+aplica primero a esa venta; lo que sobra va a la más vieja (`docs/decisiones/pago-en-venta-y-ganancia-cobrada.md`).
 
 **A5. Deudas y saldos a favor del papel** entran como "saldo inicial": cuentan en la cuenta corriente
 (deuda más vieja) pero no como venta ni ganancia.
@@ -737,7 +738,8 @@ orden de PRs:
 1. **Lenguaje**: "Cobrar" → "Deudores", la acción → "Registrar pago", el historial → "Pagos recibidos", "Cuenta
    corriente" → "Saldo pendiente". Solo textos. Sin migración.
 2. **Venta con pago** ("Pagó todo", "Pago parcial", "Deuda", sin preselección): **2A** migración (venta y pago en una
-   sola operación, `pagos.venta_id`, Deshacer conjunto; pgTAP y concurrencia) y **2B** pantalla.
+   sola operación, `pagos.venta_id`, Deshacer conjunto; pgTAP y concurrencia; mergeado #24), **2B-1** imputación del
+   pago a su venta (cambio del 18/11) y **2B-2** pantalla.
 3. **Ganancia según lo cobrado** y su desglose en Inicio y Resumen (Cobrado − deudas del papel − costo de lo cobrado −
    pérdidas = Ganancia neta). Sin migración.
 
