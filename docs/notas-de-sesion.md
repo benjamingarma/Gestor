@@ -34,7 +34,9 @@
   plata", marcado por defecto). Sin migración. **2B-2 mergeado (#26).** PR 3 abierto (ganancia según lo cobrado, sin migración):
   `src/dominio/gananciaCobrada.ts` + desglose en Inicio y Resumen (`src/componentes/DesgloseGanancia.tsx`). PR 3 mergeado (#27)
   y arreglo de "Nos deben" en el celular (#28). **18/11: lo cobrado del papel trae ganancia estimada del 50 % fijo**
-  (una sola ganancia neta; PR abierto). Pendiente de confirmar por los socios: una venta de $ 0 con costo reconoce su
+  (una sola ganancia neta; mergeado #29). **18/11: totales por semana (domingo a sábado)**: Inicio y Resumen abren en
+  la semana actual; Inicio con "Semana / Mes" (siempre abre en semana), Resumen con "Semana / Mes / Todo" y flechas
+  (`?semana=AAAA-MM-DD`, el domingo). PR abierto. Pendiente de confirmar por los socios: una venta de $ 0 con costo reconoce su
   pérdida el día de la venta.
 - **Hosting: Vercel (plan Hobby) desde el 17/11/2026** (Netlify pausó los deploys a producción por créditos del plan
   gratis; se borraron el proyecto de Netlify y `netlify.toml`). Cada merge a `main` publica solo. Los previews de

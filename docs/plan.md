@@ -745,6 +745,10 @@ orden de PRs:
 3. **Ganancia según lo cobrado** y su desglose en Inicio y Resumen (Cobrado − deudas del papel − costo de lo cobrado −
    pérdidas = Ganancia neta). Sin migración.
 
+- **Totales por semana (pedido de los socios, 18/11/2026):** la semana va de domingo a sábado. Inicio y Resumen abren
+  en la semana actual; el mes (y en Resumen, todo el historial) queda como opción. Inicio siempre abre en semana.
+  Período `sem-AAAA-MM-DD` en `src/lib/semanas.ts`; los cálculos de ganancia no cambian.
+
 ### 12.4 Notas
 - **Hosting en Vercel desde el 17/11/2026** (antes Netlify, que pausó los deploys a producción por créditos del plan
   gratis). Con los deploys a producción en Vercel, **cada merge a `main` publica solo** la app. Los **deploy previews

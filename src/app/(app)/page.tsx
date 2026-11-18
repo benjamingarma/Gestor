@@ -11,6 +11,7 @@ import { formatearDolares, formatearPesos } from "@/lib/dinero";
 import { diasEntre, formatearDiaLargo, hoy } from "@/lib/fechas";
 import { mesDe, nombreDelMes } from "@/lib/meses";
 import { obtenerSocioActual } from "@/lib/sesion";
+import { inicioDeSemana, nombreDeSemana, periodoDeSemana } from "@/lib/semanas";
 
 /** Cuántos clientes se muestran en las listas del Inicio (el resto, a un toque). */
 const MAXIMO_LISTA = 5;
@@ -18,12 +19,16 @@ const MAXIMO_LISTA = 5;
 const dias = (n: number) => (n === 1 ? "1 día" : `${n} días`);
 
 /** Inicio (maqueta docs/maquetas, pantalla 1). Los totales salen de armarTablero, igual que en Resumen. */
-export default async function PaginaInicio() {
+export default async function PaginaInicio({ searchParams }: PageProps<"/">) {
+  const { ver } = await searchParams;
   const socio = await obtenerSocioActual();
   const dia = hoy();
   const mes = mesDe(dia);
+  // Por defecto, la semana actual (domingo a sábado); "Mes" es una consulta ocasional (decisión del 18/11/2026).
+  const verMes = ver === "mes";
+  const semana = inicioDeSemana(dia);
   const [datos, clientes] = await Promise.all([leerDatosTablero(socio.negocioId), listarClientes(socio.negocioId, dia)]);
-  const t = armarTablero(datos, mes);
+  const t = armarTablero(datos, verMes ? mes : periodoDeSemana(semana));
 
   const deudores = datos.saldos.filter((s) => s.saldo > 0);
   const masViejas = await deudasMasViejas(socio.negocioId, deudores.map((d) => d.cliente_id));
@@ -33,6 +38,8 @@ export default async function PaginaInicio() {
     .sort((a, b) => (a.dia < b.dia ? -1 : 1))[0];
   const aVisitar = clientes.filter((c) => c.estado.tipo === "atrasado" || c.estado.tipo === "hoy").sort((a, b) => compararParaVisitar(a.estado, b.estado));
   const nombreMes = nombreDelMes(mes).split(" ")[0];
+  const titulo = verMes ? nombreMes : "Esta semana";
+  const deLaSemanaOMes = verMes ? "del mes" : "de la semana";
   const netaNegativa = t.ganancia.neta < 0;
 
   const nosDeben = (
@@ -101,12 +108,27 @@ export default async function PaginaInicio() {
 
   const separador = <div className="h-px bg-borde lg:hidden" />;
   const delMes = (
-    <Tarjeta className="flex flex-col gap-3" aria-label={`Resumen de ${nombreMes}`}>
-      <div className="flex items-center justify-between">
-        <h2 className="text-[1.05rem] font-bold">{nombreMes}</h2>
-        <Link href="/resumen" className="text-[0.82rem] font-semibold text-acento">
-          Ver resumen completo ›
-        </Link>
+    <Tarjeta className="flex flex-col gap-3" aria-label={`Resumen de ${titulo.toLowerCase()}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col">
+          <h2 className="text-[1.05rem] font-bold">{titulo}</h2>
+          {!verMes && <span className="text-[0.75rem] text-texto-suave">{nombreDeSemana(semana)}</span>}
+        </div>
+        <div className="flex rounded-[12px] bg-superficie-2 p-1 text-[0.82rem] font-semibold" role="group" aria-label="Período">
+          {[
+            { texto: "Semana", href: "/", activo: !verMes },
+            { texto: "Mes", href: "/?ver=mes", activo: verMes },
+          ].map((o) => (
+            <Link
+              key={o.texto}
+              href={o.href}
+              aria-current={o.activo ? "page" : undefined}
+              className={`flex min-h-[36px] items-center rounded-[9px] px-3.5 ${o.activo ? "bg-superficie text-texto shadow-tarjeta" : "text-texto-suave"}`}
+            >
+              {o.texto}
+            </Link>
+          ))}
+        </div>
       </div>
       <div className="flex flex-col gap-3 lg:grid lg:grid-cols-3 lg:gap-4">
         <div className="flex flex-col gap-1">
@@ -130,11 +152,14 @@ export default async function PaginaInicio() {
         <div className="flex flex-col gap-1">
           <span className="text-[0.82rem] text-texto-suave">Ganancia neta (de lo cobrado)</span>
           <span className={`num text-[1.35rem] font-bold ${netaNegativa ? "text-peligro" : "text-acento"}`}>{formatearPesos(t.ganancia.neta)}</span>
-          <span className="text-[0.72rem] text-texto-suave">Las ventas del mes generaron {formatearPesos(t.ventas.ganancia)} de ganancia, se cobren o no.</span>
+          <span className="text-[0.72rem] text-texto-suave">Las ventas {deLaSemanaOMes} generaron {formatearPesos(t.ventas.ganancia)} de ganancia, se cobren o no.</span>
         </div>
       </div>
       <DesgloseGanancia t={t} />
       <AvisoInfo titulo="Ojo:">{AVISO_GANANCIA_NETA}</AvisoInfo>
+      <Link href={verMes ? `/resumen?mes=${mes}` : `/resumen?semana=${semana}`} className="self-end text-[0.82rem] font-semibold text-acento">
+        Ver resumen completo ›
+      </Link>
     </Tarjeta>
   );
 
