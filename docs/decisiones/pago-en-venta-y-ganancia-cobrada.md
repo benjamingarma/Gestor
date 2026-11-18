@@ -23,24 +23,45 @@ Propuesta presentada el 18/11/2026 con ejemplos numéricos y aprobada el mismo d
 
 ## Reglas acordadas
 - **Pago en la venta**: medio y quién recibió preseleccionados con el último pago que registró ese socio. El botón y la
-  confirmación muestran "Cobrado $ X · Debe $ Y" (Y = saldo pendiente total del cliente después de guardar). El pago se
-  aplica a la deuda más vieja (A4): si el cliente ya debía, "Pagó todo" cancela primero lo viejo; si tenía saldo a
-  favor, "Pagó todo" registra el total menos el saldo a favor. Venta y pago en **una sola operación** de la base
-  (nunca venta guardada con pago fallido), idempotente ante doble toque; "Deshacer" anula los dos juntos.
-  Columna informativa `pagos.venta_id` (no cambia la aplicación de los pagos).
-- **Ganancia según lo cobrado**: cada peso cobrado, aplicado por FIFO a la deuda más vieja, trae su parte de la
+  confirmación muestran "Cobrado $ X · Debe $ Y" (Y = saldo pendiente total del cliente después de guardar; cómo se
+  muestra cuando el cliente ya debía de antes queda para el PR 2B-2). "Pagó todo" cobra solo el total de la venta
+  nueva; si tenía saldo a favor, registra el total menos el saldo a favor. Venta y pago en **una sola operación** de la
+  base (nunca venta guardada con pago fallido), idempotente ante doble toque; "Deshacer" anula los dos juntos.
+- **Imputación del pago de la venta (cambio del 18/11/2026, ver abajo):** el pago registrado en la pantalla de venta
+  (`pagos.venta_id`) se aplica **primero a esa venta**; lo que sobra (pago mayor que la venta), los pagos sueltos de
+  "Registrar pago", los saldos a favor y el pago de una venta anulada sin devolver la plata van a la deuda más vieja
+  (A4). El saldo total del cliente es el mismo que con FIFO puro.
+- **Ganancia según lo cobrado**: cada peso cobrado, aplicado según la imputación de arriba, trae su parte de la
   ganancia de esa venta (ganancia × porción ÷ total de la venta), en el **día del pago**; el reparto usa el porcentaje
   vigente ese día; las pérdidas por ajustes restan en la fecha del ajuste; lo aplicado a deudas del papel no genera
   ganancia. Redondeo sobre lo acumulado: al terminar de pagarse una venta, la suma de las porciones es exactamente su
-  ganancia. Lo que debe cada cliente y lo cobrado de cada venta no cambian (mismo resultado que A4).
+  ganancia. Lo que debe cada cliente y lo cobrado de cada venta son los mismos que muestra la cuenta corriente.
 - **Desglose** en Inicio y Resumen: Cobrado − de deudas del papel − costo de la mercadería de lo cobrado − pérdidas por
   ajustes = Ganancia neta (más "quedó como saldo a favor" / "saldo a favor usado en ventas" cuando no son cero).
   "Nos deben" con la ganancia pendiente de cobro y la ganancia generada por las ventas del mes como dato secundario.
 - El **capital** (invertido = costo de lo vendido + pérdidas + stock) no cambia: depende de ventas y stock, no de pagos.
 
+## Cambio del 18/11/2026: el pago de la venta se aplica a esa venta (camino B)
+La propuesta aprobada decía "el pago se aplica a la deuda más vieja (A4): si el cliente ya debía, 'Pagó todo' cancela
+primero lo viejo" (camino A). Con el PR 2A ya hecho, los socios eligieron el camino B. Motivos: la pantalla no debe
+mostrar como pendiente una venta que el cliente acaba de pagar, y al anular la venta el pago tiene que volver con ella.
+Ejemplo (Beto debe V0 de octubre $ 10.000, costo $ 6.000; compra V1 $ 20.000, costo $ 15.000, el 18/11):
+
+| Caso | A (descartado) | B (elegido) |
+|---|---|---|
+| "Pagó todo" $ 20.000 | V0 pagada, V1 debe $ 10.000; ganancia nov $ 6.500 | V1 pagada, V0 debe $ 10.000; ganancia nov $ 5.000 |
+| Pago parcial $ 12.000 | V1 debe $ 18.000; ganancia $ 4.500 | V1 debe $ 8.000, V0 $ 10.000; ganancia $ 3.000 |
+| Pago $ 25.000 | V1 debe $ 5.000; ganancia $ 7.750 | V0 debe $ 5.000; ganancia $ 7.000 |
+| Anular V1 devolviendo la plata | Debe $ 10.000; nov a $ 0 | Igual |
+| Anular V1 sin devolver | Pago libre: V0 pagada, $ 10.000 a favor; nov $ 4.000 | Igual |
+
+El saldo total es el mismo en los dos; cambian qué venta queda pendiente y la ganancia cobrada del mes. Los ejemplos
+aprobados de abajo (Ana, Carlos y el desglose) usan pagos sueltos y no cambian. Implementado en el PR 2B-1:
+`aplicarCreditos` (`src/dominio/cuentaCorriente.ts`) y migración de comentarios `20261118130000_imputacion_pago_de_venta.sql`.
+
 ## PR 2A: migración `20261118120000_venta_con_pago.sql`
-- **`pagos.venta_id`** (opcional, FK a la venta del mismo negocio): qué pago se registró con qué venta. Informativo:
-  la aplicación de pagos sigue siendo FIFO por cliente (A4) y no lo mira. `v_pagos` lo suma al final.
+- **`pagos.venta_id`** (opcional, FK a la venta del mismo negocio): qué pago se registró con qué venta. `v_pagos` lo
+  suma al final. (Al crearla era informativa; desde el PR 2B-1 decide la imputación, ver arriba.)
 - **`registrar_pago_de_venta(p_id, p_venta_id, p_importe, p_medio, p_recibido_por)`** (SECURITY DEFINER, como
   `registrar_pago`): cliente y día (hora de Tucumán) de la venta; rechaza venta anulada, monto ≤ 0, medio inválido y
   socio de otro negocio; idempotente (`on conflict (id) do nothing`): un reintento devuelve el mismo pago solo si
