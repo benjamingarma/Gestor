@@ -7,7 +7,7 @@ internos del código siguen igual.
 |---|---|---|
 | **Deudores** | Clientes que nos deben plata. | Barra inferior y lateral (antes "Cobrar"), lista de quién debe, tarjeta en Inicio (PC) y Resumen |
 | **Deuda** | Lo que un cliente nos debe de una venta o del papel. | Ficha, detalle del saldo |
-| **Saldo pendiente (lo que nos debe)** | Total que debe un cliente hoy: ventas + deudas del papel − pagos − saldos a favor. | Ficha del cliente (antes "Cuenta corriente"), "Saldo de X" (antes "Cuenta de X"), Ventas ("De estas ventas, saldo pendiente") |
+| **Saldo pendiente (lo que nos debe)** | Total que debe un cliente hoy: ventas + deudas del papel − pagos − saldos a favor. | Ficha del cliente (antes "Cuenta corriente"), "Saldo de X" (antes "Cuenta de X"), botón "Detalle" (antes "Ver cuenta"), Ventas ("De estas ventas, saldo pendiente") |
 | **Nos deben** | Suma del saldo pendiente de todos los clientes. | Inicio, Resumen, Pagos recibidos |
 | **Registrar pago** | Anotar plata que nos dio un cliente. | Botón en la ficha, en la venta y en el detalle; título de la pantalla (antes "Cobrar") |
 | **Pago** | Plata que nos dio un cliente; se aplica sola a sus deudas más viejas. | "Guardar pago", "Pago registrado", "Pago anulado", "Fecha del pago" (antes "cobro") |

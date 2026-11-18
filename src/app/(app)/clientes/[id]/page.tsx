@@ -124,12 +124,12 @@ export default async function PaginaCliente({ params, searchParams }: PageProps<
             {saldo > 0 ? `Debe ${formatearPesos(saldo)}` : saldo < 0 ? `${formatearPesos(-saldo)} a favor` : "Al día"}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-[1.5fr_1fr] gap-2">
           <BotonEnlace href={`/cobrar/${cliente.id}`} variante={saldo > 0 ? "principal" : "secundario"}>
             Registrar pago
           </BotonEnlace>
           <BotonEnlace href={`/clientes/${cliente.id}/cuenta`} variante="secundario">
-            Ver detalle
+            Detalle
           </BotonEnlace>
         </div>
       </section>
