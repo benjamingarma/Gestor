@@ -47,6 +47,10 @@ jobs:
         run: npx supabase test db
       - name: "Prueba de concurrencia (última unidad: venta contra venta y venta contra ajuste)"
         run: bash supabase/tests/concurrencia.sh
+      - name: "Prueba de backup y restauración (datos inventados: backup, contraseña, restauración y controles)"
+        run: |
+          command -v 7z > /dev/null || (sudo apt-get update -q && sudo apt-get install -y -q p7zip-full)
+          bash scripts/backup/prueba-restauracion.sh
 
   humo:
     name: Prueba de humo (app completa en el navegador)

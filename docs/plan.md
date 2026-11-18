@@ -575,6 +575,16 @@ GitHub Actions (repo privado)
 5. **Prueba real de restauración** sobre un proyecto Supabase de prueba con datos inventados, **antes** de
    cargar datos reales. Módulo 1.9; sin eso no se pasa al 1.10.
 
+**Cambios decididos por los socios el 18/11/2026 (módulo 1.9):**
+- En lugar de `age` con par de claves, el backup se cierra con **una contraseña** (7-Zip, AES-256, nombres cifrados)
+  que los socios eligen, cargan como secreto `BACKUP_PASSWORD` en GitHub y guardan fuera de GitHub. Más simple de
+  usar; la diferencia es que quien administre la cuenta de GitHub podría, con esfuerzo, abrir los backups.
+- En lugar de un segundo proyecto de Supabase, la prueba de restauración es **automática en el CI** con datos
+  inventados (backup → contraseña → contraseña equivocada no abre → restauración en base vacía → huella de control
+  idéntica: filas por tabla, numeración, ventas, pagos, saldos, stock y capital), más una prueba manual de los
+  socios, una sola vez: abrir un backup real con su contraseña (`docs/configuracion.md`, sección 6).
+- Backup a las 4:30 de Tucumán. Exportar a CSV: un botón en Más que descarga todo, para los dos socios.
+
 ---
 
 ## 11. Pruebas
@@ -750,6 +760,7 @@ orden de PRs:
   Período `sem-AAAA-MM-DD` en `src/lib/semanas.ts`; los cálculos de ganancia no cambian.
 
 ### 12.4 Notas
+- **1.7 aprobado por Benjamín el 18/11/2026 para pasar al 1.9**, con la prueba del papá todavía pendiente.
 - **1.8 Importación CSV descartado (18/11/2026).** Los datos del papel están en papel; los socios evaluaron pasarlos a
   Google Sheets e importarlos y eligieron **cargarlos a mano desde la app**, que ya tiene todo: productos, clientes,
   stock inicial (compra con "inventario inicial", fecha pasada, USD, tipo de cambio y "estimado"), precios especiales y

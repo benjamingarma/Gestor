@@ -67,8 +67,27 @@ Al mergear un PR que cambia la base, GitHub Actions aplica solo las migraciones 
 5. **Probala.** GitHub > **Actions** > "Aplicar migraciones a Supabase" > **Run workflow** (rama `main`).
    Tiene que terminar en verde. Como la migración del módulo 1.0 ya está aplicada, dice que no hay nada nuevo.
 
-Este mismo secreto lo va a usar el backup diario del módulo 1.8. Si alguna vez se filtra, repetí el paso 1
+Este mismo secreto lo usa el backup diario (módulo 1.9, sección 6). Si alguna vez se filtra, repetí el paso 1
 (cambiar la contraseña invalida la cadena vieja) y actualizá el secreto.
+
+## 6. Backup diario (módulo 1.9, una sola vez)
+
+Todos los días a las 4:30 (hora de Tucumán) GitHub copia los datos de la app, los cierra con una contraseña y los
+guarda 90 días (`.github/workflows/backup.yml`). Usa el mismo secreto `SUPABASE_DB_URL` de las migraciones y uno nuevo:
+
+1. **Elegir la contraseña del backup**: larga (mínimo 16 caracteres; mejor una frase de 4 o 5 palabras). **Guardarla
+   fuera de GitHub** (gestor de contraseñas del celular y una copia en papel): sin ella los backups no se pueden abrir,
+   y GitHub no deja volver a verla.
+2. GitHub > el repositorio > Settings > Secrets and variables > Actions > **New repository secret**:
+   nombre `BACKUP_PASSWORD`, valor: la contraseña.
+3. Probarlo: pestaña **Actions** > "Backup diario" > **Run workflow**. Tiene que terminar en verde; el registro muestra
+   solo cantidades de filas y totales (nunca datos de clientes).
+4. **Prueba de la contraseña (una sola vez, importante):** en esa ejecución, abajo, en **Artifacts**, descargar
+   `gestor-AAAA-MM-DD`. Adentro hay un `.7z`: abrirlo con [7-Zip](https://www.7-zip.org/) (gratis) y escribir la
+   contraseña guardada. Si muestra `gestor-AAAA-MM-DD.dump` y `huella.txt`, la contraseña guardada es la correcta.
+   No hace falta hacer nada más con esos archivos.
+
+Para restaurar un backup (si un día se pierde la base): `docs/restauracion.md`.
 
 ## Desarrollo local (opcional, necesita Docker)
 ```bash
