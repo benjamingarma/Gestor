@@ -584,6 +584,10 @@ GitHub Actions (repo privado)
   idéntica: filas por tabla, numeración, ventas, pagos, saldos, stock y capital), más una prueba manual de los
   socios, una sola vez: abrir un backup real con su contraseña (`docs/configuracion.md`, sección 6).
 - Backup a las 4:30 de Tucumán. Exportar a CSV: un botón en Más que descarga todo, para los dos socios.
+- Hecho: backup diario y prueba de restauración (#33; la prueba de la contraseña la hizo Benjamín el 18/11 con un
+  backup real), y **Exportar todo (CSV)** en Más > Configuración (`/mas/exportar`): un `.zip` con `LEAME.txt` y un
+  CSV por tabla (14), separador ";", UTF-8 con BOM, montos con coma decimal, horas de Tucumán y apóstrofo ante
+  `= + - @` (Excel no ejecuta fórmulas). Lee como el socio logueado (RLS), solo lectura, todas las filas.
 
 ---
 

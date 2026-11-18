@@ -39,6 +39,14 @@ export default async function PaginaMas() {
             ))}
             {grupo === "Configuración" && (
               <li>
+                {/* Enlace común (no Link): es una descarga, no una pantalla; no se adelanta. */}
+                <a href="/mas/exportar" download className="flex items-center justify-between gap-3 py-3">
+                  <Fila icono="descargar" texto="Exportar todo (CSV)" detalle="Un .zip con una planilla por tabla, para guardar una copia" />
+                </a>
+              </li>
+            )}
+            {grupo === "Configuración" && (
+              <li>
                 <form action={cerrarSesion}>
                   <button type="submit" className="flex w-full items-center justify-between gap-3 py-3 text-left">
                     <Fila icono="salir" texto="Cerrar sesión" detalle={socio.email} />

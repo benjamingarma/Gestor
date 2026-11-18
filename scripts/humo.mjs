@@ -7,6 +7,7 @@
 // psql disponible, y Playwright (en CI se instala en el paso anterior).
 // Variables: BASE_URL, API_URL, SECRET_KEY, DB_URL (las de `npx supabase status -o env`).
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 
@@ -343,6 +344,36 @@ return esperado;
   const error = await pagina.getByRole("alert").filter({ hasText: /stock/i }).first().waitFor({ timeout: 20_000 }).then(() => true, () => false);
   const quedoCliente = enBaseTexto(`select count(*) from public.clientes where nombre = '${huerfano}'`);
   revisar(error && quedoCliente === "0", `venta que falla por falta de stock: muestra el error y no deja el cliente nuevo (clientes: ${quedoCliente})`);
+}
+
+// 8. Exportar todo (módulo 1.9): el .zip trae una planilla por tabla, con las mismas filas que la base.
+{
+  const { unzipSync, strFromU8 } = require("fflate");
+  const enBaseTexto = (consulta) => execFileSync("psql", [DB_URL, "-tAq", "-c", consulta]).toString().trim();
+  const revisar = (ok, texto) => {
+    console.log(`${ok ? "OK   " : "FALLA"} ${texto}`);
+    if (!ok) errores.push(texto);
+  };
+  await pagina.goto(`${BASE}/mas`);
+  revisar(await pagina.getByText("Exportar todo (CSV)").first().waitFor({ timeout: 10_000 }).then(() => true, () => false), "Más muestra \"Exportar todo (CSV)\"");
+  // Se toca el botón de verdad y se espera la descarga del navegador (con la sesión del socio).
+  const [descarga] = await Promise.all([pagina.waitForEvent("download", { timeout: 20_000 }), pagina.getByText("Exportar todo (CSV)").first().click()]);
+  const ruta = await descarga.path();
+  const archivos = unzipSync(new Uint8Array(readFileSync(ruta)));
+  const tablas = ["negocios", "socios", "reparto_porcentajes", "productos", "clientes", "precios_especiales", "compras", "ventas", "venta_items", "pagos", "saldos_iniciales", "ajustes_stock", "visitas", "movimientos_stock"];
+  const distintas = tablas.filter((t) => {
+    const csv = archivos[`${t}.csv`] ? strFromU8(archivos[`${t}.csv`]) : null;
+    const filas = csv === null ? -1 : Math.max(0, csv.split("\r\n").filter(Boolean).length - 1);
+    const columna = t === "negocios" ? "id" : "negocio_id";
+    return filas !== Number(enBaseTexto(`select count(*) from public.${t} where ${columna} = '${NEGOCIO}'`));
+  });
+  const pagos = archivos["pagos.csv"] ? strFromU8(archivos["pagos.csv"]) : "";
+  revisar(
+    /^gestor-exportacion-\d{4}-\d{2}-\d{2}\.zip$/.test(descarga.suggestedFilename()) && "LEAME.txt" in archivos && distintas.length === 0,
+    `Exportar todo: .zip con LEAME y ${tablas.length} planillas, cada una con las filas de la base${distintas.length ? ` (distintas: ${distintas.join(", ")})` : ""}`,
+  );
+  const bom = [...(archivos["pagos.csv"] ?? []).slice(0, 3)].join(",") === "239,187,191"; // EF BB BF: Excel lee bien los acentos
+  revisar(bom && /;5000,00;/.test(pagos), "las planillas usan ;, marca UTF-8 para Excel y montos en pesos con coma (pago de $ 5.000 -> 5000,00)");
 }
 
 await navegador.close();

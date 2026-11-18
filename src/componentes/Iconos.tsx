@@ -67,6 +67,7 @@ const TRAZOS = {
     </>
   ),
   salir: <path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10" />,
+  descargar: <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
   repetir: (
     <>
       <path d="M4 12a8 8 0 0 1 13.7-5.6L20 9" />
