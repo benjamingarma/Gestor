@@ -32,8 +32,10 @@
   migración de comentarios aplicada; log verificado). PR 2B-2 abierto: selector "¿Pagó?" en la venta, línea en vivo,
   confirmación con "Esta venta / Deuda anterior", Deshacer y Anular con `anular_venta_y_pagos` ("Se le devolvió la
   plata", marcado por defecto). Sin migración. **2B-2 mergeado (#26).** PR 3 abierto (ganancia según lo cobrado, sin migración):
-  `src/dominio/gananciaCobrada.ts` + desglose en Inicio y Resumen (`src/componentes/DesgloseGanancia.tsx`). Pendiente
-  de confirmar por los socios: una venta de $ 0 con costo reconoce su pérdida el día de la venta.
+  `src/dominio/gananciaCobrada.ts` + desglose en Inicio y Resumen (`src/componentes/DesgloseGanancia.tsx`). PR 3 mergeado (#27)
+  y arreglo de "Nos deben" en el celular (#28). **18/11: lo cobrado del papel trae ganancia estimada del 50 % fijo**
+  (una sola ganancia neta; PR abierto). Pendiente de confirmar por los socios: una venta de $ 0 con costo reconoce su
+  pérdida el día de la venta.
 - **Hosting: Vercel (plan Hobby) desde el 17/11/2026** (Netlify pausó los deploys a producción por créditos del plan
   gratis; se borraron el proyecto de Netlify y `netlify.toml`). Cada merge a `main` publica solo. Los previews de
   Vercel piden login de Vercel (Deployment Protection). Pasos en `docs/configuracion.md`, sección 3.

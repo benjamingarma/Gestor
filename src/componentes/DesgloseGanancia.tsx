@@ -21,17 +21,17 @@ function Linea({ texto, valor, signo, dato, fuerte }: { texto: string; valor: nu
 
 /**
  * Desglose de la ganancia neta según lo cobrado (plan 12.6):
- * Cobrado − de deudas del papel − quedó como saldo a favor + saldo a favor usado − costo de lo cobrado − pérdidas = neta.
- * Las líneas de papel y saldo a favor aparecen solo si no son cero.
+ * Cobrado − quedó como saldo a favor + saldo a favor usado − costo de lo cobrado − pérdidas = neta.
+ * El costo de lo cobrado incluye el 50 % estimado de las deudas del papel (decisión de los socios del 18/11/2026).
+ * Las líneas de saldo a favor aparecen solo si no son cero.
  */
 export function DesgloseGanancia({ t }: { t: Tablero }) {
   const d = t.desglose;
   return (
     <div className="flex flex-col gap-1" aria-label="Desglose de la ganancia neta">
       <Linea texto="Cobrado" valor={d.cobrado} dato="desglose-cobrado" />
-      {d.aPapel > 0 && <Linea signo="−" texto="De deudas del papel" valor={d.aPapel} dato="desglose-papel" />}
       {d.quedoAFavor > 0 && <Linea signo="−" texto="Quedó como saldo a favor" valor={d.quedoAFavor} dato="desglose-quedo-a-favor" />}
-      {d.aFavorUsado > 0 && <Linea signo="+" texto="Saldo a favor usado en ventas" valor={d.aFavorUsado} dato="desglose-a-favor-usado" />}
+      {d.aFavorUsado > 0 && <Linea signo="+" texto="Saldo a favor usado" valor={d.aFavorUsado} dato="desglose-a-favor-usado" />}
       <Linea signo="−" texto="Costo de la mercadería de lo cobrado" valor={d.costoCobrado} dato="desglose-costo" />
       <Linea signo="−" texto="Pérdidas por ajustes de stock" valor={t.ganancia.perdidas} dato="desglose-perdidas" />
       <Linea texto="Ganancia neta" valor={t.ganancia.neta} dato="ganancia-neta-mes" fuerte />

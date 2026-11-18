@@ -36,7 +36,7 @@ export type Tablero = {
   ganancia: ResultadoGanancia;
   /** Ganancia neta (según lo cobrado) de todo el historial. */
   acumulada: ResultadoGanancia;
-  /** Desglose del período: Cobrado − papel − quedó a favor + a favor usado − costo de lo cobrado − pérdidas = neta. */
+  /** Desglose del período: Cobrado − quedó a favor + a favor usado − costo de lo cobrado (con el 50 % del papel) − pérdidas = neta. */
   desglose: ReturnType<typeof sumarDias>;
   /** Ganancia de las ventas que todavía falta cobrar (hoy, no depende del período). */
   gananciaPendiente: number;

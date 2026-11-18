@@ -48,10 +48,10 @@ describe("armarTablero (los mismos totales para Inicio, Cobrar y Resumen)", () =
   it("octubre del plan: vendido, ganancia neta, cobrado, deudas, saldos a favor y capital", () => {
     const t = armarTablero(PLAN, "2026-10");
     expect(t.ventas).toMatchObject({ ventas: 3, unidades: 20, importe: 19_900_000, costoArs: 12_500_000, ganancia: 7_400_000 });
-    // Según lo cobrado: Ana pagó la mitad ($ 23.000) y Bruno pagó el papel (sin ganancia), V2 y V3 enteras ($ 28.000).
-    expect(t.ganancia).toMatchObject({ bruta: 5_100_000, perdidas: 700_000, neta: 4_400_000 });
-    expect(t.ganancia.partes.map((p) => p.importe)).toEqual([2_200_000, 2_200_000]);
-    expect(t.desglose).toMatchObject({ cobrado: 16_000_000, aPapel: 2_000_000, quedoAFavor: 100_000, aFavorUsado: 0, costoCobrado: 8_800_000, ganancia: 5_100_000 });
+    // Según lo cobrado: Ana pagó la mitad ($ 23.000); Bruno pagó el papel ($ 10.000 estimado, 50 %), V2 y V3 enteras ($ 28.000).
+    expect(t.ganancia).toMatchObject({ bruta: 6_100_000, perdidas: 700_000, neta: 5_400_000 });
+    expect(t.ganancia.partes.map((p) => p.importe)).toEqual([2_700_000, 2_700_000]);
+    expect(t.desglose).toMatchObject({ cobrado: 16_000_000, aPapel: 2_000_000, quedoAFavor: 100_000, aFavorUsado: 0, costoCobrado: 9_800_000, ganancia: 6_100_000 });
     expect(t.gananciaPendiente).toBe(2_300_000);
     expect(t.perdidas).toEqual({ ajustes: 1, unidades: 1, costoArs: 700_000, costoUsd: 500 });
     expect(t.cobrado.total).toBe(16_000_000);
@@ -66,7 +66,7 @@ describe("armarTablero (los mismos totales para Inicio, Cobrar y Resumen)", () =
     expect(t.ganancia.neta).not.toBe(t.cobrado.total);
     const d = t.desglose;
     expect(d.cobrado).toBe(t.cobrado.total);
-    expect(d.cobrado - d.aPapel - d.quedoAFavor + d.aFavorUsado - d.costoCobrado - t.ganancia.perdidas).toBe(t.ganancia.neta);
+    expect(d.cobrado - d.quedoAFavor + d.aFavorUsado - d.costoCobrado - t.ganancia.perdidas).toBe(t.ganancia.neta);
   });
 
   it("un mes sin movimientos da cero, pero deudas, saldos a favor y capital son de hoy (no dependen del mes)", () => {
@@ -76,7 +76,7 @@ describe("armarTablero (los mismos totales para Inicio, Cobrar y Resumen)", () =
     expect(t.ganancia.neta).toBe(0);
     expect(t.nosDeben.total).toBe(6_000_000);
     expect(t.capital.stock_ars).toBe(13_550_000);
-    expect(t.acumulada.neta).toBe(4_400_000);
+    expect(t.acumulada.neta).toBe(5_400_000);
     expect(t.gananciaPendiente).toBe(2_300_000);
   });
 

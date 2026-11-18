@@ -111,3 +111,15 @@ aprobados de abajo (Ana, Carlos y el desglose) usan pagos sueltos y no cambian. 
 - Prueba de humo: la ganancia neta del mes se calcula aparte en SQL para su escenario (FIFO simple) y se compara con
   Inicio y Resumen.
 
+## Cambio del 18/11/2026: ganancia estimada de las deudas del papel (50 % fijo)
+- Pedido de los socios después de ver el desglose: lo cobrado de deudas del papel no sumaba ganancia (no se sabe qué
+  stock fue), y la ganancia neta quedaba más baja que la real. Decisión: se estima en el **50 % fijo** de lo cobrado
+  del papel (la regla que usaban a mano), solo para el papel; las ventas de la app siguen con su costo real.
+- **Una sola "Ganancia neta"**, sin separar estimada de exacta. En el desglose desaparece la línea "De deudas del
+  papel" y el otro 50 % se suma al "Costo de la mercadería de lo cobrado". Se reparte entre socios como el resto
+  (porcentaje vigente el día del pago) y su parte sin cobrar suma a la "ganancia que todavía falta cobrar".
+- Ejemplos recalculados: Carlos ($ 8.000 del papel + $ 2.000 de V3) → $ 4.000 + $ 500 = $ 4.500; noviembre con Ana y
+  Carlos: $ 25.000 − $ 15.250 de costo − $ 1.000 de pérdidas = $ 8.750 (antes $ 4.750).
+- Código: `PORCENTAJE_GANANCIA_PAPEL` y `gananciaEstimadaPapel` en `src/dominio/gananciaCobrada.ts`; la deuda del papel
+  se trata como una venta cuya ganancia es la mitad de su importe (redondeo hacia abajo, sobre lo acumulado).
+
