@@ -10,10 +10,10 @@ function fallar(contexto: string, error: { message: string }): never {
 }
 
 /**
- * Lee todas las filas de una consulta en páginas de 1000 (la API de Supabase devuelve como
+ * Lee todas las filas de una consulta en páginas de 1000 (también la usa Exportar todo) (la API de Supabase devuelve como
  * máximo 1000 filas por pedido; sin esto los totales quedarían cortados sin aviso).
  */
-async function leerTodo<T>(pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>, contexto: string): Promise<T[]> {
+export async function leerTodo<T>(pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>, contexto: string): Promise<T[]> {
   const TAM = 1000;
   const filas: T[] = [];
   for (let desde = 0; ; desde += TAM) {
