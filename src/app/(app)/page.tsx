@@ -38,11 +38,12 @@ export default async function PaginaInicio() {
   const nosDeben = (
     <Tarjeta className="flex flex-col gap-2 lg:order-none" aria-label="Nos deben">
       <span className="text-[0.82rem] text-texto-suave">Nos deben</span>
-      <div className="flex items-center justify-between gap-3">
-        <span className={`num text-[2.1rem] font-extrabold tracking-[-0.02em] ${t.nosDeben.total > 0 ? "text-peligro" : ""}`} data-dato="nos-deben" data-centavos={t.nosDeben.total}>
+      {/* El monto nunca se corta ("$" y número juntos); si no entra al lado del botón, el botón baja. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <span className={`num text-[clamp(1.75rem,9vw,2.1rem)] font-extrabold tracking-[-0.02em] whitespace-nowrap ${t.nosDeben.total > 0 ? "text-peligro" : ""}`} data-dato="nos-deben" data-centavos={t.nosDeben.total}>
           {formatearPesos(t.nosDeben.total)}
         </span>
-        <Link href="/cobrar" className="flex min-h-[40px] items-center rounded-xl bg-acento px-3.5 text-[0.9rem] font-bold text-acento-texto">
+        <Link href="/cobrar" className="flex min-h-[40px] shrink-0 items-center rounded-xl bg-acento px-3.5 text-[0.9rem] font-bold whitespace-nowrap text-acento-texto">
           Ver deudores
         </Link>
       </div>
