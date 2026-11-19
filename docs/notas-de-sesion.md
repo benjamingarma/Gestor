@@ -26,8 +26,14 @@
 - **1.9 terminado (18/11):** backup diario a las 4:30 con contraseña `BACKUP_PASSWORD` (#33; Benjamín abrió un backup
   real con 7-Zip), prueba de restauración en CI, Exportar todo (CSV) en Más (#34) y ensayo mínimo del borrado de datos
   de prueba (5 pgTAP en 08). Procedimiento del día del 1.10 en plan sección 10.
-- **Siguen:** 1.10 Pasaje a producción (con los socios) → carga a mano de los datos del papel. La prueba del papá del
-  1.7 sigue pendiente (Benjamín aprobó avanzar igual).
+- **1.10 hecho el 19/11/2026** (con Benjamín, en Supabase > SQL Editor): backup a mano en verde, paso 1 (todo era de
+  prueba: 0 filas reales), borrado (coincidió con el paso 1), `modo_prueba = false` en el negocio "Vapers". **Desde acá
+  todo lo cargado es real.** Pendiente: vincular la cuenta del papá (crear su usuario en Supabase > Authentication y
+  correr `supabase/admin/vincular-socio.sql`), cuando él esté.
+- **Siguen:** carga a mano de los datos del papel (guía acordada el 19/11): productos → clientes → stock del conteo de
+  noviembre menos lo vendido desde el conteo, como compra "inventario inicial" con costo estimado (marcado) → saldos del
+  papel (lo que debe cada cliente hoy; las ventas de agosto a noviembre no se cargan como ventas) → precios especiales.
+  Prueba del papá del 1.7 sigue pendiente.
 - Rama de trabajo de estas sesiones: `claude/dreamy-thompson-vvav70` (se reinicia desde `main` después de cada merge).
 
 ## 1. Dónde estamos (al 11/11/2026)

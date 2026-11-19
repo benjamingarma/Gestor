@@ -674,7 +674,7 @@ de los socios. "Sesión" = una tanda de trabajo que termina en un PR.
 | **1.7** | **Simplificación del diseño** | **🚧 en curso**: todo mergeado (incluidos "Repetir última venta" y lo de 12.6); falta la prueba del papá (12.3) | #11 a #31 |
 | ~~1.8~~ | ~~Importación CSV~~ | **descartado (18/11/2026)**: los socios cargan los datos del papel a mano desde la app, después del 1.10 | — |
 | 1.9 | Backups y restauración | ✅ terminado (18/11/2026): backup diario con contraseña, prueba de restauración en CI, exportar a CSV y ensayo mínimo del borrado | #33, #34, este PR |
-| 1.10 | Pasaje a producción | pendiente | — |
+| 1.10 | Pasaje a producción | ✅ hecho el 19/11/2026 con Benjamín: backup a mano, borrado de datos de prueba (9 clientes, 10 ventas, 7 pagos, 6 compras, 2 productos, etc.; ninguna fila real), modo prueba apagado. **Falta vincular la cuenta del papá** (más adelante, `supabase/admin/vincular-socio.sql`) | — |
 
 Todos los PR son de `benjamingarma/Gestor`. Pruebas en `main` al 11/11/2026 (verificado en el log de GitHub): 356 pgTAP,
 225 Vitest + fast-check, prueba de concurrencia (3 casos) y prueba de humo (29 pantallas, 32 totales contra la base,
